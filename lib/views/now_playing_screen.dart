@@ -255,6 +255,8 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
       },
       onTap: () => onTap(index),
       onHoverChanged: onHoverChanged,
+      isGloballyHovered: isHoveringLyrics,
+      distanceToCurrentLine: (index - lastCurrentIndex).abs(),
     );
   }
 
@@ -756,6 +758,8 @@ class HoverableLyricLine extends StatefulWidget {
   final Function(Size) onSizeChange;
   final VoidCallback? onTap;
   final ValueChanged<bool>? onHoverChanged;
+  final bool isGloballyHovered;
+  final int distanceToCurrentLine;
 
   const HoverableLyricLine({
     super.key,
@@ -764,6 +768,8 @@ class HoverableLyricLine extends StatefulWidget {
     required this.onSizeChange,
     this.onTap,
     this.onHoverChanged,
+    this.isGloballyHovered = false,
+    required this.distanceToCurrentLine,
   });
 
   @override
@@ -797,15 +803,15 @@ class _HoverableLyricLineState extends State<HoverableLyricLine> {
           onTap: widget.onTap,
           child: TweenAnimationBuilder<double>(
             tween: Tween<double>(
-              begin: widget.isCurrent ? 0 : 2.5,
-              end: (widget.isCurrent || isHovered) ? 0 : 2.5,
+              begin: (widget.isGloballyHovered || widget.isCurrent) ? 0 : (1 + widget.distanceToCurrentLine * 0.85).clamp(0, 2.7),
+              end: (widget.isGloballyHovered || widget.isCurrent) ? 0 : (1 + widget.distanceToCurrentLine * 0.85).clamp(0, 2.7),//0-2.7模糊量
             ),
-            duration: const Duration(milliseconds: 250),
+            duration: const Duration(milliseconds: 150),
             builder: (context, blurValue, child) {
               return Container(
                 alignment: Alignment.centerLeft,
                 padding: const EdgeInsets.symmetric(
-                  vertical: 20,
+                  vertical: 15,
                   horizontal: 10,
                 ),
                 decoration: BoxDecoration(
