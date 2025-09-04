@@ -1,11 +1,13 @@
 // theme_provider.dart - 主题管理
 import 'package:flutter/material.dart';
 import 'package:lzf_music/views/settings/storage_setting_page.dart';
+import 'package:lzf_music/widgets/show_aware_page.dart';
 import 'package:provider/provider.dart';
 import '../../services/theme_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/compact_center_snack_bar.dart';
+import '../../router/nested_navigator_wrapper.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -14,7 +16,12 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => SettingsPageState();
 }
 
-class SettingsPageState extends State<SettingsPage> {
+class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
+  @override
+  void onPageShow() {
+    print('settings ...');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -128,12 +135,7 @@ class SettingsPageState extends State<SettingsPage> {
                 subtitle: const Text('添加存储本地/WebDav/More...'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => StorageSettingPage(), // 目标页面
-                    ),
-                  );
+                  NestedNavigationHelper.push(context, "/storage-settings");
                 },
               ),
             ],

@@ -5,9 +5,10 @@ import '../views/playlists_view.dart';
 import '../views/favorites_view.dart';
 import '../views/recently_played_view.dart';
 import '../router/nested_navigator_wrapper.dart';
-import '../router/settings_routes.dart';
 import '../storage/player_state_storage.dart';
 import '../widgets/show_aware_page.dart';
+import '../views/settings/settings_page.dart';
+import '../views/settings/storage_setting_page.dart';
 
 /// 单个菜单项
 class MenuItem {
@@ -105,15 +106,16 @@ class MenuManager {
           key: key,
           navigatorKey: navigatorKey,
           initialRoute: '/settings',
-          routes: settingsRoutes,
+          routes: <String, WidgetBuilder>{
+            '/settings': (context) => const SettingsPage(),
+            '/storage-settings': (context) => const StorageSettingPage(),
+          },
         ),
       ),
     ];
 
-    // 构建页面缓存
     pages = items.map((item) => item.buildPage()).toList();
 
-    // 恢复上次状态
     final playerState = await PlayerStateStorage.getInstance();
     currentPage.value = playerState.currentPage;
 
@@ -122,16 +124,13 @@ class MenuManager {
     });
   }
 
-  /// 切换页面
   void setPage(PlayerPage page) {
     if (page == currentPage.value) return;
     final oldPage = currentPage.value;
     currentPage.value = page;
 
-    // 保存状态
     PlayerStateStorage.getInstance().then((s) => s.setCurrentPage(page));
 
-    // 离开设置页面时重置导航栈
     final oldItem = items[oldPage.index];
     if (oldItem.pageKey.currentState is NestedNavigatorWrapperState) {
       (oldItem.pageKey.currentState as NestedNavigatorWrapperState)
@@ -140,7 +139,6 @@ class MenuManager {
           ?.popUntil((r) => r.isFirst);
     }
 
-    // 调用 ShowAwarePage 的 onPageShow
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _notifyPageShow(items[page.index].pageKey);
     });
@@ -148,12 +146,9 @@ class MenuManager {
 
   void _notifyPageShow(GlobalKey key) {
     final state = key.currentState;
-    if (state == null) return; // 非空判断
+    if (state == null) return;
     if (state is ShowAwarePage) {
       state.onPageShow();
-    } else if (state is NestedNavigatorWrapperState) {
-      state
-          .onPageShow(); // NestedNavigatorWrapperState 已经 implements ShowAwarePage
     }
   }
 }

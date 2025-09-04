@@ -11,6 +11,7 @@ import 'platform/desktop_manager.dart';
 import 'platform/mobile_manager.dart';
 import 'widgets/keyboard_handler.dart';
 import './utils/platform_utils.dart';
+import './router/route_observer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -85,6 +86,7 @@ class _MainAppState extends State<MainApp> with DesktopWindowMixin {
             darkTheme: themeProvider.buildDarkTheme(),
             themeMode: themeProvider.themeMode,
             home: const HomePage(),
+            navigatorObservers: [routeObserver],
             builder: (context, child) {
               if (PlatformUtils.isDesktopNotMac) {
                 return DesktopManager.buildWithTitleBar(child);

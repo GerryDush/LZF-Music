@@ -197,13 +197,14 @@ jobs:
               •	Command ⌘ + 上下方向键：上一首 / 下一首
 
             ✨ 更新内容
-              •	支持按照添加时间排序
-              •	支持批量选择删除
-              •	优化音频播放稳定性与耳机控制体验
-              •	新增支持 M4A 与 ALAC 格式的比特率与采样率读取
-              •	支持系统托盘与后台运行
-              •	新增播放状态保存：退出应用后自动保存播放进度、音量、播放模式
-              •	新增自动定位当前歌曲：切换歌曲时列表自动滚动到当前播放位置
+              • 支持按照添加时间排序
+              • 支持批量选择删除
+              • 优化音频播放稳定性与耳机控制体验
+              • 新增支持 M4A 与 ALAC 格式的比特率与采样率读取
+              • 支持系统托盘与后台运行
+              • 新增播放状态保存：退出应用后自动保存播放进度、音量、播放模式
+              • 新增自动定位当前歌曲：切换歌曲时列表自动滚动到当前播放位置
+              • 新增歌曲导入进度显示：可查看导入的实时进度与完成状态
 
             ⸻
 
@@ -233,13 +234,14 @@ jobs:
               •	Command ⌘ + Up/Down Arrow: Previous / Next track
 
             ✨ What’s New
-              •	Support sorting by added time
-              •	Batch delete support
-              •	Improved audio playback stability & headset control experience
-              •	Added support for M4A & ALAC bitrate and sample rate parsing
-              •	Added system tray integration and background running support
-              •	New: Playback state persistence (save progress, volume, and play mode when exiting)
-              •	New: Auto-scroll to current song in playlist when switching tracks
+              • Support sorting by added time
+              • Batch delete support
+              • Improved audio playback stability & headset control experience
+              • Added support for M4A & ALAC bitrate and sample rate parsing
+              • Added system tray integration and background running support
+              • New: Playback state persistence (save progress, volume, and play mode when exiting)
+              • New: Auto-scroll to current song in playlist when switching tracks
+              • New: Song import progress indicator (view real-time progress and completion status)
           files: |
             macos-x86_64-dmg/*.dmg
             macos-arm64-dmg/*.dmg
