@@ -321,46 +321,55 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                 child: Row(
                   children: [
                     Flexible(
-                      flex: 4,
+                      flex: 20,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 20,
                           horizontal: 50,
                         ),
-                        child: Center(
-                          child: SizedBox(
-                            width: 380,
+                        child: AspectRatio(
+                          aspectRatio: 0.55, // 2:3 宽高比
+                          child: Center(
+                          
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 HoverIconButton(
                                   onPressed: () => Navigator.pop(context),
                                 ),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(20),
-                                  child:
-                                      currentSong?.albumArtPath != null &&
-                                          File(
-                                            currentSong!.albumArtPath!,
-                                          ).existsSync()
-                                      ? Image.file(
-                                          File(currentSong.albumArtPath!),
-                                          width: double.infinity,
-                                          height: 300,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          width: double.infinity,
-                                          height: 260,
-                                          color: Colors.grey[800],
-                                          child: const Icon(
-                                            Icons.music_note_rounded,
-                                            color: Colors.white,
-                                            size: 48,
-                                          ),
-                                        ),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    
+                                  ),
+                                  child: AspectRatio(
+                                    aspectRatio: 1.0, // 固定1:1宽高比
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child:
+                                          currentSong?.albumArtPath != null &&
+                                              File(
+                                                currentSong!.albumArtPath!,
+                                              ).existsSync()
+                                          ? Image.file(
+                                              File(currentSong.albumArtPath!),
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Container(
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                              color: Colors.grey[800],
+                                              child: const Icon(
+                                                Icons.music_note_rounded,
+                                                color: Colors.white,
+                                                size: 48,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 10),
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: Column(
@@ -390,7 +399,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 9),
                                 AnimatedTrackHeightSlider(
                                   value: _tempSliderValue >= 0
                                       ? _tempSliderValue
@@ -467,7 +476,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 4),
                                 Row(
                                   children: [
                                     IconButton(
@@ -578,7 +587,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 0),
                                 Row(
                                   children: [
                                     IconButton(
@@ -624,12 +633,10 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                         ),
                       ),
                     ),
+                    const Spacer(flex: 1), // 使用Spacer创建可变间距
                     Flexible(
-                      flex: 6,
+                      flex: 20,
                       child: Center(
-                        child: SizedBox(
-                          height: 660,
-                          width: 420,
                           child: ShaderMask(
                             shaderCallback: (rect) {
                               return const LinearGradient(
@@ -699,7 +706,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                               ),
                             ),
                           ),
-                        ),
+                        
                       ),
                     ),
                   ],
