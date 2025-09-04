@@ -104,15 +104,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
     // 确保滚动位置在有效范围内
     final scrollPosition = idealPosition.clamp(0.0, maxScrollExtent);
 
-    if (!_enableScrollAnimation) {
-      _scrollController.jumpTo(scrollPosition);
-      _enableScrollAnimation = true;
-    }
-    _scrollController.animateTo(
-      scrollPosition,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
+    _scrollController.jumpTo(scrollPosition);
   }
 
   // 检查当前播放歌曲是否发生变化
