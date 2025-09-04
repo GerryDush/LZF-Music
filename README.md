@@ -1,6 +1,8 @@
 ## **LZF Music - 一款优雅的 Flutter 开源音乐播放器**
 
-**[LZF Music]** 是一款基于 Flutter 开发的开源音乐播放器，致力于为用户提供简洁、美观且功能强大的本地与私有云音乐体验。
+国内下载：https://lzf.geddy.cn/
+
+**LZF Music** 是一款基于 Flutter 开发的开源音乐播放器，致力于为用户提供简洁、美观且功能强大的本地与私有云音乐体验。
 
 ![1](./doc/images/1.png)
 ![2](./doc/images/2.png)

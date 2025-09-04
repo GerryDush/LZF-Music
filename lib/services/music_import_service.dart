@@ -6,6 +6,35 @@ import 'package:drift/drift.dart';
 import '../database/database.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p; // 跨平台路径处理
+class CoverImage {
+  final Uint8List bytes;
+  final String type;
+
+  CoverImage._(this.bytes, this.type);
+
+  static CoverImage? fromBytes(Uint8List data) {
+    final pngHeader = [0x89, 0x50, 0x4E, 0x47]; // PNG
+    final jpegHeader = [0xFF, 0xD8];           // JPEG
+
+    int start = -1;
+    String? type;
+
+    for (int i = 0; i < data.length - 4; i++) {
+      if (data.sublist(i, i + 4).join(',') == pngHeader.join(',')) {
+        start = i;
+        type = 'png';
+        break;
+      }
+      if (i < data.length - 2 && data.sublist(i, i + 2).join(',') == jpegHeader.join(',')) {
+        start = i;
+        type = 'jpeg';
+        break;
+      }
+    }
+    if (start == -1 || type == null) return null;
+    return CoverImage._(data.sublist(start), type);
+  }
+}
 
 class MusicImportService {
   final MusicDatabase database;
@@ -178,20 +207,22 @@ class MusicImportService {
       if (metadata.pictures.isNotEmpty) {
         final dbFolder = await getApplicationSupportDirectory();
         final picture = metadata.pictures.first;
+        CoverImage? cover = CoverImage.fromBytes(picture.bytes);
+        if(cover!=null){
+          // 计算图片内容的MD5哈希
+          final md5Hash = md5.convert(cover.bytes).toString();
+          final fileName = '$md5Hash.${cover.type}';
 
-        // 计算图片内容的MD5哈希
-        final md5Hash = md5.convert(picture.bytes).toString();
-        final fileName = '$md5Hash.jpg';
-
-        final albumArtFile = File(
-          p.join(dbFolder.path, '.album_art', fileName),
-        );
-        await albumArtFile.parent.create(recursive: true);
-        // 如果文件已存在则不重复写入
-        if (!await albumArtFile.exists()) {
-          await albumArtFile.writeAsBytes(picture.bytes);
+          final albumArtFile = File(
+            p.join(dbFolder.path, '.album_art', fileName),
+          );
+          await albumArtFile.parent.create(recursive: true);
+          // 如果文件已存在则不重复写入
+          if (!await albumArtFile.exists()) {
+            await albumArtFile.writeAsBytes(cover.bytes);
+          }
+          albumArtPath = albumArtFile.path;
         }
-        albumArtPath = albumArtFile.path;
       }
 
       await database.insertSong(

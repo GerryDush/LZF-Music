@@ -1,5 +1,7 @@
 enum PlayerPage { library, favorite, playlist, recently, settings }
 
+enum SettingsPageKeys { settings, storage }
+
 enum PlayMode { single, singleLoop, sequence, loop, shuffle }
 
 class SortState {
