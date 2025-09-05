@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/compact_center_snack_bar.dart';
 import '../../router/nested_navigator_wrapper.dart';
+import '../../router/router.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -16,7 +17,12 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => SettingsPageState();
 }
 
-class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
+class SettingsPageState extends State<SettingsPage>
+    with AutomaticKeepAliveClientMixin, ShowAwarePage {
+
+  @override
+  bool get wantKeepAlive => true;
+  
   @override
   void onPageShow() {
     print('settings ...');
@@ -24,6 +30,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
       child: Column(
@@ -135,7 +142,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                 subtitle: const Text('添加存储本地/WebDav/More...'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  NestedNavigationHelper.push(context, "/storage-settings");
+                  NestedNavigationHelper.push(context, "/settings/storage");
                 },
               ),
             ],
