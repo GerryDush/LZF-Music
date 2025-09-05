@@ -48,8 +48,23 @@ class _MiniPlayerState extends State<MiniPlayer> {
                         if (currentSong == null) return;
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => ImprovedNowPlayingScreen(),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => 
+                                ImprovedNowPlayingScreen(),
+                            transitionDuration: const Duration(milliseconds: 400), // 可调节动画持续时间
+                            reverseTransitionDuration: const Duration(milliseconds: 300), // 可调节返回动画持续时间
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              // 只使用滑动效果，移除淡入淡出
+                              return SlideTransition(
+                                position: animation.drive(
+                                  Tween(
+                                    begin: const Offset(0.0, 1.0), // 从底部滑入
+                                    end: Offset.zero,
+                                  ).chain(CurveTween(curve: Curves.ease)),
+                                ),
+                                child: child,
+                              );
+                            },
                             fullscreenDialog: true,
                           ),
                         );

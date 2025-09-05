@@ -622,36 +622,79 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                                         padding: EdgeInsets.all(8),
                                         child: Row(
                                           children: [
-                                            Container(
+                                            AnimatedContainer(
+                                              duration: const Duration(milliseconds: 150),
                                               width: 50,
                                               height: 50,
                                               decoration: BoxDecoration(
                                                 borderRadius:
                                                     BorderRadius.circular(4),
+                                                color: isHovered 
+                                                    ? Colors.black.withOpacity(0.3)
+                                                    : Colors.transparent,
                                               ),
-                                              child:
-                                                  songs[index].albumArtPath !=
-                                                      null
-                                                  ? ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            4,
+                                              child: Stack(
+                                                children: [
+                                                  // 专辑封面
+                                                  ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(4),
+                                                    child: songs[index]
+                                                                .albumArtPath !=
+                                                            null
+                                                        ? Image.file(
+                                                            File(
+                                                              songs[index]
+                                                                  .albumArtPath!,
+                                                            ),
+                                                            width: 50,
+                                                            height: 50,
+                                                            fit: BoxFit.cover,
+                                                            cacheWidth: 150,
+                                                            cacheHeight: 150,
+                                                          )
+                                                        : Container(
+                                                            width: 50,
+                                                            height: 50,
+                                                            color: Colors.grey[300],
+                                                            child: const Icon(
+                                                              Icons.music_note_rounded,
+                                                              color: Colors.grey,
+                                                            ),
                                                           ),
-                                                      child: Image.file(
-                                                        File(
-                                                          songs[index]
-                                                              .albumArtPath!,
-                                                        ),
+                                                  ),
+                                                  // 悬停时的播放按钮
+                                                  if (isHovered)
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        // 标记这是用户在当前页面的点击操作
+                                                        _isUserClickedFromThisPage = true;
+                                                        playerProvider.playSong(
+                                                          songs[index],
+                                                          playlist: songs,
+                                                          index: index,
+                                                        );
+                                                      },
+                                                      child: Container(
                                                         width: 50,
                                                         height: 50,
-                                                        fit: BoxFit.cover,
-                                                        cacheWidth: 150,
-                                                        cacheHeight: 150,
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.black
+                                                              .withOpacity(0.45),
+                                                          borderRadius:
+                                                              BorderRadius.circular(4),
+                                                        ),
+                                                        child: const Center(
+                                                          child: Icon(
+                                                            Icons.play_arrow_rounded,
+                                                            color: Colors.white,
+                                                            size: 28,
+                                                          ),
+                                                        ),
                                                       ),
-                                                    )
-                                                  : const Icon(
-                                                      Icons.music_note_rounded,
                                                     ),
+                                                ],
+                                              ),
                                             ),
                                             const SizedBox(width: 10),
                                             Expanded(
