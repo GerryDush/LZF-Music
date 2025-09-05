@@ -60,7 +60,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                                   Tween(
                                     begin: const Offset(0.0, 1.0), // 从底部滑入
                                     end: Offset.zero,
-                                  ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                                  ).chain(CurveTween(curve: Curves.ease)),
                                 ),
                                 child: child,
                               );
