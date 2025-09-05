@@ -66,6 +66,8 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                             });
                           },
                           onSliderChangeEnd: (value) {
+                            // 跳转到指定位置
+                            playerProvider.seekTo(Duration(seconds: value.toInt()));
                             setState(() {
                               _tempSliderValue = -1;
                             });
