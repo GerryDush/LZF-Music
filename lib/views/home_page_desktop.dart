@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import 'package:lzf_music/widgets/frosted_container.dart';
+import 'package:lzf_music/widgets/themed_background.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/resolution_display.dart';
 import 'package:provider/provider.dart';
@@ -30,67 +32,52 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-
-    return Consumer<AppThemeProvider>(
-      builder: (context, themeProvider, child) {
-        final defaultTextColor = ThemeUtils.select(
-          context,
-          light: Colors.black,
-          dark: Colors.white,
-        );
-        Color sidebarBg = ThemeUtils.backgroundColor(context);
-        Color bodyBg = ThemeUtils.backgroundColor(context);
-        if (["window", "sidebar"].contains(themeProvider.opacityTarget)) {
-          sidebarBg = sidebarBg.withValues(alpha: themeProvider.seedAlpha);
-        }
-        if (["window", "body"].contains(themeProvider.opacityTarget)) {
-          bodyBg = bodyBg.withValues(alpha: themeProvider.seedAlpha);
-        }
-
-        final isMiniPlayerFloating =
-            (themeProvider.opacityTarget == 'sidebar' ||
-            themeProvider.seedAlpha > 0.98);
-
-        return Scaffold(
-          body: Row(
-            children: [
-              AnimatedContainer(
-                color: sidebarBg,
-                duration: const Duration(milliseconds: 200),
-                width: themeProvider.sidebarIsExtended ? 220 : 70,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 40.0, bottom: 12.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'LZF',
-                            style: TextStyle(
-                              height: 2,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
+  Widget build(BuildContext context,) {
+    return ThemedBackground(
+      builder:
+          (
+            context, theme) {
+            return Scaffold(
+              body: Row(
+                children: [
+                  AnimatedContainer(
+                    color: theme.sidebarBg,
+                    duration: const Duration(milliseconds: 200),
+                    width: CommonUtils.select(theme.sidebarIsExtended, t: 220, f: 70),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: 40.0,
+                            bottom: 12.0,
                           ),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            transitionBuilder:
-                                (Widget child, Animation<double> anim) {
-                                  return FadeTransition(
-                                    opacity: anim,
-                                    child: SizeTransition(
-                                      axis: Axis.horizontal,
-                                      sizeFactor: anim,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                            child: themeProvider.sidebarIsExtended
-                                ? const Text(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'LZF',
+                                style: TextStyle(
+                                  height: 2,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                transitionBuilder:
+                                    (Widget child, Animation<double> anim) {
+                                      return FadeTransition(
+                                        opacity: anim,
+                                        child: SizeTransition(
+                                          axis: Axis.horizontal,
+                                          sizeFactor: anim,
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                child: CommonUtils.select(
+                                  theme.sidebarIsExtended,
+                                  t: const Text(
                                     ' Music',
                                     style: TextStyle(
                                       height: 2,
@@ -98,77 +85,89 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                                       fontWeight: FontWeight.bold,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                  )
-                                : const SizedBox(key: ValueKey('empty')),
+                                  ),
+                                  f: const SizedBox(key: ValueKey('empty')),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ValueListenableBuilder<PlayerPage>(
-                        valueListenable: menuManager.currentPage,
-                        builder: (context, currentPage, _) {
-                          return ListView.builder(
-                            itemCount: menuManager.items.length,
-                            itemBuilder: (context, index) {
-                              final item = menuManager.items[index];
-                              final isSelected = index == currentPage.index;
-                              final isHovered =
-                                  index == menuManager.hoverIndex.value;
+                        ),
+                        Expanded(
+                          child: ValueListenableBuilder<PlayerPage>(
+                            valueListenable: menuManager.currentPage,
+                            builder: (context, currentPage, _) {
+                              return ListView.builder(
+                                itemCount: menuManager.items.length,
+                                itemBuilder: (context, index) {
+                                  final item = menuManager.items[index];
+                                  final isSelected = index == currentPage.index;
+                                  final isHovered =
+                                      index == menuManager.hoverIndex.value;
 
-                              Color bgColor;
-                              Color textColor;
+                                  Color bgColor;
+                                  Color textColor;
 
-                              if (isSelected) {
-                                bgColor = primary.withValues(alpha: 0.2);
-                                textColor = primary;
-                              } else if (isHovered) {
-                                bgColor = Colors.grey.withValues(alpha: 0.2);
-                                textColor = defaultTextColor;
-                              } else {
-                                bgColor = Colors.transparent;
-                                textColor = defaultTextColor;
-                              }
+                                  if (isSelected) {
+                                    bgColor = theme.primaryColor.withValues(
+                                      alpha: 0.2,
+                                    );
+                                    textColor = theme.primaryColor;
+                                  } else if (isHovered) {
+                                    bgColor = Colors.grey.withValues(
+                                      alpha: 0.2,
+                                    );
+                                    textColor = ThemeUtils.select(
+                                      context,
+                                      light: Colors.black,
+                                      dark: Colors.white,
+                                    );
+                                  } else {
+                                    bgColor = Colors.transparent;
+                                    textColor = ThemeUtils.select(
+                                      context,
+                                      light: Colors.black,
+                                      dark: Colors.white,
+                                    );
+                                  }
 
-                              return MouseRegion(
-                                onEnter: (_) =>
-                                    menuManager.hoverIndex.value = index,
-                                onExit: (_) =>
-                                    menuManager.hoverIndex.value = -1,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: bgColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(8),
-                                    onTap: () => _onTabChanged(index),
+                                  return MouseRegion(
+                                    onEnter: (_) =>
+                                        menuManager.hoverIndex.value = index,
+                                    onExit: (_) =>
+                                        menuManager.hoverIndex.value = -1,
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            item.icon,
-                                            color: textColor,
-                                            size: item.iconSize,
+                                      decoration: BoxDecoration(
+                                        color: bgColor,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        onTap: () => _onTabChanged(index),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
                                           ),
-                                          Flexible(
-                                            child: AnimatedSwitcher(
-                                              duration: const Duration(
-                                                milliseconds: 200,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                item.icon,
+                                                color: textColor,
+                                                size: item.iconSize,
                                               ),
-                                              child:
-                                                  themeProvider
-                                                      .sidebarIsExtended
-                                                  ? Padding(
+                                              Flexible(
+                                                child: AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                    milliseconds: 200,
+                                                  ),
+                                                  child: CommonUtils.select(
+                                                    theme.sidebarIsExtended,
+                                                    t: Padding(
                                                       key: const ValueKey(
                                                         'text',
                                                       ),
@@ -188,88 +187,91 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                                                         overflow: TextOverflow
                                                             .ellipsis,
                                                       ),
-                                                    )
-                                                  : const SizedBox(
+                                                    ),
+                                                    f: const SizedBox(
                                                       width: 0,
                                                       key: ValueKey('empty'),
                                                     ),
-                                            ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: IconButton(
+                            icon: Icon(
+                              CommonUtils.select(
+                                theme.sidebarIsExtended,
+                                t: Icons.arrow_back_rounded,
+                                f: Icons.menu_rounded,
+                              ),
+                            ),
+                            onPressed: () => theme.themeProvider.toggleExtended(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const VerticalDivider(width: 1, thickness: 1),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        // 主内容区域
+                        Container(
+                          color: theme.bodyBg,
+                          child: ValueListenableBuilder<PlayerPage>(
+                            valueListenable: menuManager.currentPage,
+                            builder: (context, currentPage, _) {
+                              return IndexedStack(
+                                index: currentPage.index,
+                                children: menuManager.pages,
+                              );
+                            },
+                          ),
+                        ),
+
+                        // 逻辑分辨率显示
+                        // Positioned(
+                        //   top: 8,
+                        //   right: 8,
+                        //   child: ResolutionDisplay(
+                        //     isMinimized: true,
+                        //   ),
+                        // ),
+
+                        // MiniPlayer
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return FrostedContainer(
+                                enabled: theme.isFloat,
+                                child: MiniPlayer(
+                                  containerWidth: constraints.maxWidth,
                                 ),
                               );
                             },
-                          );
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: IconButton(
-                        icon: Icon(
-                          themeProvider.sidebarIsExtended
-                              ? Icons.arrow_back_rounded
-                              : Icons.menu_rounded,
+                          ),
                         ),
-                        onPressed: () => themeProvider.toggleExtended(),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const VerticalDivider(width: 1, thickness: 1),
-              Expanded(
-                child: Stack(
-                  children: [
-                    // 主内容区域
-                    Container(
-                      color: bodyBg,
-                      child: ValueListenableBuilder<PlayerPage>(
-                        valueListenable: menuManager.currentPage,
-                        builder: (context, currentPage, _) {
-                          return IndexedStack(
-                            index: currentPage.index,
-                            children: menuManager.pages,
-                          );
-                        },
-                      ),
-                    ),
-
-                    // 逻辑分辨率显示
-                    // Positioned(
-                    //   top: 8,
-                    //   right: 8,
-                    //   child: ResolutionDisplay(
-                    //     isMinimized: true,
-                    //   ),
-                    // ),
-
-                    // MiniPlayer
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return FrostedContainer(
-                            enabled: isMiniPlayerFloating,
-                            child: MiniPlayer(
-                              containerWidth: constraints.maxWidth,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            );
+          },
     );
   }
 }

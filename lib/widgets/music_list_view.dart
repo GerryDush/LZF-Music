@@ -5,8 +5,9 @@ import '../database/database.dart';
 import '../services/player_provider.dart';
 import 'lzf_toast.dart';
 import '../widgets/song_action_menu.dart';
-import '../utils/common_utils.dart' show formatDuration;
+import '../utils/common_utils.dart' show CommonUtils;
 import '../utils/platform_utils.dart';
+
 class MusicListView extends StatefulWidget {
   final List<Song> songs;
   final ScrollController? scrollController;
@@ -112,7 +113,7 @@ class _MusicListViewState extends State<MusicListView> {
   @override
   Widget build(BuildContext context) {
     return ThemedBackground(
-      builder: (context, sidebar, body, isFloat) {
+      builder: (context, theme) {
         return NotificationListener<ScrollNotification>(
           onNotification: (notification) {
             if (notification is ScrollStartNotification) {
@@ -131,12 +132,14 @@ class _MusicListViewState extends State<MusicListView> {
             }
             return false;
           },
-          child: CustomScrollView(
+          child: Padding(padding: EdgeInsets.only(bottom: 100),child: CustomScrollView(
             controller: widget.scrollController,
             slivers: [
               // 占位空间 - 为标题栏预留空间
-               SliverToBoxAdapter(
-                child: SizedBox(height: PlatformUtils.select(desktop: 0, mobile: 200)), // 标题栏高度
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: CommonUtils.select(theme.isFloat, t: PlatformUtils.select(desktop: 120, mobile: 200), f: 0),
+                ), // 标题栏高度
               ),
               // 列表内容 - 使用SliverFixedExtentList保持性能
               SliverFixedExtentList(
@@ -156,10 +159,7 @@ class _MusicListViewState extends State<MusicListView> {
 
                       return Card(
                         elevation: 0,
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                        margin: EdgeInsets.fromLTRB(8, CommonUtils.select(index==0, t: 0, f: 4), 8, 4),
                         color: isSelected
                             ? Theme.of(
                                 context,
@@ -321,7 +321,7 @@ class _MusicListViewState extends State<MusicListView> {
                                                 SizedBox(
                                                   width: 60,
                                                   child: Text(
-                                                    formatDuration(
+                                                    CommonUtils.formatDuration(
                                                       Duration(
                                                         seconds:
                                                             song.duration ?? 0,
@@ -390,7 +390,7 @@ class _MusicListViewState extends State<MusicListView> {
                 }, childCount: widget.songs.length),
               ),
             ],
-          ),
+          ),),
         );
       },
     );

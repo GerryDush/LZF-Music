@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/widgets/frosted_container.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
 
@@ -178,11 +179,16 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
         _checkCurrentSongChange(playerProvider);
 
         return ThemedBackground(
-          builder: (context, sidebar, body, isFloat) {
+          builder: (context, theme) {
             return Stack(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
+                  padding: EdgeInsets.fromLTRB(
+                    16.0,
+                    CommonUtils.select(theme.isFloat, t: 20, f: 136),
+                    16.0,
+                    0,
+                  ),
                   child: MusicListView(
                     songs: songs,
                     scrollController: _scrollController,
@@ -220,143 +226,132 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: ThemedBackground(
-                    builder: (context, sidebar, body, isFloat) {
-                      return FrostedContainer(
-                        enabled: isFloat,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            16.0,
-                            20.0,
-                            16.0,
-                            0,
-                          ),
-                          child: PageHeader(
+                  child: FrostedContainer(
+                    enabled: theme.isFloat,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 0),
+                      child: PageHeader(
+                        songs: songs,
+                        onSearch: (keyword) async {
+                          searchKeyword = keyword;
+                          await _loadSongs();
+                        },
+                        onImportDirectory: () async {
+                          MusicImporter.importFromDirectory(
+                            context,
+                            database,
+                            onCompleted: () {
+                              _loadSongs();
+                            },
+                          );
+                        },
+                        onImportFiles: () async {
+                          MusicImporter.importFiles(
+                            context,
+                            database,
+                            onCompleted: () {
+                              _loadSongs();
+                            },
+                          );
+                        },
+                        children: [
+                          const SizedBox(height: 20),
+                          MusicListHeader(
                             songs: songs,
-                            onSearch: (keyword) async {
-                              searchKeyword = keyword;
-                              await _loadSongs();
+                            orderField: orderField,
+                            orderDirection: orderDirection,
+                            showCheckbox: _showCheckbox,
+                            checkedIds: checkedIds,
+                            allowReorder: true, // 库视图允许重排列
+                            onShowCheckboxToggle: () {
+                              setState(() {
+                                _showCheckbox = true;
+                              });
                             },
-                            onImportDirectory: () async {
-                              MusicImporter.importFromDirectory(
-                                context,
-                                database,
-                                onCompleted: () {
-                                  _loadSongs();
-                                },
-                              );
+                            onScrollToCurrent: () {
+                              final playerProvider =
+                                  Provider.of<PlayerProvider>(
+                                    context,
+                                    listen: false,
+                                  );
+                              final currentSongId =
+                                  playerProvider.currentSong?.id;
+                              if (currentSongId != null) {
+                                _scrollToCurrentSong(currentSongId);
+                              } else {
+                                LZFToast.show(context, '当前没有播放歌曲');
+                              }
                             },
-                            onImportFiles: () async {
-                              MusicImporter.importFiles(
-                                context,
-                                database,
-                                onCompleted: () {
-                                  _loadSongs();
-                                },
-                              );
+                            onOrderChanged: (field, direction) {
+                              setState(() {
+                                orderField = field;
+                                orderDirection = direction;
+                              });
+                              _loadSongs();
                             },
-                            children: [
-                              const SizedBox(height: 20),
-                              MusicListHeader(
-                                songs: songs,
-                                orderField: orderField,
-                                orderDirection: orderDirection,
-                                showCheckbox: _showCheckbox,
-                                checkedIds: checkedIds,
-                                allowReorder: true, // 库视图允许重排列
-                                onShowCheckboxToggle: () {
-                                  setState(() {
-                                    _showCheckbox = true;
-                                  });
-                                },
-                                onScrollToCurrent: () {
-                                  final playerProvider =
-                                      Provider.of<PlayerProvider>(
-                                        context,
-                                        listen: false,
-                                      );
-                                  final currentSongId =
-                                      playerProvider.currentSong?.id;
-                                  if (currentSongId != null) {
-                                    _scrollToCurrentSong(currentSongId);
-                                  } else {
-                                    LZFToast.show(context, '当前没有播放歌曲');
-                                  }
-                                },
-                                onOrderChanged: (field, direction) {
-                                  setState(() {
-                                    orderField = field;
-                                    orderDirection = direction;
-                                  });
-                                  _loadSongs();
-                                },
-                                onSelectAllChanged: (selectAll) {
-                                  setState(() {
-                                    if (selectAll) {
-                                      checkedIds
-                                        ..clear()
-                                        ..addAll(songs.map((s) => s.id));
-                                    } else {
-                                      checkedIds.clear();
-                                    }
-                                  });
-                                },
-                                onBatchAction: (action) async {
-                                  if (action == 'delete') {
-                                    bool? confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('确认删除'),
-                                        content: const Text('确定要删除所选歌曲吗？'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            child: const Text('取消'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            child: const Text(
-                                              '确定',
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                            onSelectAllChanged: (selectAll) {
+                              setState(() {
+                                if (selectAll) {
+                                  checkedIds
+                                    ..clear()
+                                    ..addAll(songs.map((s) => s.id));
+                                } else {
+                                  checkedIds.clear();
+                                }
+                              });
+                            },
+                            onBatchAction: (action) async {
+                              if (action == 'delete') {
+                                bool? confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('确认删除'),
+                                    content: const Text('确定要删除所选歌曲吗？'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text('取消'),
                                       ),
-                                    );
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text(
+                                          '确定',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
 
-                                    if (confirm == true) {
-                                      if (checkedIds.isEmpty) {
-                                        LZFToast.show(context, '请勾选你要删除的歌曲');
-                                        return;
-                                      }
-                                      int len = checkedIds.length;
-                                      for (var id in checkedIds) {
-                                        database.deleteSong(id);
-                                      }
-                                      LZFToast.show(context, "已删除${len}首歌");
-                                      _loadSongs();
-                                      setState(() {
-                                        checkedIds.clear();
-                                        _showCheckbox = false;
-                                      });
-                                    }
-                                  } else if (action == 'hide') {
-                                    setState(() {
-                                      checkedIds.clear();
-                                      _showCheckbox = false;
-                                    });
+                                if (confirm == true) {
+                                  if (checkedIds.isEmpty) {
+                                    LZFToast.show(context, '请勾选你要删除的歌曲');
+                                    return;
                                   }
-                                },
-                              ),
-                            ],
+                                  int len = checkedIds.length;
+                                  for (var id in checkedIds) {
+                                    database.deleteSong(id);
+                                  }
+                                  LZFToast.show(context, "已删除${len}首歌");
+                                  _loadSongs();
+                                  setState(() {
+                                    checkedIds.clear();
+                                    _showCheckbox = false;
+                                  });
+                                }
+                              } else if (action == 'hide') {
+                                setState(() {
+                                  checkedIds.clear();
+                                  _showCheckbox = false;
+                                });
+                              }
+                            },
                           ),
-                        ),
-                      );
-                    },
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
