@@ -11,8 +11,8 @@ class PlatformUtils {
 
   static bool get isMobile => Platform.isAndroid || Platform.isIOS;
 
-  static bool isMobileLogic(BuildContext context) {
-    return isMobile || MediaQuery.of(context).size.width < 760;
+  static bool isMobileSize(BuildContext context) {
+    return MediaQuery.of(context).size.width < 760;
   }
 
   static bool get isWindows => Platform.isWindows;
