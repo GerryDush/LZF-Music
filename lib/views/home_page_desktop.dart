@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
+import 'package:lzf_music/widgets/frosted_container.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/resolution_display.dart';
 import 'package:provider/provider.dart';
@@ -43,12 +44,10 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
         Color sidebarBg = ThemeUtils.backgroundColor(context);
         Color bodyBg = ThemeUtils.backgroundColor(context);
         if (["window", "sidebar"].contains(themeProvider.opacityTarget)) {
-          sidebarBg = sidebarBg.withAlpha(
-            (255 * themeProvider.seedAlpha).round(),
-          );
+          sidebarBg = sidebarBg.withValues(alpha: themeProvider.seedAlpha);
         }
         if (["window", "body"].contains(themeProvider.opacityTarget)) {
-          bodyBg = bodyBg.withAlpha((255 * themeProvider.seedAlpha).round());
+          bodyBg = bodyBg.withValues(alpha: themeProvider.seedAlpha);
         }
 
         final isMiniPlayerFloating =
@@ -228,40 +227,15 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                     // 主内容区域
                     Container(
                       color: bodyBg,
-                      child: isMiniPlayerFloating
-                          ? MediaQuery(
-                              data: MediaQuery.of(context).copyWith(
-                                padding: MediaQuery.of(context).padding
-                                    .copyWith(
-                                      bottom:
-                                          MediaQuery.of(
-                                            context,
-                                          ).padding.bottom +
-                                          88,
-                                    ),
-                              ),
-                              child: ValueListenableBuilder<PlayerPage>(
-                                valueListenable: menuManager.currentPage,
-                                builder: (context, currentPage, _) {
-                                  return IndexedStack(
-                                    index: currentPage.index,
-                                    children: menuManager.pages,
-                                  );
-                                },
-                              ),
-                            )
-                          : Padding(
-                              padding: EdgeInsets.only(bottom: 84),
-                              child: ValueListenableBuilder<PlayerPage>(
-                                valueListenable: menuManager.currentPage,
-                                builder: (context, currentPage, _) {
-                                  return IndexedStack(
-                                    index: currentPage.index,
-                                    children: menuManager.pages,
-                                  );
-                                },
-                              ),
-                            ),
+                      child: ValueListenableBuilder<PlayerPage>(
+                        valueListenable: menuManager.currentPage,
+                        builder: (context, currentPage, _) {
+                          return IndexedStack(
+                            index: currentPage.index,
+                            children: menuManager.pages,
+                          );
+                        },
+                      ),
                     ),
 
                     // 逻辑分辨率显示
@@ -280,28 +254,12 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                       bottom: 0,
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          return isMiniPlayerFloating
-                              ? ClipRect(
-                                  child: BackdropFilter(
-                                    filter: ImageFilter.blur(
-                                      sigmaX: 10,
-                                      sigmaY: 10,
-                                    ),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: ThemeUtils.backgroundColor(
-                                          context,
-                                        ).withValues(alpha: 0.6),
-                                      ),
-                                      child: MiniPlayer(
-                                        containerWidth: constraints.maxWidth,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : MiniPlayer(
-                                  containerWidth: constraints.maxWidth,
-                                );
+                          return FrostedContainer(
+                            enabled: isMiniPlayerFloating,
+                            child: MiniPlayer(
+                              containerWidth: constraints.maxWidth,
+                            ),
+                          );
                         },
                       ),
                     ),

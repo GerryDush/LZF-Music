@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/widgets/frosted_container.dart';
+import 'package:lzf_music/widgets/themed_background.dart';
 
 import 'dart:async';
 import '../database/database.dart';
@@ -6,13 +8,15 @@ import '../services/music_import_service.dart';
 import '../services/player_provider.dart';
 import 'package:provider/provider.dart';
 import '../widgets/show_aware_page.dart';
-import '../widgets/compact_center_snack_bar.dart';
-import '../widgets/import_progress_dialog.dart';
+import '../widgets/lzf_toast.dart';
+import '../widgets/music_import_dialog.dart';
 import '../widgets/music_list_header.dart';
 import '../widgets/music_list_view.dart';
 import '../widgets/page_header.dart';
 import 'dart:ui';
 import '../utils/theme_utils.dart';
+import '../widgets/lzf_dialog.dart';
+import '../widgets/music_import_dialog.dart';
 
 class LibraryView extends StatefulWidget {
   const LibraryView({super.key});
@@ -173,233 +177,191 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
         // 在每次构建时检查当前播放歌曲是否发生变化
         _checkCurrentSongChange(playerProvider);
 
-        return Stack(
-          children: [
-            Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
-                child: MusicListView(
-                  songs: songs,
-                  scrollController: _scrollController,
-                  playerProvider: playerProvider,
-                  database: database,
-                  showCheckbox: _showCheckbox,
-                  checkedIds: checkedIds,
-                  onSongDeleted: _loadSongs,
-                  onSongUpdated: () {
-                    setState(() {
-                      // 触发重建以更新收藏状态
-                    });
-                  },
-                  onSongPlay: (song, playlist, index) {
-                    // 标记这是用户在当前页面的点击操作
-                    _isUserClickedFromThisPage = true;
-                    playerProvider.playSong(
-                      song,
-                      playlist: playlist,
-                      index: index,
-                    );
-                  },
-                  onCheckboxChanged: (songId, isChecked) {
-                    setState(() {
-                      if (isChecked) {
-                        checkedIds.add(songId);
-                      } else {
-                        checkedIds.remove(songId);
-                      }
-                    });
-                  },
-                ),
-              ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: ClipRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: ThemeUtils.backgroundColor(
-                        context,
-                      ).withValues(alpha: 0.6),
-                    ),
-                    child: Padding(padding: const EdgeInsets.fromLTRB(16.0, 36.0, 16.0, 0),child: Column(
-                  children: [
-                    PageHeader(
-                      songs: songs,
-                      onSearch: (keyword) async {
-                        searchKeyword = keyword;
-                        await _loadSongs();
-                      },
-                      onImportDirectory: () async {
-                        final updateProgress =
-                            await ImportProgressDialog.showImportDialog(
-                              context,
-                            );
-                        updateProgress(isScanning: true);
-
-                        bool hasProgress = false; // 标记是否有进度更新
-
-                        String failedFiles = await importService
-                            .importFromDirectory(
-                              onProgress: (processed, total) {
-                                hasProgress = true; // 标记有进度更新
-                                updateProgress(
-                                  processedFiles: processed,
-                                  totalFiles: total,
-                                  isScanning: false,
-                                );
-                              },
-                            );
-
-                        // 检查是否有进度更新，如果没有说明用户取消了选择
-                        if (!hasProgress) {
-                          // 用户取消了选择，直接关闭对话框
-                          ImportProgressDialog.closeImportDialog(context);
+        return ThemedBackground(
+          builder: (context, sidebar, body, isFloat) {
+            return Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
+                  child: MusicListView(
+                    songs: songs,
+                    scrollController: _scrollController,
+                    playerProvider: playerProvider,
+                    database: database,
+                    showCheckbox: _showCheckbox,
+                    checkedIds: checkedIds,
+                    onSongDeleted: _loadSongs,
+                    onSongUpdated: () {
+                      setState(() {
+                        // 触发重建以更新收藏状态
+                      });
+                    },
+                    onSongPlay: (song, playlist, index) {
+                      // 标记这是用户在当前页面的点击操作
+                      _isUserClickedFromThisPage = true;
+                      playerProvider.playSong(
+                        song,
+                        playlist: playlist,
+                        index: index,
+                      );
+                    },
+                    onCheckboxChanged: (songId, isChecked) {
+                      setState(() {
+                        if (isChecked) {
+                          checkedIds.add(songId);
                         } else {
-                          // 有进度更新，显示完成状态
-                          updateProgress(
-                            isCompleted: true,
-                            failedFileName: failedFiles,
-                          );
+                          checkedIds.remove(songId);
                         }
-
-                        await _loadSongs();
-                      },
-                      onImportFiles: () async {
-                        final updateProgress =
-                            await ImportProgressDialog.showImportDialog(
-                              context,
-                            );
-                        updateProgress(isScanning: true);
-
-                        bool hasProgress = false; // 标记是否有进度更新
-
-                        String failedFiles = await importService.importFiles(
-                          onProgress: (processed, total) {
-                            hasProgress = true; // 标记有进度更新
-                            updateProgress(
-                              processedFiles: processed,
-                              totalFiles: total,
-                              isScanning: false,
-                            );
-                          },
-                        );
-
-                        // 检查是否有进度更新，如果没有说明用户取消了选择
-                        if (!hasProgress) {
-                          // 用户取消了选择，直接关闭对话框
-                          ImportProgressDialog.closeImportDialog(context);
-                        } else {
-                          // 有进度更新，显示完成状态
-                          updateProgress(
-                            isCompleted: true,
-                            failedFileName: failedFiles,
-                          );
-                        }
-
-                        await _loadSongs();
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    MusicListHeader(
-                      songs: songs,
-                      orderField: orderField,
-                      orderDirection: orderDirection,
-                      showCheckbox: _showCheckbox,
-                      checkedIds: checkedIds,
-                      allowReorder: true, // 库视图允许重排列
-                      onShowCheckboxToggle: () {
-                        setState(() {
-                          _showCheckbox = true;
-                        });
-                      },
-                      onScrollToCurrent: () {
-                        final playerProvider = Provider.of<PlayerProvider>(
-                          context,
-                          listen: false,
-                        );
-                        final currentSongId = playerProvider.currentSong?.id;
-                        if (currentSongId != null) {
-                          _scrollToCurrentSong(currentSongId);
-                        } else {
-                          CompactCenterSnackBar.show(context, '当前没有播放歌曲');
-                        }
-                      },
-                      onOrderChanged: (field, direction) {
-                        setState(() {
-                          orderField = field;
-                          orderDirection = direction;
-                        });
-                        _loadSongs();
-                      },
-                      onSelectAllChanged: (selectAll) {
-                        setState(() {
-                          if (selectAll) {
-                            checkedIds
-                              ..clear()
-                              ..addAll(songs.map((s) => s.id));
-                          } else {
-                            checkedIds.clear();
-                          }
-                        });
-                      },
-                      onBatchAction: (action) async {
-                        if (action == 'delete') {
-                          bool? confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('确认删除'),
-                              content: const Text('确定要删除所选歌曲吗？'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                  child: const Text('取消'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text(
-                                    '确定',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            if (checkedIds.isEmpty) {
-                              CompactCenterSnackBar.show(context, '请勾选你要删除的歌曲');
-                              return;
-                            }
-                            int len = checkedIds.length;
-                            for (var id in checkedIds) {
-                              database.deleteSong(id);
-                            }
-                            CompactCenterSnackBar.show(context, "已删除${len}首歌");
-                            _loadSongs();
-                            setState(() {
-                              checkedIds.clear();
-                              _showCheckbox = false;
-                            });
-                          }
-                        } else if (action == 'hide') {
-                          setState(() {
-                            checkedIds.clear();
-                            _showCheckbox = false;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),),
+                      });
+                    },
                   ),
                 ),
-              ),
-            ),
-          ],
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: ThemedBackground(
+                    builder: (context, sidebar, body, isFloat) {
+                      return FrostedContainer(
+                        enabled: isFloat,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            16.0,
+                            20.0,
+                            16.0,
+                            0,
+                          ),
+                          child: PageHeader(
+                            songs: songs,
+                            onSearch: (keyword) async {
+                              searchKeyword = keyword;
+                              await _loadSongs();
+                            },
+                            onImportDirectory: () async {
+                              MusicImporter.importFromDirectory(
+                                context,
+                                database,
+                                onCompleted: () {
+                                  _loadSongs();
+                                },
+                              );
+                            },
+                            onImportFiles: () async {
+                              MusicImporter.importFiles(
+                                context,
+                                database,
+                                onCompleted: () {
+                                  _loadSongs();
+                                },
+                              );
+                            },
+                            children: [
+                              const SizedBox(height: 20),
+                              MusicListHeader(
+                                songs: songs,
+                                orderField: orderField,
+                                orderDirection: orderDirection,
+                                showCheckbox: _showCheckbox,
+                                checkedIds: checkedIds,
+                                allowReorder: true, // 库视图允许重排列
+                                onShowCheckboxToggle: () {
+                                  setState(() {
+                                    _showCheckbox = true;
+                                  });
+                                },
+                                onScrollToCurrent: () {
+                                  final playerProvider =
+                                      Provider.of<PlayerProvider>(
+                                        context,
+                                        listen: false,
+                                      );
+                                  final currentSongId =
+                                      playerProvider.currentSong?.id;
+                                  if (currentSongId != null) {
+                                    _scrollToCurrentSong(currentSongId);
+                                  } else {
+                                    LZFToast.show(context, '当前没有播放歌曲');
+                                  }
+                                },
+                                onOrderChanged: (field, direction) {
+                                  setState(() {
+                                    orderField = field;
+                                    orderDirection = direction;
+                                  });
+                                  _loadSongs();
+                                },
+                                onSelectAllChanged: (selectAll) {
+                                  setState(() {
+                                    if (selectAll) {
+                                      checkedIds
+                                        ..clear()
+                                        ..addAll(songs.map((s) => s.id));
+                                    } else {
+                                      checkedIds.clear();
+                                    }
+                                  });
+                                },
+                                onBatchAction: (action) async {
+                                  if (action == 'delete') {
+                                    bool? confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('确认删除'),
+                                        content: const Text('确定要删除所选歌曲吗？'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: const Text('取消'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: const Text(
+                                              '确定',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (confirm == true) {
+                                      if (checkedIds.isEmpty) {
+                                        LZFToast.show(context, '请勾选你要删除的歌曲');
+                                        return;
+                                      }
+                                      int len = checkedIds.length;
+                                      for (var id in checkedIds) {
+                                        database.deleteSong(id);
+                                      }
+                                      LZFToast.show(context, "已删除${len}首歌");
+                                      _loadSongs();
+                                      setState(() {
+                                        checkedIds.clear();
+                                        _showCheckbox = false;
+                                      });
+                                    }
+                                  } else if (action == 'hide') {
+                                    setState(() {
+                                      checkedIds.clear();
+                                      _showCheckbox = false;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

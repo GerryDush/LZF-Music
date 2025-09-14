@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../services/theme_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
-import '../../widgets/compact_center_snack_bar.dart';
+import '../../widgets/lzf_toast.dart';
 import '../../router/router.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
@@ -292,7 +292,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
             subtitle: const Text('调整默认音量'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              CompactCenterSnackBar.show(context, '音量设置功能尚未实现');
+              LZFToast.show(context, '音量设置功能尚未实现');
             },
           ),
 
@@ -308,7 +308,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
             subtitle: const Text('均衡器和音效'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              CompactCenterSnackBar.show(context, '音效设置功能尚未实现');
+              LZFToast.show(context, '音效设置功能尚未实现');
             },
           ),
         ],
@@ -537,7 +537,7 @@ END OF TERMS AND CONDITIONS
         GestureDetector(
           onTap: () {
             Clipboard.setData(ClipboardData(text: content));
-            CompactCenterSnackBar.show(context, '$label 已复制到剪贴板');
+            LZFToast.show(context, '$label 已复制到剪贴板');
           },
           child: Text(
             content,

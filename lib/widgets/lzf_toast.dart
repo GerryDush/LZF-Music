@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:async';
 
-class CompactCenterSnackBar extends StatefulWidget {
+class LZFToast extends StatefulWidget {
   final String message;
   final VoidCallback? onDismiss;
 
-  const CompactCenterSnackBar({Key? key, required this.message, this.onDismiss})
+  const LZFToast({Key? key, required this.message, this.onDismiss})
     : super(key: key);
 
   @override
-  State<CompactCenterSnackBar> createState() => _CompactCenterSnackBarState();
+  State<LZFToast> createState() => _LZFToastState();
 
   static void show(BuildContext context, String message) {
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
 
     overlayEntry = OverlayEntry(
-      builder: (context) => CompactCenterSnackBar(
+      builder: (context) => LZFToast(
         message: message,
         onDismiss: () {
           overlayEntry.remove();
@@ -30,7 +30,7 @@ class CompactCenterSnackBar extends StatefulWidget {
   }
 }
 
-class _CompactCenterSnackBarState extends State<CompactCenterSnackBar>
+class _LZFToastState extends State<LZFToast>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;

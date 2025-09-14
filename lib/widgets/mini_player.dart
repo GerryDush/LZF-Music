@@ -7,6 +7,7 @@ import '../views/now_playing_screen.dart';
 import '../services/player_provider.dart';
 import './slider_custom.dart';
 import '../contants/app_contants.dart' show PlayMode;
+import '../utils/common_utils.dart' show formatDuration;
 
 class MiniPlayer extends StatefulWidget {
   final double containerWidth;
@@ -137,7 +138,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     Text(
-                                      "${_formatDuration(position)}/${_formatDuration(duration)}",
+                                      "${formatDuration(position)}/${formatDuration(duration)}",
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Theme.of(
@@ -379,11 +380,4 @@ class _MiniPlayerState extends State<MiniPlayer> {
       },
     );
   }
-}
-
-String _formatDuration(Duration d) {
-  String twoDigits(int n) => n.toString().padLeft(2, '0');
-  final minutes = twoDigits(d.inMinutes.remainder(60));
-  final seconds = twoDigits(d.inSeconds.remainder(60));
-  return "$minutes:$seconds";
 }

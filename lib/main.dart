@@ -108,9 +108,8 @@ class HomePageWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
 
-    if (width < 760) {
+    if (PlatformUtils.isMobileLogic(context)) {
       // 小屏幕（手机）
       return const HomePageMobile();
     } else {

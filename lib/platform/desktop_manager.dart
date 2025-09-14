@@ -126,7 +126,8 @@ class DesktopManager {
       await trayManager.setIcon(
         Platform.isWindows
             ? 'assets/windows/icons/tray_icon.ico'
-            : 'assets/icons/tray_icon.png',
+            : 'assets/icons/tray_icon.svg',
+            isTemplate: PlatformUtils.isMacOS
       );
     } catch (e) {
       debugPrint('系统托盘初始化失败: $e');

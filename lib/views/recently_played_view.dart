@@ -109,11 +109,11 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView>
                   await _loadSongs();
                 },
                 onImportFiles: () async {
-                  await importService.importFiles(
-                    onProgress: (processed, total) {
-                      print('Processed $processed of $total files');
-                    },
-                  );
+                  // await importService.importFiles(
+                  //   onProgress: (processed, total) {
+                  //     print('Processed $processed of $total files');
+                  //   },
+                  // );
                   await _loadSongs();
                 },
               ),

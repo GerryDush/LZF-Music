@@ -116,15 +116,15 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                   await _loadSongs();
                 },
                 onImportDirectory: () async {
-                  await importService.importFromDirectory();
-                  await _loadSongs();
+                  importService.importFromDirectory();
+                  
                 },
                 onImportFiles: () async {
-                  await importService.importFiles(
-                    onProgress: (processed, total) {
-                      print('Processed $processed of $total files');
-                    },
-                  );
+                  // await importService.importFiles(
+                  //   onProgress: (processed, total) {
+                  //     print('Processed $processed of $total files');
+                  //   },
+                  // );
                   await _loadSongs();
                 },
               ),
