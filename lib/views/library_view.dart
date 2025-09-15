@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lzf_music/utils/common_utils.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/widgets/frosted_container.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
 
@@ -187,7 +188,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                     16.0,
                     CommonUtils.select(theme.isFloat, t: 20, f: 136),
                     16.0,
-                    0,
+                    CommonUtils.select(theme.isFloat, t: 0, f: 80),
                   ),
                   child: MusicListView(
                     songs: songs,
@@ -229,7 +230,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                   child: FrostedContainer(
                     enabled: theme.isFloat,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 0),
+                      padding: EdgeInsets.fromLTRB(16.0, PlatformUtils.select(desktop: 20.0, mobile: 66.0), 16.0, 0),
                       child: PageHeader(
                         songs: songs,
                         onSearch: (keyword) async {

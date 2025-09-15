@@ -125,9 +125,6 @@ class _PageHeaderState extends State<PageHeader> {
                       label: const Text('选择音乐文件'),
                       onPressed: () async {
                         await widget.onImportFiles?.call();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('音乐文件导入完成')),
-                        );
                       },
                     )
                   else
@@ -137,9 +134,6 @@ class _PageHeaderState extends State<PageHeader> {
                       tooltip: '选择音乐文件',
                       onPressed: () async {
                         await widget.onImportFiles?.call();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('音乐文件导入完成')),
-                        );
                       },
                     ),
                 ],

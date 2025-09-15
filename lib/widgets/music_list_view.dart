@@ -132,13 +132,17 @@ class _MusicListViewState extends State<MusicListView> {
             }
             return false;
           },
-          child: Padding(padding: EdgeInsets.only(bottom: 100),child: CustomScrollView(
+          child: CustomScrollView(
             controller: widget.scrollController,
             slivers: [
               // 占位空间 - 为标题栏预留空间
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: CommonUtils.select(theme.isFloat, t: PlatformUtils.select(desktop: 120, mobile: 200), f: 0),
+                  height: CommonUtils.select(
+                    theme.isFloat,
+                    t: PlatformUtils.select(desktop: 120, mobile: 180),
+                    f: 0,
+                  ),
                 ), // 标题栏高度
               ),
               // 列表内容 - 使用SliverFixedExtentList保持性能
@@ -159,7 +163,12 @@ class _MusicListViewState extends State<MusicListView> {
 
                       return Card(
                         elevation: 0,
-                        margin: EdgeInsets.fromLTRB(8, CommonUtils.select(index==0, t: 0, f: 4), 8, 4),
+                        margin: EdgeInsets.fromLTRB(
+                          8,
+                          CommonUtils.select(index == 0, t: 0, f: 4),
+                          8,
+                          4,
+                        ),
                         color: isSelected
                             ? Theme.of(
                                 context,
@@ -389,8 +398,22 @@ class _MusicListViewState extends State<MusicListView> {
                   );
                 }, childCount: widget.songs.length),
               ),
+              // 占位，mini播放器
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: CommonUtils.select(
+                    theme.isFloat,
+                    t: CommonUtils.select(
+                      PlatformUtils.isMobileWidth(context),
+                      t: 66,
+                      f: 0,
+                    ),
+                    f: 0,
+                  ),
+                ), // 标题栏高度
+              ),
             ],
-          ),),
+          ),
         );
       },
     );

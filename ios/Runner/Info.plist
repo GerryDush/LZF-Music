@@ -45,5 +45,17 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIFileSharingEnabled</key>
+    <true/>
+    <key>UISupportsDocumentBrowser</key>
+    <true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+    <key>NSMusicUsageDescription</key>
+    <string>需要访问音乐文件以进行播放</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>需要访问文档目录以播放本地文件</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>需要访问下载目录以播放本地文件</string>
 </dict>
 </plist>
