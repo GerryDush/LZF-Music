@@ -79,7 +79,7 @@ class PlayerProvider with ChangeNotifier {
     // 播放进度
     _positionSub = player.stream.position.listen((pos) {
       _position = pos;
-
+print(pos);
       // 定期更新 AudioService 位置
       _audioService.updatePlaybackState(playing: _isPlaying, position: pos);
 
@@ -144,9 +144,6 @@ class PlayerProvider with ChangeNotifier {
     });
   }
 
-  void setDatabase(MusicDatabase database) {
-    _audioService.setDatabase(database);
-  }
 
   // 创建打乱的播放列表
   void _createShuffledPlaylist() {

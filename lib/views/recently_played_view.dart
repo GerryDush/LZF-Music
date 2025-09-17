@@ -35,8 +35,7 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView>
   @override
   void initState() {
     super.initState();
-    database = Provider.of<MusicDatabase>(context, listen: false);
-    importService = MusicImportService(database);
+    
 
     _scrollController.addListener(() {
       if (!_isScrolling &&
@@ -128,7 +127,6 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView>
                   songs: songs,
                   scrollController: _scrollController,
                   playerProvider: playerProvider,
-                  database: database,
                   showCheckbox: false, // 收藏页面不显示复选框
                   checkedIds: const [],
                   onSongDeleted: _loadSongs,

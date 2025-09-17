@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/services/audio_player_service.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
 import 'dart:io';
 import '../database/database.dart';
@@ -12,7 +13,6 @@ class MusicListView extends StatefulWidget {
   final List<Song> songs;
   final ScrollController? scrollController;
   final PlayerProvider playerProvider;
-  final MusicDatabase database;
   final bool showCheckbox;
   final List<int> checkedIds;
   final VoidCallback? onSongDeleted;
@@ -24,7 +24,6 @@ class MusicListView extends StatefulWidget {
     super.key,
     required this.songs,
     required this.playerProvider,
-    required this.database,
     this.scrollController,
     this.showCheckbox = false,
     this.checkedIds = const [],
@@ -41,7 +40,6 @@ class MusicListView extends StatefulWidget {
 class _MusicListViewState extends State<MusicListView> {
   int? _hoveredIndex;
   bool _isScrolling = false;
-
   // 为每个歌曲的收藏状态创建 ValueNotifier
   final Map<int, ValueNotifier<bool>> _favoriteNotifiers = {};
 
@@ -63,7 +61,7 @@ class _MusicListViewState extends State<MusicListView> {
     final newFavoriteState = !song.isFavorite;
 
     // 更新数据库
-    widget.database.updateSong(song.copyWith(isFavorite: newFavoriteState));
+    AudioPlayerService.database.updateSong(song.copyWith(isFavorite: newFavoriteState));
 
     // 更新本地列表中的歌曲状态
     widget.songs[index] = song.copyWith(isFavorite: newFavoriteState);
@@ -93,7 +91,7 @@ class _MusicListViewState extends State<MusicListView> {
 
   void _handleSongDelete(int index) {
     final song = widget.songs[index];
-    widget.database.deleteSong(song.id);
+    AudioPlayerService.database.deleteSong(song.id);
 
     LZFToast.show(context, "已删除 ${song.title} - ${song.artist ?? '未知艺术家'}");
 

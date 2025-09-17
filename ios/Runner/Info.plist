@@ -57,5 +57,9 @@
     <string>需要访问文档目录以播放本地文件</string>
     <key>NSDownloadsFolderUsageDescription</key>
     <string>需要访问下载目录以播放本地文件</string>
+	<key>UIBackgroundModes</key>
+	<array>
+	<string>audio</string>
+	</array>
 </dict>
 </plist>

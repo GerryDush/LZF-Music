@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/music_import_service.dart';
-import 'package:lzf_music/database/database.dart';
 import 'dart:async';
 import '../widgets/lzf_dialog.dart';
 import '../utils/theme_utils.dart';
@@ -65,23 +64,19 @@ class MusicImporter {
 
   /// 从文件夹导入音乐
   static void importFromDirectory(
-    BuildContext context,
-    MusicDatabase database, {
+    BuildContext context, {
     void Function()? onCompleted,
   }) {
     _onCompleted = onCompleted;
-    _importService = MusicImportService(database);
     _startImport(context, _importService!.importFromDirectory());
   }
 
   /// 导入选定的文件
   static void importFiles(
-    BuildContext context,
-    MusicDatabase database, {
+    BuildContext context,{
     void Function()? onCompleted,
   }) {
     _onCompleted = onCompleted;
-    _importService = MusicImportService(database);
     _startImport(context, _importService!.importFiles());
   }
 

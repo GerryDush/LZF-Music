@@ -34,8 +34,7 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
   @override
   void initState() {
     super.initState();
-    database = Provider.of<MusicDatabase>(context, listen: false);
-    importService = MusicImportService(database);
+  
     
 
     _scrollController.addListener(() {
@@ -102,7 +101,6 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
   Widget build(BuildContext context) {
     return Consumer<PlayerProvider>(
       builder: (context, playerProvider, child) {
-        playerProvider.setDatabase(database);
         return Padding(
           padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0), // 左上右16，底部0
           child: Column(
@@ -148,7 +146,6 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                   songs: songs,
                   scrollController: _scrollController,
                   playerProvider: playerProvider,
-                  database: database,
                   showCheckbox: false, // 收藏页面不显示复选框
                   checkedIds: const [],
                   onSongDeleted: _loadSongs,

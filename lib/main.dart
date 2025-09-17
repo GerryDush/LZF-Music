@@ -31,7 +31,7 @@ void main() async {
 
     final musicDatabase = MusicDatabase();
 
-    await AudioPlayerService.init();
+    await AudioPlayerService.init(MusicDatabase());
 
     runApp(
       MultiProvider(

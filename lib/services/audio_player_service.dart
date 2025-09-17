@@ -5,8 +5,8 @@ import '../database/database.dart';
 class AudioPlayerService extends BaseAudioHandler {
   static final AudioPlayerService _instance = AudioPlayerService._internal();
   final Player player = Player();
-  late MusicDatabase _database;
-  Song? _currentSong;
+  static late MusicDatabase _database;
+  static MusicDatabase get database => _database;
 
   // PlayerProvider 回调
   Function()? onPlay;
@@ -20,7 +20,8 @@ class AudioPlayerService extends BaseAudioHandler {
   AudioPlayerService._internal();
 
   // 初始化 AudioService
-  static Future<AudioPlayerService> init() async {
+  static Future<AudioPlayerService> init(MusicDatabase database) async {
+    _database = database;
     await AudioService.init(
       builder: () => AudioPlayerService(),
       config: const AudioServiceConfig(
@@ -32,10 +33,6 @@ class AudioPlayerService extends BaseAudioHandler {
       ),
     );
     return _instance;
-  }
-
-  void setDatabase(MusicDatabase database) {
-    _database = database;
   }
 
   // 设置 PlayerProvider 的回调
@@ -57,7 +54,6 @@ class AudioPlayerService extends BaseAudioHandler {
 
   // 更新媒体项 - 由 PlayerProvider 调用
   void updateCurrentMediaItem(Song song) {
-    _currentSong = song;
     mediaItem.add(
       MediaItem(
         id: song.id.toString(),
@@ -102,11 +98,6 @@ class AudioPlayerService extends BaseAudioHandler {
   Future<void> playSong(Song song, {bool playNow = true}) async {
     try {
       print('Playing song: ${song.filePath}');
-
-      // if (_currentSong != null && _currentSong!.id == song.id) {
-      //   return;
-      // }
-
       await _database.updateSong(
         song.copyWith(
           lastPlayedTime: DateTime.now(),
@@ -114,9 +105,6 @@ class AudioPlayerService extends BaseAudioHandler {
         ),
       );
 
-      _currentSong = song;
-
-      // 使用 media_kit 播放
       await player.open(Media(song.filePath), play: playNow);
     } catch (e) {
       print('Error playing song: $e');

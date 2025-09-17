@@ -7,6 +7,7 @@ import '../database/database.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p; // 跨平台路径处理
 import 'dart:async';
+import '../services/audio_player_service.dart';
 
 class CoverImage {
   final Uint8List bytes;
@@ -84,10 +85,9 @@ class CancelledEvent extends ImportEvent {
 }
 
 class MusicImportService {
-  final MusicDatabase database;
   final List<String> supportedExtensions = ['mp3', 'm4a', 'wav', 'flac'];
 
-  MusicImportService(this.database);
+  MusicImportService();
 
   bool _isCancelled = false;
 
@@ -242,7 +242,7 @@ class MusicImportService {
     final String? artist = metadata.artist;
 
     final existingSongs =
-        await (database.songs.select()..where(
+        await (AudioPlayerService.database.songs.select()..where(
               (tbl) =>
                   tbl.title.equals(title) &
                   (artist != null
@@ -277,7 +277,7 @@ class MusicImportService {
       }
     }
 
-    await database.insertSong(
+    await AudioPlayerService.database.insertSong(
       SongsCompanion.insert(
         title: title,
         artist: Value(artist),

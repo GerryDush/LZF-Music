@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../widgets/show_aware_page.dart';
 import '../widgets/music_list_header.dart';
 import '../widgets/music_list_view.dart';
+import '../services/audio_player_service.dart';
 
 class PlaylistsView extends StatefulWidget {
   const PlaylistsView({super.key});
@@ -20,7 +21,7 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
   bool _isScrolling = false;
   Timer? _scrollTimer;
   final ScrollController _scrollController = ScrollController();
-  late MusicDatabase database;
+  late MusicDatabase database = AudioPlayerService.database;
   late MusicImportService importService;
   List<Song> songs = [];
   String? orderField = null;
@@ -34,8 +35,7 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
   @override
   void initState() {
     super.initState();
-    database = Provider.of<MusicDatabase>(context, listen: false);
-    importService = MusicImportService(database);
+    
 
     _scrollController.addListener(() {
       if (!_isScrolling &&
@@ -108,7 +108,6 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
                   songs: songs,
                   scrollController: _scrollController,
                   playerProvider: playerProvider,
-                  database: database,
                   showCheckbox: false, // 播放列表页面不显示复选框
                   checkedIds: const [],
                   onSongDeleted: _loadSongs,
