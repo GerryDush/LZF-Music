@@ -10,6 +10,7 @@ import '../../services/theme_provider.dart';
 import '../contants/app_contants.dart' show PlayerPage;
 import '../router/router.dart';
 import 'dart:ui';
+import '../widgets/custom_drawer.dart';
 
 class HomePageDesktop extends StatefulWidget {
   const HomePageDesktop({super.key});

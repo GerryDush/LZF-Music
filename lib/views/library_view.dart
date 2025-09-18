@@ -5,7 +5,6 @@ import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/utils/scroll_utils.dart';
 import 'package:lzf_music/widgets/frosted_container.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
-
 import 'dart:async';
 import '../database/database.dart';
 import '../services/music_import_service.dart';
@@ -100,7 +99,6 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                     onSongDeleted: _loadSongs,
                     onSongUpdated: () {
                       setState(() {
-                        // 触发重建以更新收藏状态
                       });
                     },
                     onSongPlay: (song, playlist, index) {

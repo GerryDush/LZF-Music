@@ -9,6 +9,7 @@ import '../storage/player_state_storage.dart';
 import '../widgets/show_aware_page.dart';
 import '../views/settings/settings_page.dart';
 import '../views/settings/storage_setting_page.dart';
+import '../widgets/sf_icon.dart';
 
 /// 单个菜单项
 class MenuItem {
@@ -90,8 +91,8 @@ class MenuManager {
       builder: (key) => FavoritesView(key: key),
     ),
     MenuItem(
-      icon: Icons.playlist_play_rounded,
-      iconSize: 22.0,
+      icon: SFIcons.sf_icon_listbullet,
+      iconSize: 14.0,
       label: '播放列表',
       key: PlayerPage.playlist,
       pageKey: GlobalKey<PlaylistsViewState>(),

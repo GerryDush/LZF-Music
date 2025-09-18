@@ -45,6 +45,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: SFIcons
+      fonts:
+        - asset: assets/fonts/sf_icons.ttf
   assets:
     - assets/icons/
     - assets/windows/icons/

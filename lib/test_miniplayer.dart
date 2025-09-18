@@ -288,7 +288,7 @@ class _TestMiniPlayerScreenState extends State<TestMiniPlayerScreen> {
                 return MusicListView(
                   songs: _mockSongs,
                   playerProvider: playerProvider,
-                  database: _mockDatabase as dynamic,
+                  
                   showCheckbox: _showCheckbox,
                   checkedIds: _checkedIds,
                   onSongDeleted: () {
