@@ -98,12 +98,12 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                     showCheckbox: _showCheckbox,
                     checkedIds: checkedIds,
                     onSongDeleted: _loadSongs,
-                    onSongUpdated: (playlist,song, index) {
+                    onSongUpdated: (song, index) {
                       _loadSongs().then((_) {
                         if (playerProvider.currentSong?.id == song.id) {
                           playerProvider.playSong(
                             songs[index!],
-                            playlist: playlist,
+                            playlist: songs,
                             index: index,
                           );
                         }

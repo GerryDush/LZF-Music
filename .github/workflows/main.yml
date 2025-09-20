@@ -172,7 +172,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body: |
-            body: |
             🎉 发布版本 ${{ github.ref_name }}
             🖥️ Windows 版本
             • 安装程序：支持 Windows 10/11 (x64)
@@ -213,6 +212,7 @@ jobs:
             • 新增自动定位当前歌曲：切换歌曲时列表自动滚动到当前播放位置
             • 新增歌曲导入进度显示：可查看导入的实时进度与完成状态
             • 新增歌词功能：支持 LRC、TTML 格式解析，支持逐字歌词显示
+            • 新增封面导入功能：支持选择图片覆盖旧封面
             • 播放页面动画优化，更多状态保存（列表位置、侧边栏展开状态）
             • 支持主题切换
             • 支持背景高斯模糊与透明度调整
@@ -260,6 +260,7 @@ jobs:
             • New: Auto-scroll to current song in playlist when switching tracks
             • New: Song import progress indicator (view real-time progress and completion status)
             • New: Lyrics support — parse LRC & TTML formats, with word-by-word synchronized lyrics
+            • New: Cover import — select an image to overwrite existing album art
             • Playback page animation optimized, more state persistence (playlist position, sidebar state)
             • Theme switching support
             • Background blur & transparency adjustment

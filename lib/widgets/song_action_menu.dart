@@ -7,13 +7,15 @@ class SongActionMenu extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onFavoriteToggle;
   final VoidCallback? onImportLyrics;
+  final VoidCallback? onImportAlbum;
 
   const SongActionMenu({
     super.key,
     required this.song,
     this.onDelete,
     this.onFavoriteToggle,
-    this.onImportLyrics
+    this.onImportLyrics,
+    this.onImportAlbum
   });
 
   @override
@@ -22,6 +24,16 @@ class SongActionMenu extends StatelessWidget {
       icon: const Icon(Icons.more_vert_rounded),
       iconSize: 20,
       itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'import_album',
+          child: Row(
+            children: [
+              Icon(Icons.photo_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('导入封面'),
+            ],
+          ),
+        ),
         const PopupMenuItem(
           value: 'import_lyrics',
           child: Row(
@@ -46,6 +58,8 @@ class SongActionMenu extends StatelessWidget {
       ],
       onSelected: (value) {
         switch (value) {
+          case 'import_album':
+          onImportAlbum?.call();
           case 'import_lyrics':
           onImportLyrics?.call();
           case 'favorite':

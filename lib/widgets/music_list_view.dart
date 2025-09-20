@@ -19,7 +19,7 @@ class MusicListView extends StatefulWidget {
   final bool showCheckbox;
   final List<int> checkedIds;
   final VoidCallback? onSongDeleted;
-  final void Function(List<Song> songs,Song song,int ?index)? onSongUpdated;
+  final void Function(Song song,int ?index)? onSongUpdated;
   final Function(Song, List<Song>, int)? onSongPlay;
   final Function(int, bool)? onCheckboxChanged;
 
@@ -79,7 +79,7 @@ class _MusicListViewState extends State<MusicListView> {
           : '已取消收藏 ${song.title} - ${song.artist ?? '未知艺术家'}',
     );
 
-    widget.onSongUpdated?.call(widget.songs,song,index);
+    widget.onSongUpdated?.call(song,index);
   }
 
   // 获取或创建收藏状态通知器
@@ -391,16 +391,23 @@ class _MusicListViewState extends State<MusicListView> {
                                 : SongActionMenu(
                                     song: song,
                                     onDelete: () => _handleSongDelete(index),
+                                    onImportAlbum: () async{
+                                      final res = await MusicImportService.importAlbumArt(song);
+                                      LZFToast.show(context, res!=null?'导入成功':'导入失败');
+                                      if(res!=null){
+                                        widget.onSongUpdated?.call(song,index);  
+                                      }
+                                    },
                                     onFavoriteToggle: () =>
                                         _handleFavoriteToggle(index),
-                                        onImportLyrics: () async{
-                                          final res = await MusicImportService.importLyrics(song);
-                                          LZFToast.show(context, res?'导入成功':'导入失败');
-                                          if(res){
-                                            widget.onSongUpdated?.call(widget.songs,song,index);  
-                                          }
-                                          
-                                        },
+                                    onImportLyrics: () async{
+                                      final res = await MusicImportService.importLyrics(song);
+                                      LZFToast.show(context, res?'导入成功':'导入失败');
+                                      if(res){
+                                        widget.onSongUpdated?.call(song,index);  
+                                      }
+                                      
+                                    },
                                   )),
                                   
 
@@ -419,7 +426,7 @@ class _MusicListViewState extends State<MusicListView> {
                     t: CommonUtils.select(
                       PlatformUtils.isMobileWidth(context),
                       t: 66,
-                      f: 0,
+                      f: 88,
                     ),
                     f: 0,
                   ),

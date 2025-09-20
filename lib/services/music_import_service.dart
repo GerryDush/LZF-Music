@@ -15,6 +15,18 @@ class CoverImage {
 
   CoverImage._(this.bytes, this.type);
 
+  String get mime {
+    switch (type.toLowerCase()) {
+      case 'png':
+        return 'image/png';
+      case 'jpeg':
+      case 'jpg':
+        return 'image/jpeg';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
   static CoverImage? fromBytes(Uint8List data) {
     final pngHeader = [0x89, 0x50, 0x4E, 0x47]; // PNG
     final jpegHeader = [0xFF, 0xD8]; // JPEG
@@ -192,7 +204,12 @@ class MusicImportService {
       if (result != null) {
         for (final file in result.files) {
           final lyrics = File(file.path!).readAsStringSync();
-          AudioPlayerService.database.updateSong(song.copyWith(lyrics: Value(lyrics),));
+          AudioPlayerService.database.updateSong(
+            song.copyWith(lyrics: Value(lyrics)),
+          );
+          updateMetadata(File(song.filePath), (metadata) {
+            metadata.setLyrics(lyrics);
+          });
           return true;
         }
       }
@@ -201,6 +218,59 @@ class MusicImportService {
     }
     return false;
   }
+
+  static Future<String?> importAlbumArt(Song song) async {
+  try {
+    final result = await FilePicker.platform.pickFiles(
+      allowedExtensions: ['jpg', 'jpeg', 'png'],
+      type: FileType.custom,
+      allowMultiple: false,
+      lockParentWindow: false,
+    );
+
+    if (result == null || result.files.isEmpty) return null;
+
+    final file = result.files.first;
+    if (file.path == null) return null;
+
+    CoverImage? cover = CoverImage.fromBytes(await File(file.path!).readAsBytes());
+    if(cover==null){
+      return null;
+    }
+
+    final dbFolder = await getApplicationSupportDirectory();
+    final albumArtDir = Directory(p.join(dbFolder.path, '.album_art'));
+    await albumArtDir.create(recursive: true);
+
+    // 删除旧封面
+    if (song.albumArtPath != null && song.albumArtPath != null) {
+      final oldFile = File(song.albumArtPath!);
+      if (await oldFile.exists()) {
+        await oldFile.delete();
+      }
+    }
+
+    // 使用 MD5 命名新封面
+    final md5Hash = md5.convert(cover.bytes).toString();
+    final ext = p.extension(file.path!).replaceFirst('.', '');
+    final albumArtFile = File(p.join(albumArtDir.path, '$md5Hash.$ext'));
+
+    await albumArtFile.writeAsBytes(cover.bytes, flush: true);
+
+    // 更新数据库
+    AudioPlayerService.database.updateSong(
+      song.copyWith(albumArtPath: Value(albumArtFile.path)),
+    );
+    updateMetadata(File(song.filePath), (metadata) {
+            metadata.setPictures([Picture(cover.bytes, cover.mime, PictureType.coverFront)]);
+          });
+
+    return albumArtFile.path;
+  } catch (e) {
+    print('Failed to import album art: $e');
+    return null;
+  }
+}
 
   Stream<ImportEvent> _listMusicFiles(Directory dir) async* {
     final List<File> musicFiles = [];
