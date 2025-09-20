@@ -530,6 +530,7 @@ Future<List<LyricLine>> _parseLrcContent(
 }
 
 
+
 Future<List<LyricLine>> _parseTtmlContent(String ttmlContent) async {
   try {
     final document = XmlDocument.parse(ttmlContent);
@@ -544,57 +545,53 @@ Future<List<LyricLine>> _parseTtmlContent(String ttmlContent) async {
 
       final chars = <LyricChar>[];
 
-      // --- 核心改动：遍历所有子节点，而不仅仅是 <span> ---
-      // p.children 会包含所有 <span>, <br>, 以及文本节点
+      // --- 核心改动：智能处理 XmlElement 和 XmlText ---
       for (final node in p.children) {
-        // 我们只关心元素节点 (<span>), 忽略文本节点等
-        if (node is! XmlElement) continue;
+        
+        if (node is XmlElement) { // 如果是 <span> 标签
+          if (node.name.local != 'span' || node.getAttribute('ttm:role') != null) {
+            continue; // 忽略非span标签和翻译/罗马音
+          }
 
-        // --- 新的过滤逻辑 ---
-        // 1. 检查节点是否为 <span>
-        if (node.name.local != 'span') continue;
+          final charText = node.text;
+          if (charText.isEmpty) continue;
 
-        // 2. 检查是否有 ttm:role 属性，如果有，则它是翻译或罗马音，跳过
-        if (node.getAttribute('ttm:role') != null) {
-          continue;
-        }
+          final charStartTimeStr = node.getAttribute('begin') ?? lineStartTimeStr;
+          final charEndTimeStr = node.getAttribute('end') ?? lineEndTimeStr;
+          final charStartTime = _parseTtmlTime(charStartTimeStr);
+          final charEndTime = _parseTtmlTime(charEndTimeStr);
+          
+          final spanDuration = charEndTime.inMilliseconds - charStartTime.inMilliseconds;
 
-        // --- 如果代码运行到这里，说明这是一个原文的 <span> ---
-        final charText = node.text;
-        if (charText.isEmpty) continue;
-
-        final charStartTimeStr = node.getAttribute('begin') ?? lineStartTimeStr;
-        final charEndTimeStr = node.getAttribute('end') ?? lineEndTimeStr;
-        final charStartTime = _parseTtmlTime(charStartTimeStr);
-        final charEndTime = _parseTtmlTime(charEndTimeStr);
-
-        final spanDuration =
-            charEndTime.inMilliseconds - charStartTime.inMilliseconds;
-
-        // (后续的逐字分配逻辑保持不变)
-        if (spanDuration <= 0 || charText.length == 1) {
-          chars.add(
-            LyricChar(char: charText, start: charStartTime, end: charEndTime),
-          );
-        } else {
-          final singleCharDuration = Duration(
-            milliseconds: spanDuration ~/ charText.length,
-          );
-          for (int i = 0; i < charText.length; i++) {
-            final start = charStartTime + (singleCharDuration * i);
-            final end = start + singleCharDuration;
-            chars.add(LyricChar(char: charText[i], start: start, end: end));
+          if (spanDuration <= 0 || charText.length == 1) {
+            chars.add(LyricChar(char: charText, start: charStartTime, end: charEndTime));
+          } else {
+            final singleCharDuration = Duration(milliseconds: spanDuration ~/ charText.length);
+            for (int i = 0; i < charText.length; i++) {
+              final start = charStartTime + (singleCharDuration * i);
+              final end = start + singleCharDuration;
+              chars.add(LyricChar(char: charText[i], start: start, end: end));
+            }
+          }
+        } 
+        else if (node is XmlText) { // 如果是文本节点 (包含空格)
+          final text = node.text;
+          // 如果文本是空白并且前面已经有解析出的单词
+          if (text.trim().isEmpty && chars.isNotEmpty) {
+            // 将这个空格追加到前一个 LyricChar 的末尾
+            final lastChar = chars.last;
+            chars[chars.length - 1] = LyricChar(
+              char: lastChar.char + text, // "Take" + " " -> "Take "
+              start: lastChar.start,
+              end: lastChar.end,
+            );
           }
         }
       }
 
       if (chars.isNotEmpty) {
         lyricLines.add(
-          LyricLine(
-            chars: chars,
-            startTime: lineStartTime,
-            endTime: lineEndTime,
-          ),
+          LyricLine(chars: chars, startTime: lineStartTime, endTime: lineEndTime),
         );
       }
     }
