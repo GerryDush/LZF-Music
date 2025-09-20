@@ -4,9 +4,6 @@ import '../widgets/slider_custom.dart';
 import '../contants/app_contants.dart' show PlayMode;
 
 class SongInfoPanel extends StatelessWidget {
-  final dynamic currentSong;
-  final double currentPosition;
-  final double totalDuration;
   final double tempSliderValue;
   final Function(double) onSliderChanged;
   final Function(double) onSliderChangeEnd;
@@ -15,9 +12,6 @@ class SongInfoPanel extends StatelessWidget {
 
   const SongInfoPanel({
     super.key,
-    required this.currentSong,
-    required this.currentPosition,
-    required this.totalDuration,
     required this.tempSliderValue,
     required this.onSliderChanged,
     required this.onSliderChangeEnd,
@@ -39,7 +33,7 @@ class SongInfoPanel extends StatelessWidget {
       children: [
         if (!compactLayout) ...[
           Text(
-            currentSong?.title ?? "未知歌曲",
+            playerProvider.currentSong?.title ?? "未知歌曲",
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -50,38 +44,38 @@ class SongInfoPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            currentSong?.artist ?? "未知歌手",
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 18,
-            ),
+            playerProvider.currentSong?.artist ?? "未知歌手",
+            style: const TextStyle(color: Colors.white70, fontSize: 18),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 24),
         ],
+        ValueListenableBuilder<Duration>(
+  valueListenable: playerProvider.position,
+  builder: (context, position, child) {return 
         AnimatedTrackHeightSlider(
-          value: tempSliderValue >= 0 ? tempSliderValue : currentPosition,
-          max: totalDuration,
+          value: tempSliderValue >= 0
+              ? tempSliderValue
+              : position.inSeconds.toDouble(),
+          max: playerProvider.duration.inSeconds.toDouble(),
           min: 0,
           activeColor: Colors.white,
           inactiveColor: Colors.white30,
           onChanged: onSliderChanged,
           onChangeEnd: onSliderChangeEnd,
-        ),
+        );}),
         const SizedBox(height: 8),
         Row(
           children: [
-            Text(
-              formatDuration(
-                Duration(
-                  seconds: currentPosition.toInt(),
-                ),
-              ),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-              ),
+            ValueListenableBuilder<Duration>(
+              valueListenable: playerProvider.position,
+              builder: (context, position, child) {
+                return Text(
+                  formatDuration(position),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                );
+              },
             ),
             Expanded(
               child: Center(
@@ -95,7 +89,7 @@ class SongInfoPanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    "${currentSong?.bitrate != null ? (currentSong!.bitrate! / 1000).toStringAsFixed(0) : '未知'} kbps",
+                    "${playerProvider.currentSong?.bitrate != null ? (playerProvider.currentSong!.bitrate! / 1000).toStringAsFixed(0) : '未知'} kbps",
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -106,15 +100,8 @@ class SongInfoPanel extends StatelessWidget {
               ),
             ),
             Text(
-              formatDuration(
-                Duration(
-                  seconds: totalDuration.toInt(),
-                ),
-              ),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-              ),
+              formatDuration(playerProvider.duration),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
         ),
@@ -165,7 +152,8 @@ class MusicControlButtons extends StatelessWidget {
                 children: [
                   IconButton(
                     iconSize: 48,
-                    color: (playerProvider.hasPrevious ||
+                    color:
+                        (playerProvider.hasPrevious ||
                             playerProvider.playMode == PlayMode.loop)
                         ? Colors.white
                         : Colors.white70,
@@ -186,7 +174,8 @@ class MusicControlButtons extends StatelessWidget {
                   SizedBox(width: compactLayout ? 8 : 16),
                   IconButton(
                     iconSize: 48,
-                    color: (playerProvider.hasNext ||
+                    color:
+                        (playerProvider.hasNext ||
                             playerProvider.playMode == PlayMode.loop)
                         ? Colors.white
                         : Colors.white70,
@@ -203,7 +192,8 @@ class MusicControlButtons extends StatelessWidget {
                 playerProvider.playMode == PlayMode.singleLoop
                     ? Icons.repeat_one_rounded
                     : Icons.repeat_rounded,
-                color: playerProvider.playMode == PlayMode.loop ||
+                color:
+                    playerProvider.playMode == PlayMode.loop ||
                         playerProvider.playMode == PlayMode.singleLoop
                     ? Colors.white
                     : null,
@@ -252,10 +242,7 @@ class MusicControlButtons extends StatelessWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(
-                Icons.volume_up_rounded,
-                color: Colors.white70,
-              ),
+              icon: const Icon(Icons.volume_up_rounded, color: Colors.white70),
               onPressed: () {
                 playerProvider.setVolume(playerProvider.volume + 0.1);
               },

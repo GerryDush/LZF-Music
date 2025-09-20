@@ -209,7 +209,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                 ],
               ),
             ),
-            SizedBox(width: !widget.showCheckbox ? 48 : 8),
+            SizedBox(width: !widget.showCheckbox ? 48 : 8,height: 40,),
             // 批量操作菜单
             if (widget.showCheckbox)
               PopupMenuButton<String>(
@@ -232,6 +232,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                 },
               ),
             // 全选复选框
+
             if (widget.showCheckbox)
               Checkbox(
                 value: widget.checkedIds.length == widget.songs.length &&
@@ -241,6 +242,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                 },
               ),
             // 主菜单
+            if(widget.onSelectAllChanged!=null)
             if (!widget.showCheckbox)
               PopupMenuButton<String>(
                 icon: Icon(
@@ -278,6 +280,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                   }
                 },
               ),
+              if(widget.onSelectAllChanged==null)const SizedBox(width: 40,)
             ],
           ),
         );

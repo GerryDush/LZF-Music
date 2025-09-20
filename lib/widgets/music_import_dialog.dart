@@ -54,7 +54,7 @@ class _ImportProgress {
 
 // 使用Stream版本的Widget实现
 class MusicImporter {
-  static MusicImportService? _importService;
+  static MusicImportService? _importService = MusicImportService();
   static StreamSubscription<ImportEvent>? _subscription;
   static void Function()? _onCompleted;
 

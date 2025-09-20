@@ -106,7 +106,7 @@ class _MyKeyboardHandlerState extends State<MyKeyboardHandler> {
         case PhysicalKeyboardKey.arrowLeft:
           // 后退10秒
           playerProvider.seekTo(
-            Duration(seconds: max(playerProvider.position.inSeconds - 10, 0)),
+            Duration(seconds: max(playerProvider.position.value.inSeconds - 10, 0)),
           );
           return KeyEventResult.handled;
 
@@ -115,7 +115,7 @@ class _MyKeyboardHandlerState extends State<MyKeyboardHandler> {
           playerProvider.seekTo(
             Duration(
               seconds: min(
-                playerProvider.position.inSeconds + 10,
+                playerProvider.position.value.inSeconds + 10,
                 playerProvider.duration.inSeconds,
               ),
             ),

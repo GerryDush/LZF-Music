@@ -180,6 +180,28 @@ class MusicImportService {
     }
   }
 
+  static Future<bool> importLyrics(Song song) async {
+    final result = await FilePicker.platform.pickFiles(
+      allowedExtensions: ['lrc', 'ttml'],
+      type: FileType.custom,
+      allowMultiple: false,
+      lockParentWindow: false,
+    );
+
+    try {
+      if (result != null) {
+        for (final file in result.files) {
+          final lyrics = File(file.path!).readAsStringSync();
+          AudioPlayerService.database.updateSong(song.copyWith(lyrics: Value(lyrics),));
+          return true;
+        }
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }
+
   Stream<ImportEvent> _listMusicFiles(Directory dir) async* {
     final List<File> musicFiles = [];
 
@@ -237,7 +259,6 @@ class MusicImportService {
 
   Future<void> _processMusicFile(File file) async {
     final metadata = readMetadata(file, getImage: true);
-
     final String title = metadata.title ?? p.basename(file.path);
     final String? artist = metadata.artist;
 

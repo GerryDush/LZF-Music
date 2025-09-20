@@ -96,7 +96,7 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              PageHeader(songs: songs,showImport: false,showSearch: false,),
+              PageHeader(title: '', songs: songs,showImport: false,showSearch: false,),
               const SizedBox(height: 24),
               MusicListHeader(
                 songs: songs,
@@ -111,7 +111,7 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
                   showCheckbox: false, // 播放列表页面不显示复选框
                   checkedIds: const [],
                   onSongDeleted: _loadSongs,
-                  onSongUpdated: () {
+                  onSongUpdated: (_,_,_) {
                     setState(() {
                       // 重新加载歌曲列表
                       _loadSongs();

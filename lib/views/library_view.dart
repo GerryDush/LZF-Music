@@ -79,6 +79,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
     return Consumer<PlayerProvider>(
       builder: (context, playerProvider, child) {
         currentSong = playerProvider.currentSong;
+        ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
         return ThemedBackground(
           builder: (context, theme) {
             return Stack(
@@ -97,8 +98,15 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                     showCheckbox: _showCheckbox,
                     checkedIds: checkedIds,
                     onSongDeleted: _loadSongs,
-                    onSongUpdated: () {
-                      setState(() {
+                    onSongUpdated: (playlist,song, index) {
+                      _loadSongs().then((_) {
+                        if (playerProvider.currentSong?.id == song.id) {
+                          playerProvider.playSong(
+                            songs[index!],
+                            playlist: playlist,
+                            index: index,
+                          );
+                        }
                       });
                     },
                     onSongPlay: (song, playlist, index) {
@@ -133,6 +141,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                         0,
                       ),
                       child: PageHeader(
+                        title: '音乐库',
                         songs: songs,
                         onSearch: (keyword) async {
                           searchKeyword = keyword;
@@ -169,15 +178,12 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                               });
                             },
                             onScrollToCurrent: () {
-                              final playerProvider =
-                                  Provider.of<PlayerProvider>(
-                                    context,
-                                    listen: false,
-                                  );
-                              final currentSongId =
-                                  playerProvider.currentSong?.id;
-                              if (currentSongId != null) {
-                                print(currentSongId);
+                              if (currentSong != null) {
+                                ScrollUtils.scrollToCurrentSong(
+                                  _scrollController,
+                                  songs,
+                                  currentSong,
+                                );
                               } else {
                                 LZFToast.show(context, '当前没有播放歌曲');
                               }

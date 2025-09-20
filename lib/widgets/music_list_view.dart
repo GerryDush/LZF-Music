@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:lzf_music/services/audio_player_service.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
@@ -8,6 +9,8 @@ import 'lzf_toast.dart';
 import '../widgets/song_action_menu.dart';
 import '../utils/common_utils.dart' show CommonUtils;
 import '../utils/platform_utils.dart';
+import '../services/music_import_service.dart';
+
 
 class MusicListView extends StatefulWidget {
   final List<Song> songs;
@@ -16,7 +19,7 @@ class MusicListView extends StatefulWidget {
   final bool showCheckbox;
   final List<int> checkedIds;
   final VoidCallback? onSongDeleted;
-  final VoidCallback? onSongUpdated;
+  final void Function(List<Song> songs,Song song,int ?index)? onSongUpdated;
   final Function(Song, List<Song>, int)? onSongPlay;
   final Function(int, bool)? onCheckboxChanged;
 
@@ -76,7 +79,7 @@ class _MusicListViewState extends State<MusicListView> {
           : '已取消收藏 ${song.title} - ${song.artist ?? '未知艺术家'}',
     );
 
-    widget.onSongUpdated?.call();
+    widget.onSongUpdated?.call(widget.songs,song,index);
   }
 
   // 获取或创建收藏状态通知器
@@ -356,6 +359,7 @@ class _MusicListViewState extends State<MusicListView> {
                                 ),
                               ),
                             ),
+                            if(widget.onSongDeleted==null)const SizedBox(width: 40,),
                             // 收藏按钮
                             ValueListenableBuilder<bool>(
                               valueListenable: _getFavoriteNotifier(song.id),
@@ -372,8 +376,9 @@ class _MusicListViewState extends State<MusicListView> {
                                 );
                               },
                             ),
+                            if(widget.onSongDeleted!=null)
                             // 复选框或更多菜单
-                            widget.showCheckbox
+                            (widget.showCheckbox
                                 ? Checkbox(
                                     value: widget.checkedIds.contains(song.id),
                                     onChanged: (value) {
@@ -388,7 +393,17 @@ class _MusicListViewState extends State<MusicListView> {
                                     onDelete: () => _handleSongDelete(index),
                                     onFavoriteToggle: () =>
                                         _handleFavoriteToggle(index),
-                                  ),
+                                        onImportLyrics: () async{
+                                          final res = await MusicImportService.importLyrics(song);
+                                          LZFToast.show(context, res?'导入成功':'导入失败');
+                                          if(res){
+                                            widget.onSongUpdated?.call(widget.songs,song,index);  
+                                          }
+                                          
+                                        },
+                                  )),
+                                  
+
                           ],
                         ),
                       );

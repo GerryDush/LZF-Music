@@ -7,8 +7,9 @@ class PageHeader extends StatefulWidget {
   final Future<void> Function(String? keyword)? onSearch;
   final Future<void> Function()? onImportDirectory;
   final Future<void> Function()? onImportFiles;
-  final List<Song> songs;
+  final List<Song> ?songs;
   final List<Widget>? children;
+  final String title;
 
   /// 是否显示搜索按钮
   final bool showSearch;
@@ -18,10 +19,11 @@ class PageHeader extends StatefulWidget {
 
   const PageHeader({
     super.key,
+    required this.title,
     this.onSearch,
     this.onImportDirectory,
     this.onImportFiles,
-    required this.songs,
+    this.songs,
     this.showSearch = true,
     this.showImport = true,
     this.children = const <Widget>[],
@@ -52,12 +54,13 @@ class _PageHeaderState extends State<PageHeader> {
       children: [
         Row(
           children: [
-            const Text(
-              '音乐库',
+            Text(
+              widget.title,
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 16),
-            Text('共${widget.songs.length}首音乐'),
+            if(widget.songs!=null)
+            Text('共${widget.songs!.length}首音乐'),
             const Spacer(),
 
             /// 搜索框 + 搜索按钮

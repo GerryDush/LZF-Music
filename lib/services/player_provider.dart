@@ -18,7 +18,8 @@ class PlayerProvider with ChangeNotifier {
 
   double _volume = 1.0;
 
-  Duration _position = Duration.zero;
+   final ValueNotifier<Duration> _position = ValueNotifier(Duration.zero);
+
   Duration _duration = Duration.zero;
 
   PlayMode _playMode = PlayMode.loop;
@@ -45,7 +46,7 @@ class PlayerProvider with ChangeNotifier {
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  Duration get position => _position;
+  ValueNotifier<Duration> get position => _position;
   Duration get duration => _duration;
   PlayMode get playMode => _playMode;
   List<Song> get playlist => List.unmodifiable(_playlist);
@@ -71,19 +72,20 @@ class PlayerProvider with ChangeNotifier {
       _isLoading = false;
 
       // 更新 AudioService 状态
-      _audioService.updatePlaybackState(playing: playing, position: _position);
+      _audioService.updatePlaybackState(playing: playing, position: _position.value);
 
       notifyListeners();
     });
 
-    // 播放进度
+    Duration _lastNotify = Duration.zero;
+    const Duration notifyInterval = Duration(milliseconds: 200); 
     _positionSub = player.stream.position.listen((pos) {
-      _position = pos;
-print(pos);
-      // 定期更新 AudioService 位置
-      _audioService.updatePlaybackState(playing: _isPlaying, position: pos);
-
-      notifyListeners();
+      _position.value = pos;
+      // 降低 notifyListeners 频率
+      if ((pos - _lastNotify) > notifyInterval) {
+        _lastNotify = pos;
+        _audioService.updatePlaybackState(playing: _isPlaying, position: pos);
+      }
     });
 
     // 总时长
@@ -107,7 +109,7 @@ print(pos);
       _shuffledPlaylist = state.playlist;
       _volume = state.volume;
       _playMode = state.playMode;
-      _position = state.position;
+      _position.value = state.position;
       _isPlaying = state.isPlaying;
       playSong(
         _currentSong!,
@@ -143,7 +145,6 @@ print(pos);
       }
     });
   }
-
 
   // 创建打乱的播放列表
   void _createShuffledPlaylist() {
@@ -270,7 +271,7 @@ print(pos);
       await _audioService.stopPlayer();
       _currentSong = null;
       _isPlaying = false;
-      _position = Duration.zero;
+      _position.value = Duration.zero;
       _errorMessage = null;
 
       // 更新 AudioService 状态
@@ -538,7 +539,7 @@ print(pos);
       switch (_playMode) {
         case PlayMode.single:
           _isPlaying = false;
-          _position = Duration.zero;
+          _position.value = Duration.zero;
           break;
         case PlayMode.singleLoop:
           if (_currentSong != null) {
@@ -552,7 +553,7 @@ print(pos);
             Future.microtask(() => next());
           } else {
             _isPlaying = false;
-            _position = Duration.zero;
+            _position.value = Duration.zero;
           }
           break;
         case PlayMode.loop:

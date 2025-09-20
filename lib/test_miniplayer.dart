@@ -296,11 +296,6 @@ class _TestMiniPlayerScreenState extends State<TestMiniPlayerScreen> {
                       // 刷新界面
                     });
                   },
-                  onSongUpdated: () {
-                    setState(() {
-                      // 刷新界面
-                    });
-                  },
                   onCheckboxChanged: (id, checked) {
                     setState(() {
                       if (checked) {

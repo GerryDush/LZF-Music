@@ -58,7 +58,13 @@ class SFIcon extends StatelessWidget {
 
 @staticIconProvider
 class SFIcons {
-   static const _kFontFamily = 'SFIcons';
-  static const IconData sf_icon_listbullet =
-      IconData(0xe905, fontFamily: _kFontFamily);
+  static const _kFontFamily = 'SFIcons';
+  static const IconData sf_icon_listbullet = IconData(
+    0xe905,
+    fontFamily: _kFontFamily,
+  );
+  static const IconData sf_icon_musicpages = IconData(
+    0xe907,
+    fontFamily: _kFontFamily,
+  );
 }

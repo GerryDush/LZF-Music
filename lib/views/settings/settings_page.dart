@@ -9,6 +9,10 @@ import 'package:flutter/services.dart';
 import '../../widgets/lzf_toast.dart';
 import '../../router/router.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:lzf_music/widgets/frosted_container.dart';
+import 'package:lzf_music/widgets/themed_background.dart';
+import '../../widgets/page_header.dart';
+import 'package:lzf_music/utils/common_utils.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -27,58 +31,64 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
   Widget build(BuildContext context) {
     return Consumer<AppThemeProvider>(
       builder: (context, themeProvider, child) {
-        final isMiniPlayerFloating =
-            (themeProvider.opacityTarget == 'sidebar' ||
-            themeProvider.seedAlpha > 0.98);
-        return Scaffold(
-          body: Padding(
-            padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        return ThemedBackground(
+          builder: (context, theme) {
+            return Stack(
               children: [
-                Row(
-                  children: [
-                    const Text(
-                      '设置',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                  ],
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    16.0,
+                    CommonUtils.select(theme.isFloat, t: 70, f: 80),
+                    16.0,
+                    CommonUtils.select(theme.isFloat, t: 80, f: 80),
+                  ),
+                  child: ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      8.0,
+                      CommonUtils.select(theme.isFloat, t: 18, f: 8),
+                      8.0,
+                      8.0,
+                    ), // 底部留出88单位空间（8+80）
+                    children: [
+                      _buildSectionHeader('外观设置'),
+                      _buildThemeSettingCard(),
+                      const SizedBox(height: 18),
+                      _buildSectionHeader('存储设置'),
+                      _buildStorageSettingCard(),
+                      const SizedBox(height: 18),
+                      _buildSectionHeader('播放设置'),
+                      _buildPlaybackSettingCard(),
+                      const SizedBox(height: 18),
+                      _buildSectionHeader('其他设置'),
+                      _buildOtherSettingsCard(),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 18),
-                Expanded(
-                  child: FocusScope(
-                    canRequestFocus: false, // 整个范围内的子控件都不能抢焦点
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(
-                        8.0,
-                        8.0,
-                        8.0,
-                        8.0,
-                      ), // 底部留出88单位空间（8+80）
-                      children: [
-                        _buildSectionHeader('外观设置'),
-                        _buildThemeSettingCard(),
-                        const SizedBox(height: 18),
-                        _buildSectionHeader('存储设置'),
-                        _buildStorageSettingCard(),
-                        const SizedBox(height: 18),
-                        _buildSectionHeader('播放设置'),
-                        _buildPlaybackSettingCard(),
-                        const SizedBox(height: 18),
-                        _buildSectionHeader('其他设置'),
-                        _buildOtherSettingsCard(),
-                        SizedBox(height: isMiniPlayerFloating ? 84 : 0),
-                      ],
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: FrostedContainer(
+                    enabled: theme.isFloat,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        16.0,
+                        PlatformUtils.select(desktop: 20.0, mobile: 66.0),
+                        16.0,
+                        0,
+                      ),
+                      child: PageHeader(
+                        showImport: false,
+                        showSearch: false,
+                        title: '系统设置',
+                        children: [],
+                      ),
                     ),
                   ),
                 ),
               ],
-            ),
-          ),
+            );
+          },
         );
       },
     );

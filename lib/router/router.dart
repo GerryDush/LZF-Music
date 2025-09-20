@@ -75,7 +75,7 @@ class MenuManager {
   /// 所有菜单项
   late final List<MenuItem> items = [
     MenuItem(
-      icon: Icons.library_music_rounded,
+      icon: SFIcons.sf_icon_musicpages,
       iconSize: 22.0,
       label: '库',
       key: PlayerPage.library,
@@ -89,14 +89,6 @@ class MenuManager {
       key: PlayerPage.favorite,
       pageKey: GlobalKey<FavoritesViewState>(),
       builder: (key) => FavoritesView(key: key),
-    ),
-    MenuItem(
-      icon: SFIcons.sf_icon_listbullet,
-      iconSize: 14.0,
-      label: '播放列表',
-      key: PlayerPage.playlist,
-      pageKey: GlobalKey<PlaylistsViewState>(),
-      builder: (key) => PlaylistsView(key: key),
     ),
     MenuItem(
       icon: Icons.history_rounded,

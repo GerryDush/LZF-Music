@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
+import 'package:lzf_music/widgets/lzf_toast.dart';
 import 'package:provider/provider.dart';
 import '../views/mobile_now_playing_screen.dart';
 import '../views/now_playing_screen.dart';
@@ -8,6 +9,7 @@ import '../services/player_provider.dart';
 import './slider_custom.dart';
 import '../contants/app_contants.dart' show PlayMode;
 import '../utils/common_utils.dart' show CommonUtils;
+import '../widgets/sf_icon.dart';
 
 class MiniPlayer extends StatefulWidget {
   final double containerWidth;
@@ -135,14 +137,19 @@ class _MiniPlayerState extends State<MiniPlayer> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Text(
-                                  "${CommonUtils.formatDuration(position)}/${CommonUtils.formatDuration(duration)}",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
+                                ValueListenableBuilder<Duration>(
+                                  valueListenable: playerProvider.position,
+                                  builder: (context, position, child) {
+                                    return Text(
+                                      "${CommonUtils.formatDuration(position)}/${CommonUtils.formatDuration(playerProvider.duration)}",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -156,40 +163,55 @@ class _MiniPlayerState extends State<MiniPlayer> {
                         children: [
                           // 进度条
                           Expanded(
-                            child: AnimatedTrackHeightSlider(
-                              trackHeight: 4,
-                              value:
-                                  (_tempSliderValue >= 0
-                                          ? _tempSliderValue
-                                          : (duration.inMilliseconds > 0
-                                                ? position.inMilliseconds /
-                                                      duration.inMilliseconds
-                                                : 0.0))
-                                      .clamp(0.0, 1.0),
-                              min: 0.0,
-                              max: 1.0,
-                              onChanged: currentSong != null
-                                  ? (value) {
-                                      setState(() {
-                                        _tempSliderValue = value; // 暂存比例
-                                      });
-                                    }
-                                  : null,
-                              onChangeEnd: currentSong != null
-                                  ? (value) async {
-                                      final newPosition = Duration(
-                                        milliseconds:
-                                            (_tempSliderValue *
-                                                    duration.inMilliseconds)
-                                                .round(),
-                                      );
-                                      await playerProvider.seekTo(newPosition);
-                                      setState(() {
-                                        _tempSliderValue =
-                                            -1; // 复位，用实时 position 控制
-                                      });
-                                    }
-                                  : null,
+                            child: ValueListenableBuilder<Duration>(
+                              valueListenable: playerProvider.position,
+                              builder: (context, position, child) {
+                                double sliderValue =
+                                    (_tempSliderValue >= 0
+                                            ? _tempSliderValue
+                                            : (playerProvider
+                                                          .duration
+                                                          .inMilliseconds >
+                                                      0
+                                                  ? position.inMilliseconds /
+                                                        playerProvider
+                                                            .duration
+                                                            .inMilliseconds
+                                                  : 0.0))
+                                        .clamp(0.0, 1.0);
+
+                                return AnimatedTrackHeightSlider(
+                                  trackHeight: 4,
+                                  value: sliderValue,
+                                  min: 0.0,
+                                  max: 1.0,
+                                  onChanged: currentSong != null
+                                      ? (value) {
+                                          setState(() {
+                                            _tempSliderValue = value; // 拖动时暂存
+                                          });
+                                        }
+                                      : null,
+                                  onChangeEnd: currentSong != null
+                                      ? (value) async {
+                                          final newPosition = Duration(
+                                            milliseconds:
+                                                (value *
+                                                        playerProvider
+                                                            .duration
+                                                            .inMilliseconds)
+                                                    .round(),
+                                          );
+                                          await playerProvider.seekTo(
+                                            newPosition,
+                                          );
+                                          setState(() {
+                                            _tempSliderValue = -1; // 复位
+                                          });
+                                        }
+                                      : null,
+                                );
+                              },
                             ),
                           ),
                           SizedBox(width: 30),
@@ -363,6 +385,25 @@ class _MiniPlayerState extends State<MiniPlayer> {
                               }
                             }
                           },
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      LZFToast.show(context, '开发中，敬请期待');
+                    },
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    padding: EdgeInsets.zero, // 如果想要图标紧贴中心就用 zero，否则用默认
+                    iconSize: 16, // IconButton 自身的 iconSize
+                    icon: Transform.translate(
+                      offset: const Offset(-2, 0),
+                      child: Icon(
+                        SFIcons.sf_icon_listbullet,
+                        size: 16,
+                        color: activeColor,
+                      ),
+                    ),
                   ),
                 ],
               ),

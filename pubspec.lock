@@ -45,8 +45,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
-      resolved-ref: "65a4a6a9ec754389cf7e3127dbec8d1902759886"
+      ref: "v0.0.1"
+      resolved-ref: "2c5d3fdf86378c88dfc41cf430eb043652b56533"
       url: "https://github.com/GerryDush/audio_metadata_reader.git"
     source: git
     version: "1.4.2"

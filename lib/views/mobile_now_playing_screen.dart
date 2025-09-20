@@ -71,14 +71,14 @@ class _MobileNowPlayingScreenState extends State<MobileNowPlayingScreen> {
         builder: (context, playerProvider, child) {
           final currentSong = playerProvider.currentSong;
           final bool isPlaying = playerProvider.isPlaying;
-          final double currentPosition = playerProvider.position.inSeconds.toDouble();
+          final double currentPosition = playerProvider.position.value.inSeconds.toDouble();
           final double totalDuration = playerProvider.duration.inSeconds.toDouble();
 
           // 处理歌词数据
           final lyricsResult = LyricsDataProcessor.processLyricsData(
             lyricsContent: currentSong?.lyrics,
             totalDuration: playerProvider.duration,
-            currentPosition: playerProvider.position,
+            currentPosition: playerProvider.position.value,
             parsedLyrics: parsedLyrics,
           );
           
@@ -193,9 +193,6 @@ class _MobileNowPlayingScreenState extends State<MobileNowPlayingScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                                 child: SongInfoPanel(
-                                  currentSong: currentSong,
-                                  currentPosition: currentPosition,
-                                  totalDuration: totalDuration,
                                   tempSliderValue: _tempSliderValue,
                                   onSliderChanged: (value) {
                                     setState(() {
