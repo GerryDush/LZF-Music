@@ -545,12 +545,11 @@ Future<List<LyricLine>> _parseTtmlContent(String ttmlContent) async {
 
       final chars = <LyricChar>[];
 
-      // --- 核心改动：智能处理 XmlElement 和 XmlText ---
       for (final node in p.children) {
         
         if (node is XmlElement) { // 如果是 <span> 标签
           if (node.name.local != 'span' || node.getAttribute('ttm:role') != null) {
-            continue; // 忽略非span标签和翻译/罗马音
+            continue; 
           }
 
           final charText = node.text;
@@ -574,14 +573,12 @@ Future<List<LyricLine>> _parseTtmlContent(String ttmlContent) async {
             }
           }
         } 
-        else if (node is XmlText) { // 如果是文本节点 (包含空格)
+        else if (node is XmlText) {
           final text = node.text;
-          // 如果文本是空白并且前面已经有解析出的单词
           if (text.trim().isEmpty && chars.isNotEmpty) {
-            // 将这个空格追加到前一个 LyricChar 的末尾
             final lastChar = chars.last;
             chars[chars.length - 1] = LyricChar(
-              char: lastChar.char + text, // "Take" + " " -> "Take "
+              char: lastChar.char + text,
               start: lastChar.start,
               end: lastChar.end,
             );
