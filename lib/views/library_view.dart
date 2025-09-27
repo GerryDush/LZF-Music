@@ -27,7 +27,7 @@ class LibraryView extends StatefulWidget {
 class LibraryViewState extends State<LibraryView> with ShowAwarePage {
   late MusicImportService importService;
   List<Song> songs = [];
-  Song? currentSong = null;
+  Song? currentSong;
   String? orderField;
   String? orderDirection;
   String? searchKeyword;
@@ -38,6 +38,9 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
   @override
   void onPageShow() {
     _loadSongs().then((_) {
+      ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
+    });
+    PlayerProvider.onSongChange = (() {
       ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
     });
   }
@@ -79,7 +82,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
     return Consumer<PlayerProvider>(
       builder: (context, playerProvider, child) {
         currentSong = playerProvider.currentSong;
-        ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
+
         return ThemedBackground(
           builder: (context, theme) {
             return Stack(

@@ -60,6 +60,9 @@ class PlayerProvider with ChangeNotifier {
       ? true
       : _currentIndex < _playlist.length - 1;
 
+  
+  static void Function()? onSongChange;
+
   PlayerProvider() {
     _initializeListeners();
     _setupAudioServiceCallbacks();
@@ -302,6 +305,7 @@ class PlayerProvider with ChangeNotifier {
         _currentIndex = _playlist.length - 1;
       }
       await playSong(_playlist[_currentIndex]);
+      onSongChange?.call();
       return;
     }
 
@@ -316,6 +320,7 @@ class PlayerProvider with ChangeNotifier {
       _currentIndex--;
     }
     await playSong(_playlist[_currentIndex]);
+    onSongChange?.call();
   }
 
   Future<void> next() async {
@@ -329,6 +334,7 @@ class PlayerProvider with ChangeNotifier {
         _currentIndex = 0;
       }
       await playSong(_playlist[_currentIndex]);
+      onSongChange?.call();
       return;
     }
 
@@ -343,6 +349,7 @@ class PlayerProvider with ChangeNotifier {
       _currentIndex++;
     }
     await playSong(_playlist[_currentIndex]);
+    onSongChange?.call();
   }
 
   Future<void> seekTo(Duration position) async {

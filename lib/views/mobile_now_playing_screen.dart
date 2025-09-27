@@ -49,18 +49,7 @@ class _MobileNowPlayingScreenState extends State<MobileNowPlayingScreen> {
 
   void _startLyricsTimer() {
     _timer?.cancel();
-    _timer = LyricsTimerManager.startLyricsTimer(
-      () => mounted,
-      () => Provider.of<PlayerProvider>(context, listen: false),
-      parsedLyrics,
-      () => lastCurrentIndex,
-      (value) => lastCurrentIndex = value,
-      () => setState(() {}),
-      _scrollController,
-      lineHeights,
-      placeholderHeight,
-      () => isHoveringLyrics,
-    );
+    
   }
 
   @override

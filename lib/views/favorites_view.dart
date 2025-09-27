@@ -40,6 +40,9 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
     _loadSongs().then((_) {
       ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
     });
+    PlayerProvider.onSongChange = (() {
+      ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
+    });
   }
 
   @override
@@ -80,7 +83,6 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
     return Consumer<PlayerProvider>(
       builder: (context, playerProvider, child) {
         currentSong = playerProvider.currentSong;
-        ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
         return ThemedBackground(
           builder: (context, theme) {
             return Stack(

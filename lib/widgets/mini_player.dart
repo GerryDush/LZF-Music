@@ -70,11 +70,33 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     if (currentSong == null) return;
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => widget.isMobile
-                            ? MobileNowPlayingScreen()
-                            : ImprovedNowPlayingScreen(),
-                        fullscreenDialog: true,
+                      PageRouteBuilder(
+                        transitionDuration: const Duration(
+                          milliseconds: 200,
+                        ), // 动画时长
+                        pageBuilder: (context, animation, secondaryAnimation) {
+                          return widget.isMobile
+                              ? MobileNowPlayingScreen()
+                              : ImprovedNowPlayingScreen();
+                        },
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                              final curvedAnimation = CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOut,
+                              );
+
+                              return SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 1),
+                                  end: Offset.zero,
+                                ).animate(curvedAnimation),
+                                child: FadeTransition(
+                                  opacity: curvedAnimation,
+                                  child: child,
+                                ),
+                              );
+                            },
                       ),
                     );
                   },
@@ -388,14 +410,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   ),
                   IconButton(
                     onPressed: () {
-                      LZFToast.show(context, '开发中，敬请期待');
+                      _showPlaylist(context);
                     },
                     constraints: const BoxConstraints(
                       minWidth: 40,
                       minHeight: 40,
                     ),
-                    padding: EdgeInsets.zero, // 如果想要图标紧贴中心就用 zero，否则用默认
-                    iconSize: 16, // IconButton 自身的 iconSize
+                    padding: EdgeInsets.zero,
+                    iconSize: 16,
                     icon: Transform.translate(
                       offset: const Offset(-2, 0),
                       child: Icon(
@@ -413,4 +435,33 @@ class _MiniPlayerState extends State<MiniPlayer> {
       },
     );
   }
+}
+
+void _showPlaylist(BuildContext context) {
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: "关闭",
+    transitionDuration: const Duration(milliseconds: 200),
+    pageBuilder: (_, __, ___) {
+      return Align(
+        alignment: Alignment.topRight,
+        child: Container(
+          width: 300,
+          decoration: BoxDecoration(color: Colors.white),
+          child: const Center(child: Text("开发中敬请期待..")),
+        ),
+      );
+    },
+    transitionBuilder: (_, anim, __, child) {
+      final curvedAnim = CurvedAnimation(parent: anim, curve: Curves.easeOut);
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.3), // 从下方 30% 的位置开始
+          end: Offset.zero,
+        ).animate(curvedAnim),
+        child: FadeTransition(opacity: curvedAnim, child: child),
+      );
+    },
+  );
 }

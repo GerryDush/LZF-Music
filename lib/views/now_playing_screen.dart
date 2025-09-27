@@ -194,7 +194,8 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                               },
                               blendMode: BlendMode.dstIn,
                               child: KaraokeLyricsView(
-                                lyricsContent: currentSong?.lyrics,
+                                key: ValueKey(currentSong!.id),
+                                lyricsContent: currentSong.lyrics,
                                 currentPosition:
                                     playerProvider.position, // 直接传递Duration
                                 onTapLine: (time) {

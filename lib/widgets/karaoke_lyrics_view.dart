@@ -131,7 +131,8 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
   void _updateCurrentLine(Duration position) {
     if (_lyricLines.isEmpty) return;
     final newIndex = _lyricLines.lastIndexWhere(
-      (line) => position >= line.startTime,
+      (line) =>
+          (position + const Duration(milliseconds: 200)) >= line.startTime,
     );
 
     if (newIndex != -1 && newIndex != _currentLineIndex) {
@@ -148,13 +149,11 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
 
     if (_isHoveringLyrics && !force) return;
 
-    double placeholderHeight = MediaQuery.of(context).size.height / 3.5;
-
     double offsetUpToCurrent = 0;
     for (int i = 0; i < _currentLineIndex; i++) {
       offsetUpToCurrent += _lineHeights[i] ?? 80.0;
     }
-    double targetOffset = placeholderHeight + offsetUpToCurrent - 160;
+    double targetOffset = offsetUpToCurrent;
     targetOffset = targetOffset.clamp(
       0.0,
       _scrollController.position.maxScrollExtent,
@@ -169,7 +168,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
 
   @override
   Widget build(BuildContext context) {
-    final placeholderHeight = MediaQuery.of(context).size.height / 3.5;
+    final contentHeigt = MediaQuery.of(context).size.height;
     if (_lyricLines.isEmpty) {
       return const Center(
         child: Text(
@@ -189,7 +188,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
         controller: _scrollController,
         child: Column(
           children: [
-            SizedBox(height: placeholderHeight),
+            SizedBox(height: 160),
             ..._lyricLines.asMap().entries.map((entry) {
               int index = entry.key;
               LyricLine line = entry.value;
@@ -199,7 +198,9 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
                 builder: (context, position, child) {
                   return HoverableLyricLine(
                     isCurrent: isCurrentLine,
-                    onSizeChange: (size) => _lineHeights[index] = size.height,
+                    onSizeChange: (size) {
+                      _lineHeights[index] = size.height;
+                    },
                     child: _buildLyricLine(line, isCurrentLine, position),
                     onHoverChanged: (hover) {
                       _isHoveringLyrics = hover;
@@ -213,98 +214,123 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
                 },
               );
             }),
-            SizedBox(height: placeholderHeight),
+            SizedBox(height: contentHeigt - 320),
           ],
         ),
       ),
     );
   }
 
- // 在 karaoke_lyrics_view.dart 文件中
+  // 在 karaoke_lyrics_view.dart 文件中
 
-Widget _buildLyricLine(LyricLine line, bool isCurrentLine, Duration position) {
-  final textStyle = TextStyle(
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    height: 1.4,
-    shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)],
-  );
-
-  // 顶部的非当前行处理逻辑保持不变
-  if (position < line.startTime || position > line.endTime) {
-    final color = (position > line.endTime) ? Colors.white : Colors.white70;
-    return Wrap(
-      children: line.chars.map((c) => Text(c.char, style: textStyle.copyWith(color: color))).toList(),
+  Widget _buildLyricLine(
+    LyricLine line,
+    bool isCurrentLine,
+    Duration position,
+  ) {
+    final textStyle = TextStyle(
+      fontSize: 32,
+      fontWeight: FontWeight.bold,
+      height: 1.4,
+      shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)],
     );
-  }
 
-  // --- 核心渲染逻辑重构 ---
-
-  // 步骤 1: 预计算每个 LyricChar 的宽度和在一行中的起始偏移量
-  final List<double> charWidths = [], charOffsets = [];
-  double currentOffset = 0.0;
-  for (final lyricChar in line.chars) {
-    final painter = TextPainter(text: TextSpan(text: lyricChar.char, style: textStyle), textDirection: TextDirection.ltr)..layout();
-    charWidths.add(painter.width);
-    charOffsets.add(currentOffset);
-    currentOffset += painter.width;
-  }
-  
-  // 步骤 2: 修正 progressInPixels 的计算方式
-  double progressInPixels = 0.0;
-  
-  // 找到当前正在演唱的那个 LyricChar
-  final currentCharIndex = line.chars.lastIndexWhere((c) => position >= c.start);
-
-  if (currentCharIndex != -1) {
-    final currentChar = line.chars[currentCharIndex];
-    final charOffset = charOffsets[currentCharIndex];
-    final charWidth = charWidths[currentCharIndex];
-    
-    // 计算当前 LyricChar 内部的演唱进度 (0.0 to 1.0)
-    double charProgress = 0.0;
-    final duration = (currentChar.end - currentChar.start).inMilliseconds;
-    if (duration > 0) {
-      charProgress = (position.inMilliseconds - currentChar.start.inMilliseconds) / duration;
-      charProgress = charProgress.clamp(0.0, 1.0); // 确保进度在0-1之间
-    } else if (position >= currentChar.end) {
-      charProgress = 1.0;
+    // 顶部的非当前行处理逻辑保持不变
+    if (position < line.startTime || position > line.endTime) {
+      final color = (position > line.endTime) ? Colors.white : Colors.white70;
+      return Wrap(
+        children: line.chars
+            .map((c) => Text(c.char, style: textStyle.copyWith(color: color)))
+            .toList(),
+      );
     }
-    
-    // 关键：总的像素进度 = 当前词/字之前的总像素宽度 + 当前词/字内部的像素进度
-    progressInPixels = charOffset + (charWidth * charProgress);
-  }
 
-  // 步骤 3: 使用修正后的 progressInPixels 来渲染 ShaderMask (与之前的逻辑相同)
-  final transitionWidthPixels = 20.0;
-  final gradientStart = progressInPixels;
-  final gradientEnd = progressInPixels + transitionWidthPixels;
-  
-  final charWidgets = <Widget>[];
-  for (int i = 0; i < line.chars.length; i++) {
-    final charStartOffset = charOffsets[i], charEndOffset = charStartOffset + charWidths[i];
-    final shaderMaskedChar = ShaderMask(
-      shaderCallback: (rect) {
-        if (charEndOffset <= gradientStart) {
-          return const LinearGradient(colors: [Colors.white, Colors.white]).createShader(rect);
-        }
-        if (charStartOffset >= gradientEnd) {
-          return const LinearGradient(colors: [Colors.white70, Colors.white70]).createShader(rect);
-        }
-        final localGradientStart = (gradientStart - charStartOffset) / rect.width;
-        final localGradientEnd = (gradientEnd - charStartOffset) / rect.width;
-        return LinearGradient(
-          colors: const [Colors.white, Colors.white70],
-          stops: [localGradientStart.clamp(0.0, 1.0), localGradientEnd.clamp(0.0, 1.0)],
-        ).createShader(rect);
-      },
-      child: Text(line.chars[i].char, style: textStyle.copyWith(color: Colors.white)),
+    // --- 核心渲染逻辑重构 ---
+
+    // 步骤 1: 预计算每个 LyricChar 的宽度和在一行中的起始偏移量
+    final List<double> charWidths = [], charOffsets = [];
+    double currentOffset = 0.0;
+    for (final lyricChar in line.chars) {
+      final painter = TextPainter(
+        text: TextSpan(text: lyricChar.char, style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      charWidths.add(painter.width);
+      charOffsets.add(currentOffset);
+      currentOffset += painter.width;
+    }
+
+    // 步骤 2: 修正 progressInPixels 的计算方式
+    double progressInPixels = 0.0;
+
+    // 找到当前正在演唱的那个 LyricChar
+    final currentCharIndex = line.chars.lastIndexWhere(
+      (c) => position >= c.start,
     );
-    charWidgets.add(shaderMaskedChar);
+
+    if (currentCharIndex != -1) {
+      final currentChar = line.chars[currentCharIndex];
+      final charOffset = charOffsets[currentCharIndex];
+      final charWidth = charWidths[currentCharIndex];
+
+      // 计算当前 LyricChar 内部的演唱进度 (0.0 to 1.0)
+      double charProgress = 0.0;
+      final duration = (currentChar.end - currentChar.start).inMilliseconds;
+      if (duration > 0) {
+        charProgress =
+            (position.inMilliseconds - currentChar.start.inMilliseconds) /
+            duration;
+        charProgress = charProgress.clamp(0.0, 1.0); // 确保进度在0-1之间
+      } else if (position >= currentChar.end) {
+        charProgress = 1.0;
+      }
+
+      // 关键：总的像素进度 = 当前词/字之前的总像素宽度 + 当前词/字内部的像素进度
+      progressInPixels = charOffset + (charWidth * charProgress);
+    }
+
+    // 步骤 3: 使用修正后的 progressInPixels 来渲染 ShaderMask (与之前的逻辑相同)
+    final transitionWidthPixels = 20.0;
+    final gradientStart = progressInPixels;
+    final gradientEnd = progressInPixels + transitionWidthPixels;
+
+    final charWidgets = <Widget>[];
+    for (int i = 0; i < line.chars.length; i++) {
+      final charStartOffset = charOffsets[i],
+          charEndOffset = charStartOffset + charWidths[i];
+      final shaderMaskedChar = ShaderMask(
+        shaderCallback: (rect) {
+          if (charEndOffset <= gradientStart) {
+            return const LinearGradient(
+              colors: [Colors.white, Colors.white],
+            ).createShader(rect);
+          }
+          if (charStartOffset >= gradientEnd) {
+            return const LinearGradient(
+              colors: [Colors.white70, Colors.white70],
+            ).createShader(rect);
+          }
+          final localGradientStart =
+              (gradientStart - charStartOffset) / rect.width;
+          final localGradientEnd = (gradientEnd - charStartOffset) / rect.width;
+          return LinearGradient(
+            colors: const [Colors.white, Colors.white70],
+            stops: [
+              localGradientStart.clamp(0.0, 1.0),
+              localGradientEnd.clamp(0.0, 1.0),
+            ],
+          ).createShader(rect);
+        },
+        child: Text(
+          line.chars[i].char,
+          style: textStyle.copyWith(color: Colors.white),
+        ),
+      );
+      charWidgets.add(shaderMaskedChar);
+    }
+
+    return Wrap(alignment: WrapAlignment.start, children: charWidgets);
   }
-  
-  return Wrap(alignment: WrapAlignment.start, children: charWidgets);
-}
 }
 
 // ===============================================================
@@ -549,31 +575,38 @@ Future<List<LyricLine>> _parseTtmlContent(String ttmlContent) async {
 
       // --- 步骤 1: 第一次遍历，提取所有原文span和它们之间的空格 ---
       for (final node in p.children) {
-        if (node is XmlElement && node.name.local == 'span' && node.getAttribute('ttm:role') == null) {
+        if (node is XmlElement &&
+            node.name.local == 'span' &&
+            node.getAttribute('ttm:role') == null) {
           final text = node.text;
           if (text.isNotEmpty) {
-            final startTime = _parseTtmlTime(node.getAttribute('begin') ?? lineStartTimeStr);
+            final startTime = _parseTtmlTime(
+              node.getAttribute('begin') ?? lineStartTimeStr,
+            );
             tempChars.add(_TempLyricChar(text, startTime));
           }
-        } else if (node is XmlText && node.text.trim().isEmpty && tempChars.isNotEmpty) {
+        } else if (node is XmlText &&
+            node.text.trim().isEmpty &&
+            tempChars.isNotEmpty) {
           tempChars.last.text += node.text; // 将空格追加到前一个单词
         }
       }
-      
+
       if (tempChars.isEmpty) continue;
 
       // --- 步骤 2: 第二次遍历，根据下一个span的开始时间来确定结束时间 ---
       final finalChars = <LyricChar>[];
       for (int i = 0; i < tempChars.length; i++) {
         final currentTemp = tempChars[i];
-        
+
         // 确定结束时间：用下一个span的开始时间，或者是整行的结束时间
         final endTime = (i + 1 < tempChars.length)
             ? tempChars[i + 1].start
             : lineEndTime;
-        
+
         // 如果计算出的结束时间早于开始时间，则用开始时间+一个小量，避免负时长
-        final validEndTime = endTime.inMilliseconds > currentTemp.start.inMilliseconds
+        final validEndTime =
+            endTime.inMilliseconds > currentTemp.start.inMilliseconds
             ? endTime
             : currentTemp.start + const Duration(milliseconds: 1);
 
@@ -603,20 +636,37 @@ Future<List<LyricLine>> _parseTtmlContent(String ttmlContent) async {
               for (final token in tokens) {
                 if (token.isEmpty) continue;
                 final tokenDurationMs = (msPerChar * token.length).round();
-                final tokenDuration = Duration(milliseconds: tokenDurationMs > 0 ? tokenDurationMs : 1);
+                final tokenDuration = Duration(
+                  milliseconds: tokenDurationMs > 0 ? tokenDurationMs : 1,
+                );
                 final tokenEndTime = currentTokenStart + tokenDuration;
-                finalChars.add(LyricChar(char: token, start: currentTokenStart, end: tokenEndTime));
+                finalChars.add(
+                  LyricChar(
+                    char: token,
+                    start: currentTokenStart,
+                    end: tokenEndTime,
+                  ),
+                );
                 currentTokenStart = tokenEndTime;
               }
             }
           }
-        } else { // 无时长或文本为空
-          finalChars.add(LyricChar(char: lineText, start: startTime, end: validEndTime));
+        } else {
+          // 无时长或文本为空
+          finalChars.add(
+            LyricChar(char: lineText, start: startTime, end: validEndTime),
+          );
         }
       }
-      
+
       if (finalChars.isNotEmpty) {
-        lyricLines.add(LyricLine(chars: finalChars, startTime: lineStartTime, endTime: lineEndTime));
+        lyricLines.add(
+          LyricLine(
+            chars: finalChars,
+            startTime: lineStartTime,
+            endTime: lineEndTime,
+          ),
+        );
       }
     }
 
@@ -633,6 +683,7 @@ class _TempLyricChar {
   final Duration start;
   _TempLyricChar(this.text, this.start);
 }
+
 Duration _parseTtmlTime(String time) {
   if (time.endsWith('s')) {
     final seconds = double.tryParse(time.replaceAll('s', '')) ?? 0.0;

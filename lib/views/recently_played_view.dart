@@ -12,7 +12,6 @@ import '../services/player_provider.dart';
 import 'package:provider/provider.dart';
 import '../widgets/show_aware_page.dart';
 import '../widgets/lzf_toast.dart';
-import '../widgets/music_import_dialog.dart';
 import '../widgets/music_list_header.dart';
 import '../widgets/music_list_view.dart';
 import '../widgets/page_header.dart';
@@ -38,6 +37,10 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
   @override
   void onPageShow() {
     _loadSongs().then((_) {
+      ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
+    });
+    PlayerProvider.onSongChange = (() {
+      print(111);
       ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
     });
   }
@@ -80,7 +83,6 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
     return Consumer<PlayerProvider>(
       builder: (context, playerProvider, child) {
         currentSong = playerProvider.currentSong;
-        ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
         return ThemedBackground(
           builder: (context, theme) {
             return Stack(

@@ -95,49 +95,6 @@ class LyricsParser {
   }
 }
 
-// 歌词定时器管理类
-class LyricsTimerManager {
-  // 启动歌词更新定时器
-  static Timer? startLyricsTimer(
-    bool Function() mounted,
-    dynamic Function() getPlayerProvider,
-    List<LyricLine> parsedLyrics,
-    int Function() getLastCurrentIndex,
-    void Function(int) setLastCurrentIndex,
-    void Function() setState,
-    ScrollController scrollController,
-    Map<int, double> lineHeights,
-    double placeholderHeight,
-    bool Function() getIsHoveringLyrics,  // 改为函数
-  ) {
-    return Timer.periodic(const Duration(milliseconds: 100), (_) {
-      if (!mounted()) return;
-
-      final playerProvider = getPlayerProvider();
-      if (!playerProvider.isPlaying) return;
-
-      final newCurrentLine = parsedLyrics.isNotEmpty
-          ? LyricsManager.getCurrentLyricIndex(parsedLyrics, playerProvider.position.inMilliseconds + 500)
-          : (playerProvider.position.inSeconds / 3).floor().clamp(
-              0,
-              parsedLyrics.isNotEmpty ? parsedLyrics.length - 1 : 0,
-            );
-
-      if (newCurrentLine != getLastCurrentIndex() && newCurrentLine >= 0) {
-        setLastCurrentIndex(newCurrentLine);
-        setState();
-        LyricsUtils.scrollToCurrentLine(
-          scrollController,
-          newCurrentLine,
-          0,
-          lineHeights,
-          placeholderHeight,
-          isHoveringLyrics: getIsHoveringLyrics(),  // 调用函数获取最新状态
-        );
-      }
-    });
-  }
-}
 
 // 歌词数据处理器类
 class LyricsDataProcessor {

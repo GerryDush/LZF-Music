@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:lzf_music/services/audio_player_service.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
@@ -11,7 +10,6 @@ import '../utils/common_utils.dart' show CommonUtils;
 import '../utils/platform_utils.dart';
 import '../services/music_import_service.dart';
 
-
 class MusicListView extends StatefulWidget {
   final List<Song> songs;
   final ScrollController? scrollController;
@@ -19,7 +17,7 @@ class MusicListView extends StatefulWidget {
   final bool showCheckbox;
   final List<int> checkedIds;
   final VoidCallback? onSongDeleted;
-  final void Function(Song song,int ?index)? onSongUpdated;
+  final void Function(Song song, int? index)? onSongUpdated;
   final Function(Song, List<Song>, int)? onSongPlay;
   final Function(int, bool)? onCheckboxChanged;
 
@@ -64,7 +62,9 @@ class _MusicListViewState extends State<MusicListView> {
     final newFavoriteState = !song.isFavorite;
 
     // 更新数据库
-    AudioPlayerService.database.updateSong(song.copyWith(isFavorite: newFavoriteState));
+    AudioPlayerService.database.updateSong(
+      song.copyWith(isFavorite: newFavoriteState),
+    );
 
     // 更新本地列表中的歌曲状态
     widget.songs[index] = song.copyWith(isFavorite: newFavoriteState);
@@ -79,7 +79,7 @@ class _MusicListViewState extends State<MusicListView> {
           : '已取消收藏 ${song.title} - ${song.artist ?? '未知艺术家'}',
     );
 
-    widget.onSongUpdated?.call(song,index);
+    // widget.onSongUpdated?.call(song, index);
   }
 
   // 获取或创建收藏状态通知器
@@ -122,13 +122,15 @@ class _MusicListViewState extends State<MusicListView> {
                 _isScrolling = true;
                 _hoveredIndex = null;
               });
+            } else if (notification is ScrollUpdateNotification) {
+              if (!_isScrolling) {
+                setState(() {
+                  _isScrolling = true;
+                });
+              }
             } else if (notification is ScrollEndNotification) {
-              Future.delayed(const Duration(milliseconds: 150), () {
-                if (mounted) {
-                  setState(() {
-                    _isScrolling = false;
-                  });
-                }
+              setState(() {
+                _isScrolling = false;
               });
             }
             return false;
@@ -359,7 +361,8 @@ class _MusicListViewState extends State<MusicListView> {
                                 ),
                               ),
                             ),
-                            if(widget.onSongDeleted==null)const SizedBox(width: 40,),
+                            if (widget.onSongDeleted == null)
+                              const SizedBox(width: 40),
                             // 收藏按钮
                             ValueListenableBuilder<bool>(
                               valueListenable: _getFavoriteNotifier(song.id),
@@ -376,41 +379,58 @@ class _MusicListViewState extends State<MusicListView> {
                                 );
                               },
                             ),
-                            if(widget.onSongDeleted!=null)
-                            // 复选框或更多菜单
-                            (widget.showCheckbox
-                                ? Checkbox(
-                                    value: widget.checkedIds.contains(song.id),
-                                    onChanged: (value) {
-                                      widget.onCheckboxChanged?.call(
+                            if (widget.onSongDeleted != null)
+                              // 复选框或更多菜单
+                              (widget.showCheckbox
+                                  ? Checkbox(
+                                      value: widget.checkedIds.contains(
                                         song.id,
-                                        value == true,
-                                      );
-                                    },
-                                  )
-                                : SongActionMenu(
-                                    song: song,
-                                    onDelete: () => _handleSongDelete(index),
-                                    onImportAlbum: () async{
-                                      final res = await MusicImportService.importAlbumArt(song);
-                                      LZFToast.show(context, res!=null?'导入成功':'导入失败');
-                                      if(res!=null){
-                                        widget.onSongUpdated?.call(song,index);  
-                                      }
-                                    },
-                                    onFavoriteToggle: () =>
-                                        _handleFavoriteToggle(index),
-                                    onImportLyrics: () async{
-                                      final res = await MusicImportService.importLyrics(song);
-                                      LZFToast.show(context, res?'导入成功':'导入失败');
-                                      if(res){
-                                        widget.onSongUpdated?.call(song,index);  
-                                      }
-                                      
-                                    },
-                                  )),
-                                  
-
+                                      ),
+                                      onChanged: (value) {
+                                        widget.onCheckboxChanged?.call(
+                                          song.id,
+                                          value == true,
+                                        );
+                                      },
+                                    )
+                                  : SongActionMenu(
+                                      song: song,
+                                      onDelete: () => _handleSongDelete(index),
+                                      onImportAlbum: () async {
+                                        final res =
+                                            await MusicImportService.importAlbumArt(
+                                              song,
+                                            );
+                                        LZFToast.show(
+                                          context,
+                                          res != null ? '导入成功' : '导入失败',
+                                        );
+                                        if (res != null) {
+                                          widget.onSongUpdated?.call(
+                                            song,
+                                            index,
+                                          );
+                                        }
+                                      },
+                                      onFavoriteToggle: () =>
+                                          _handleFavoriteToggle(index),
+                                      onImportLyrics: () async {
+                                        final res =
+                                            await MusicImportService.importLyrics(
+                                              song,
+                                            );
+                                        LZFToast.show(
+                                          context,
+                                          res ? '导入成功' : '导入失败',
+                                        );
+                                        if (res) {
+                                          widget.onSongUpdated?.call(
+                                            song,
+                                            index,
+                                          );
+                                        }
+                                      },
+                                    )),
                           ],
                         ),
                       );
