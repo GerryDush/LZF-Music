@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-26-xlarge
     strategy:
       matrix:
         arch: [x86_64, arm64, universal]
