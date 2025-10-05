@@ -57,7 +57,7 @@ class _HomePageMobileState extends State<HomePageMobile> {
                           padding: MediaQuery.of(context).padding.copyWith(
                             bottom:
                                 MediaQuery.of(context).padding.bottom +
-                                80, // 增加底部导航栏高度
+                                60, // 调整底部导航栏高度
                           ),
                         ),
                         child: ValueListenableBuilder<PlayerPage>(
@@ -118,7 +118,7 @@ class _HomePageMobileState extends State<HomePageMobile> {
 
               // 底部导航栏
               Container(
-                height: 80,
+                height: 60,
                 decoration: BoxDecoration(
                   color: sidebarBg
                 ),
@@ -134,14 +134,11 @@ class _HomePageMobileState extends State<HomePageMobile> {
                         final isSelected = index == currentPage.index;
 
                         Color iconColor;
-                        Color textColor;
 
                         if (isSelected) {
                           iconColor = primary;
-                          textColor = primary;
                         } else {
                           iconColor = defaultTextColor.withValues(alpha: 0.6);
-                          textColor = defaultTextColor.withValues(alpha: 0.6);
                         }
 
                         return Expanded(
@@ -149,24 +146,8 @@ class _HomePageMobileState extends State<HomePageMobile> {
                             onTap: () => _onTabChanged(index),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(item.icon, color: iconColor, size: 24),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    item.label,
-                                    style: TextStyle(
-                                      color: textColor,
-                                      fontSize: 12,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                              child: Center(
+                                child: Icon(item.icon, color: iconColor, size: 24),
                               ),
                             ),
                           ),

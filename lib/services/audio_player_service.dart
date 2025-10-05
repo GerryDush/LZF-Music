@@ -136,6 +136,19 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
     print('MediaItem updated: ${song.title}');
   }
 
+  Future<void> refreshNowPlaying() async {
+    if (_currentMediaItem == null) return;
+
+    mediaItem.add(_currentMediaItem);
+    playbackState.add(
+      _createPlaybackState(
+        playing: player.state.playing,
+        position: player.state.position,
+        buffering: player.state.buffering,
+      ),
+    );
+  }
+
   Future<void> playSong(Song song, {bool playNow = true}) async {
     try {
       updateCurrentMediaItem(song);

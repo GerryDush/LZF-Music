@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:audio_service/audio_service.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../database/database.dart';
@@ -8,7 +9,7 @@ import 'audio_player_service.dart';
 import '../storage/player_state_storage.dart';
 import '../contants/app_contants.dart' show PlayMode;
 
-class PlayerProvider with ChangeNotifier {
+class PlayerProvider with ChangeNotifier, WidgetsBindingObserver {
   final AudioPlayerService _audioService = AudioPlayerService();
   late final PlayerStateStorage playerState;
   Song? _currentSong;
@@ -59,8 +60,11 @@ class PlayerProvider with ChangeNotifier {
       : _currentIndex < _playlist.length - 1;
 
   static void Function()? onSongChange;
+  static const MethodChannel _audioSessionChannel =
+      MethodChannel('com.lzf.music/audio_session');
 
   PlayerProvider() {
+    WidgetsBinding.instance.addObserver(this);
     _initializeListeners();
     _setupAudioServiceCallbacks();
   }
@@ -125,6 +129,26 @@ class PlayerProvider with ChangeNotifier {
       onPrevious: () => previous(),
       onSeek: (position) => seekTo(position),
     );
+  }
+
+  Future<void> _restoreAudioSessionIfNeeded() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    try {
+      await _audioSessionChannel.invokeMethod('activateSession');
+    } catch (e) {
+      debugPrint('Failed to activate audio session: $e');
+    }
+
+    await _audioService.refreshNowPlaying();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_restoreAudioSessionIfNeeded());
+    }
   }
 
   void _handleSongCompleteWithDebounce() {
@@ -528,6 +552,7 @@ class PlayerProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _playingSub?.cancel();
     _positionSub?.cancel();
     _durationSub?.cancel();
