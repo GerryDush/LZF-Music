@@ -26,11 +26,7 @@ dependencies:
   url_launcher: ^6.3.2
   bitsdojo_window: ^0.1.6
   webdav_client: ^1.2.2
-  audio_service:
-     git:
-      url: https://github.com/GerryDush/audio_service.git
-      ref: minor
-      path: audio_service
+  audio_service: ^0.18.18
   audio_service_win:
      git:
       url: https://github.com/GerryDush/audio_service_win.git

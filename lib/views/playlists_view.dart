@@ -111,7 +111,7 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
                   showCheckbox: false, // 播放列表页面不显示复选框
                   checkedIds: const [],
                   onSongDeleted: _loadSongs,
-                  onSongUpdated: (_,_) {
+                  onSongUpdated: (_,__) {
                     setState(() {
                       // 重新加载歌曲列表
                       _loadSongs();

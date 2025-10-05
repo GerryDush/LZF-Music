@@ -100,7 +100,7 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                     playerProvider: playerProvider,
                     showCheckbox: _showCheckbox,
                     checkedIds: checkedIds,
-                    onSongUpdated: (_,_){_loadSongs();},
+                    onSongUpdated: (_,__){_loadSongs();},
                     onSongPlay: (song, playlist, index) {
                       playerProvider.playSong(
                         song,
