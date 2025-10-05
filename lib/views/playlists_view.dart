@@ -21,7 +21,7 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
   bool _isScrolling = false;
   Timer? _scrollTimer;
   final ScrollController _scrollController = ScrollController();
-  late MusicDatabase database = AudioPlayerService.database;
+  late MusicDatabase database = MusicDatabase.database;
   late MusicImportService importService;
   List<Song> songs = [];
   String? orderField = null;

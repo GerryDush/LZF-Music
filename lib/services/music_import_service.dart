@@ -3,6 +3,8 @@ import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:drift/drift.dart';
+import 'package:lzf_music/utils/common_utils.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import '../database/database.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p; // 跨平台路径处理
@@ -204,7 +206,7 @@ class MusicImportService {
       if (result != null) {
         for (final file in result.files) {
           final lyrics = File(file.path!).readAsStringSync();
-          AudioPlayerService.database.updateSong(
+          MusicDatabase.database.updateSong(
             song.copyWith(lyrics: Value(lyrics)),
           );
           updateMetadata(File(song.filePath), (metadata) {
@@ -220,57 +222,61 @@ class MusicImportService {
   }
 
   static Future<String?> importAlbumArt(Song song) async {
-  try {
-    final result = await FilePicker.platform.pickFiles(
-      allowedExtensions: ['jpg', 'jpeg', 'png'],
-      type: FileType.custom,
-      allowMultiple: false,
-      lockParentWindow: false,
-    );
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
+        type: FileType.custom,
+        allowMultiple: false,
+        lockParentWindow: false,
+      );
 
-    if (result == null || result.files.isEmpty) return null;
+      if (result == null || result.files.isEmpty) return null;
 
-    final file = result.files.first;
-    if (file.path == null) return null;
+      final file = result.files.first;
+      if (file.path == null) return null;
 
-    CoverImage? cover = CoverImage.fromBytes(await File(file.path!).readAsBytes());
-    if(cover==null){
+      CoverImage? cover = CoverImage.fromBytes(
+        await File(file.path!).readAsBytes(),
+      );
+      if (cover == null) {
+        return null;
+      }
+
+      final basePath = await CommonUtils.getAppBaseDirectory();
+      final albumArtDir = Directory(p.join(basePath, '.album_art'));
+      await albumArtDir.create(recursive: true);
+
+      // 删除旧封面
+      if (song.albumArtPath != null && song.albumArtPath != null) {
+        final oldFile = File(song.albumArtPath!);
+        if (await oldFile.exists()) {
+          await oldFile.delete();
+        }
+      }
+
+      // 使用 MD5 命名新封面
+      final md5Hash = md5.convert(cover.bytes).toString();
+      final ext = p.extension(file.path!).replaceFirst('.', '');
+      final albumArtFile = File(p.join(albumArtDir.path, '$md5Hash.$ext'));
+
+      await albumArtFile.writeAsBytes(cover.bytes, flush: true);
+
+      // 更新数据库
+      MusicDatabase.database.updateSong(
+        song.copyWith(albumArtPath: Value(albumArtFile.path)),
+      );
+      updateMetadata(File(song.filePath), (metadata) {
+        metadata.setPictures([
+          Picture(cover.bytes, cover.mime, PictureType.coverFront),
+        ]);
+      });
+
+      return albumArtFile.path;
+    } catch (e) {
+      print('Failed to import album art: $e');
       return null;
     }
-
-    final dbFolder = await getApplicationSupportDirectory();
-    final albumArtDir = Directory(p.join(dbFolder.path, '.album_art'));
-    await albumArtDir.create(recursive: true);
-
-    // 删除旧封面
-    if (song.albumArtPath != null && song.albumArtPath != null) {
-      final oldFile = File(song.albumArtPath!);
-      if (await oldFile.exists()) {
-        await oldFile.delete();
-      }
-    }
-
-    // 使用 MD5 命名新封面
-    final md5Hash = md5.convert(cover.bytes).toString();
-    final ext = p.extension(file.path!).replaceFirst('.', '');
-    final albumArtFile = File(p.join(albumArtDir.path, '$md5Hash.$ext'));
-
-    await albumArtFile.writeAsBytes(cover.bytes, flush: true);
-
-    // 更新数据库
-    AudioPlayerService.database.updateSong(
-      song.copyWith(albumArtPath: Value(albumArtFile.path)),
-    );
-    updateMetadata(File(song.filePath), (metadata) {
-            metadata.setPictures([Picture(cover.bytes, cover.mime, PictureType.coverFront)]);
-          });
-
-    return albumArtFile.path;
-  } catch (e) {
-    print('Failed to import album art: $e');
-    return null;
   }
-}
 
   Stream<ImportEvent> _listMusicFiles(Directory dir) async* {
     final List<File> musicFiles = [];
@@ -333,7 +339,7 @@ class MusicImportService {
     final String? artist = metadata.artist;
 
     final existingSongs =
-        await (AudioPlayerService.database.songs.select()..where(
+        await (MusicDatabase.database.songs.select()..where(
               (tbl) =>
                   tbl.title.equals(title) &
                   (artist != null
@@ -345,20 +351,32 @@ class MusicImportService {
     if (existingSongs.isNotEmpty) {
       return;
     }
+    final basePath = await CommonUtils.getAppBaseDirectory();
+
+
+    String targetFilePath = file.path;
+    print(PlatformUtils.isMobile);
+    if (PlatformUtils.isMobile) {
+      final targetDir = Directory(
+        p.join(basePath, 'Music', artist ?? 'Unknow'),
+      );
+      if (!await targetDir.exists()) {
+        await targetDir.create(recursive: true);
+      }
+      targetFilePath = p.join(targetDir.path, "$title${p.extension(file.path)}");
+      await file.copy(targetFilePath);
+      print('文件已保存到：$targetFilePath');
+    }
 
     String? albumArtPath;
     if (metadata.pictures.isNotEmpty) {
-      final dbFolder = await getApplicationSupportDirectory();
       final picture = metadata.pictures.first;
       CoverImage? cover = CoverImage.fromBytes(picture.bytes);
       if (cover != null) {
         // 计算图片内容的MD5哈希
         final md5Hash = md5.convert(cover.bytes).toString();
         final fileName = '$md5Hash.${cover.type}';
-
-        final albumArtFile = File(
-          p.join(dbFolder.path, '.album_art', fileName),
-        );
+        final albumArtFile = File(p.join(basePath, 'Cover', fileName));
         await albumArtFile.parent.create(recursive: true);
         // 如果文件已存在则不重复写入
         if (!await albumArtFile.exists()) {
@@ -368,12 +386,12 @@ class MusicImportService {
       }
     }
 
-    await AudioPlayerService.database.insertSong(
+    await MusicDatabase.database.insertSong(
       SongsCompanion.insert(
         title: title,
         artist: Value(artist),
         album: Value(metadata.album),
-        filePath: file.path,
+        filePath: targetFilePath,
         lyrics: Value(metadata.lyrics),
         bitrate: Value(metadata.bitrate),
         sampleRate: Value(metadata.sampleRate),

@@ -54,7 +54,7 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
     try {
       List<Song> loadedSongs;
       final keyword = searchKeyword;
-      loadedSongs = await AudioPlayerService.database.smartSearch(
+      loadedSongs = await MusicDatabase.database.smartSearch(
         keyword?.trim(),
         orderField: orderField,
         orderDirection: orderDirection,
@@ -134,7 +134,7 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                       ),
                       child: PageHeader(
                         showImport: false,
-                        title: '音乐库',
+                        title: '喜欢的音乐',
                         songs: songs,
                         onSearch: (keyword) async {
                           searchKeyword = keyword;

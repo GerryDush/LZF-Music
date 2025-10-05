@@ -54,7 +54,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
     try {
       List<Song> loadedSongs;
       final keyword = searchKeyword;
-      loadedSongs = await AudioPlayerService.database.smartSearch(
+      loadedSongs = await MusicDatabase.database.smartSearch(
         keyword?.trim(),
         orderField: orderField,
         orderDirection: orderDirection,
@@ -241,7 +241,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                                   }
                                   int len = checkedIds.length;
                                   for (var id in checkedIds) {
-                                    AudioPlayerService.database.deleteSong(id);
+                                    MusicDatabase.database.deleteSong(id);
                                   }
                                   LZFToast.show(context, "已删除${len}首歌");
                                   _loadSongs();

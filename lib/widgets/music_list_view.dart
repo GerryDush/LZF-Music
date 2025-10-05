@@ -62,7 +62,7 @@ class _MusicListViewState extends State<MusicListView> {
     final newFavoriteState = !song.isFavorite;
 
     // 更新数据库
-    AudioPlayerService.database.updateSong(
+    MusicDatabase.database.updateSong(
       song.copyWith(isFavorite: newFavoriteState),
     );
 
@@ -94,7 +94,7 @@ class _MusicListViewState extends State<MusicListView> {
 
   void _handleSongDelete(int index) {
     final song = widget.songs[index];
-    AudioPlayerService.database.deleteSong(song.id);
+    MusicDatabase.database.deleteSong(song.id);
 
     LZFToast.show(context, "已删除 ${song.title} - ${song.artist ?? '未知艺术家'}");
 

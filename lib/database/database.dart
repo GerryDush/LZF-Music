@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:lzf_music/utils/common_utils.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter/foundation.dart';
 part 'database.g.dart';
 
 class Songs extends Table {
@@ -18,13 +20,20 @@ class Songs extends Table {
   TextColumn get albumArtPath => text().nullable()();
   DateTimeColumn get dateAdded => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
-  DateTimeColumn get lastPlayedTime => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get lastPlayedTime =>
+      dateTime().withDefault(currentDateAndTime)();
   IntColumn get playedCount => integer().withDefault(const Constant(0))();
 }
 
 @DriftDatabase(tables: [Songs])
 class MusicDatabase extends _$MusicDatabase {
-  MusicDatabase() : super(_openConnection());
+  static late MusicDatabase _database;
+  static MusicDatabase get database => _database;
+  MusicDatabase._() : super(_openConnection());
+  static MusicDatabase initialize() {
+    _database = MusicDatabase._();
+    return _database;
+  }
 
   @override
   int get schemaVersion => 1;
@@ -282,87 +291,104 @@ class MusicDatabase extends _$MusicDatabase {
   }
 
   Future<List<Song>> smartSearch(
-  String? keyword, {
-  String? orderField,
-  String? orderDirection,
-  bool? isFavorite,
-  bool? isLastPlayed,
-}) async {
-  final query = select(songs);
-  if (keyword != null && keyword.trim().isNotEmpty) {
-    final lowerKeyword = keyword.toLowerCase();
+    String? keyword, {
+    String? orderField,
+    String? orderDirection,
+    bool? isFavorite,
+    bool? isLastPlayed,
+  }) async {
+    final query = select(songs);
+    if (keyword != null && keyword.trim().isNotEmpty) {
+      final lowerKeyword = keyword.toLowerCase();
 
-    query.where((song) =>
-      song.title.lower().like('%$lowerKeyword%') |
-      song.artist.lower().like('%$lowerKeyword%') |
-      song.album.lower().like('%$lowerKeyword%'),
-    );
+      query.where(
+        (song) =>
+            song.title.lower().like('%$lowerKeyword%') |
+            song.artist.lower().like('%$lowerKeyword%') |
+            song.album.lower().like('%$lowerKeyword%'),
+      );
 
-    // 优先级排序的条件
-    if(isLastPlayed == null){
-      query.orderBy([
-      (song) => OrderingTerm(
-        expression: CaseWhenExpression(
-          cases: [
-            CaseWhen(song.title.lower().equals(lowerKeyword), then: const Constant(0)),
-            CaseWhen(song.artist.lower().equals(lowerKeyword), then: const Constant(1)),
-            CaseWhen(song.album.lower().equals(lowerKeyword), then: const Constant(2)),
-            CaseWhen(song.title.lower().like('$lowerKeyword%'), then: const Constant(3)),
-            CaseWhen(song.artist.lower().like('$lowerKeyword%'), then: const Constant(4)),
-            CaseWhen(song.album.lower().like('$lowerKeyword%'), then: const Constant(5)),
-          ],
-          orElse: const Constant(6),
-        ),
-      ),
-    ]);
+      // 优先级排序的条件
+      if (isLastPlayed == null) {
+        query.orderBy([
+          (song) => OrderingTerm(
+            expression: CaseWhenExpression(
+              cases: [
+                CaseWhen(
+                  song.title.lower().equals(lowerKeyword),
+                  then: const Constant(0),
+                ),
+                CaseWhen(
+                  song.artist.lower().equals(lowerKeyword),
+                  then: const Constant(1),
+                ),
+                CaseWhen(
+                  song.album.lower().equals(lowerKeyword),
+                  then: const Constant(2),
+                ),
+                CaseWhen(
+                  song.title.lower().like('$lowerKeyword%'),
+                  then: const Constant(3),
+                ),
+                CaseWhen(
+                  song.artist.lower().like('$lowerKeyword%'),
+                  then: const Constant(4),
+                ),
+                CaseWhen(
+                  song.album.lower().like('$lowerKeyword%'),
+                  then: const Constant(5),
+                ),
+              ],
+              orElse: const Constant(6),
+            ),
+          ),
+        ]);
+      }
     }
-  }
-  if (isFavorite != null) {
-    query.where((song) => song.isFavorite.equals(isFavorite));
-  }
-  if (isLastPlayed == true) {
-    query.where((song) => song.playedCount.isBiggerThanValue(0));
+    if (isFavorite != null) {
+      query.where((song) => song.isFavorite.equals(isFavorite));
+    }
+    if (isLastPlayed == true) {
+      query.where((song) => song.playedCount.isBiggerThanValue(0));
+      query.orderBy([(song) => OrderingTerm.desc(song.lastPlayedTime)]);
+      query.limit(100);
+      return await query.get();
+    }
+
+    // 无论有没有关键字，都执行排序逻辑
     query.orderBy([
-      (song) => OrderingTerm.desc(song.lastPlayedTime),
+      (song) {
+        if (orderField == null || orderDirection == null) {
+          return OrderingTerm.desc(song.id);
+        }
+        final Expression orderExpr;
+        switch (orderField) {
+          case 'id':
+            orderExpr = song.duration;
+            break;
+          case 'title':
+            orderExpr = song.title;
+            break;
+          case 'artist':
+            orderExpr = song.artist;
+            break;
+          case 'album':
+            orderExpr = song.album;
+            break;
+          case 'duration':
+            orderExpr = song.duration;
+            break;
+          default:
+            orderExpr = song.id;
+        }
+        return orderDirection.toLowerCase() == 'desc'
+            ? OrderingTerm.desc(orderExpr)
+            : OrderingTerm.asc(orderExpr);
+      },
     ]);
-    query.limit(100);
+
     return await query.get();
   }
-
-  // 无论有没有关键字，都执行排序逻辑
-  query.orderBy([
-    (song) {
-      if (orderField == null || orderDirection == null) {
-        return OrderingTerm.desc(song.id);
-      }
-      final Expression orderExpr;
-      switch (orderField) {
-        case 'id':
-          orderExpr = song.duration;
-          break;
-        case 'title':
-          orderExpr = song.title;
-          break;
-        case 'artist':
-          orderExpr = song.artist;
-          break;
-        case 'album':
-          orderExpr = song.album;
-          break;
-        case 'duration':
-          orderExpr = song.duration;
-          break;
-        default:
-          orderExpr = song.id;
-      }
-      return orderDirection.toLowerCase() == 'desc'
-          ? OrderingTerm.desc(orderExpr)
-          : OrderingTerm.asc(orderExpr);
-    }
-  ]);
-
-  return await query.get();
-}
 
   // 插入歌曲
   Future<int> insertSong(SongsCompanion song) async {
@@ -411,11 +437,39 @@ class MusicDatabase extends _$MusicDatabase {
   }
 }
 
+Future<void> _deleteDirectoryContents(Directory directory) async {
+  try {
+    await for (var entity in directory.list(recursive: true)) {
+      if (entity is File) {
+        if (p.basename(entity.path) == 'libCachedImageData.db') {
+          continue;
+        }
+        await entity.delete();
+        debugPrint('已删除文件：${entity.path}');
+      } else if (entity is Directory) {
+        await _deleteDirectoryContents(entity);
+        entity.deleteSync();
+        debugPrint('已删除子目录：${entity.path}');
+      }
+    }
+  } catch (e) {
+    debugPrint('删除目录内容时出错: $e');
+  }
+}
+
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    final dbFolder = await getApplicationSupportDirectory();
-    print('数据库目录: ${dbFolder.path}');
-    final file = File(p.join(dbFolder.path, 'music.sqlite'));
+    final oldDbFolder = await getApplicationSupportDirectory();
+    if (await oldDbFolder.exists()) {
+      await _deleteDirectoryContents(oldDbFolder);
+      debugPrint('旧目录及其内容已删除：$oldDbFolder');
+    } else {
+      debugPrint('旧目录不存在：$oldDbFolder');
+    }
+
+    final basePath = await CommonUtils.getAppBaseDirectory();
+    debugPrint("APP根目录：${basePath}");
+    final file = File(p.join(basePath, 'lzf-music.db'));
     return NativeDatabase.createInBackground(file);
   });
 }

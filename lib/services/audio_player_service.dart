@@ -1,14 +1,15 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:rxdart/rxdart.dart';
+import 'dart:async';
 import '../database/database.dart';
 
-class AudioPlayerService extends BaseAudioHandler {
+class AudioPlayerService extends BaseAudioHandler with SeekHandler {
   static final AudioPlayerService _instance = AudioPlayerService._internal();
-  final Player player = Player();
-  static late MusicDatabase _database;
-  static MusicDatabase get database => _database;
+  final Player player = Player(
+    configuration: PlayerConfiguration(title: "LZF Music"),
+  );
 
-  // PlayerProvider 回调
   Function()? onPlay;
   Function()? onPause;
   Function()? onStop;
@@ -16,12 +17,69 @@ class AudioPlayerService extends BaseAudioHandler {
   Function()? onPrevious;
   Function(Duration)? onSeek;
 
-  factory AudioPlayerService() => _instance;
-  AudioPlayerService._internal();
+  MediaItem? _currentMediaItem;
+  StreamSubscription? _playbackStateSubscription;
 
-  // 初始化 AudioService
-  static Future<AudioPlayerService> init(MusicDatabase database) async {
-    _database = database;
+  factory AudioPlayerService() => _instance;
+
+  AudioPlayerService._internal() {
+    _setupPlaybackStatePipe();
+  }
+
+  void _setupPlaybackStatePipe() {
+    // 组合多个流，但保存订阅以便控制
+    final stateStream = Rx.combineLatest4<bool, Duration, Duration, bool, PlaybackState>(
+      player.stream.playing,
+      player.stream.position,
+      player.stream.duration,
+      player.stream.buffering,
+      (playing, position, duration, buffering) {
+        return _createPlaybackState(
+          playing: playing,
+          position: position,
+          buffering: buffering,
+        );
+      },
+    );
+
+    // 不要直接 pipe，而是监听并手动更新
+    // 这样可以确保状态不会被意外清除
+    _playbackStateSubscription = stateStream.listen((state) {
+      playbackState.add(state);
+    });
+  }
+
+  PlaybackState _createPlaybackState({
+    required bool playing,
+    required Duration position,
+    required bool buffering,
+  }) {
+    return PlaybackState(
+      controls: [
+        MediaControl.skipToPrevious,
+        playing ? MediaControl.pause : MediaControl.play,
+        MediaControl.skipToNext,
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+      },
+      androidCompactActionIndices: const [0, 1, 2],
+      processingState: buffering
+          ? AudioProcessingState.buffering
+          : (_currentMediaItem != null
+              ? AudioProcessingState.ready
+              : AudioProcessingState.idle),
+      playing: playing,
+      updatePosition: position,
+      bufferedPosition: position,
+      speed: playing ? 1.0 : 0.0,
+      queueIndex: 0,
+    );
+  }
+
+  static Future<AudioPlayerService> init() async {
     await AudioService.init(
       builder: () => AudioPlayerService(),
       config: const AudioServiceConfig(
@@ -35,7 +93,6 @@ class AudioPlayerService extends BaseAudioHandler {
     return _instance;
   }
 
-  // 设置 PlayerProvider 的回调
   void setCallbacks({
     Function()? onPlay,
     Function()? onPause,
@@ -52,109 +109,80 @@ class AudioPlayerService extends BaseAudioHandler {
     this.onSeek = onSeek;
   }
 
-  // 更新媒体项 - 由 PlayerProvider 调用
   void updateCurrentMediaItem(Song song) {
-    mediaItem.add(
-      MediaItem(
-        id: song.id.toString(),
-        album: song.album ?? 'Unknown Album',
-        title: song.title,
-        artist: song.artist ?? 'Unknown Artist',
-        duration: song.duration != null
-            ? Duration(milliseconds: song.duration! * 1000)
-            : null,
-        artUri: song.albumArtPath != null ? Uri.file(song.albumArtPath!) : null,
-      ),
+    _currentMediaItem = MediaItem(
+      id: song.id.toString(),
+      album: song.album ?? 'Unknown Album',
+      title: song.title,
+      artist: song.artist ?? 'Unknown Artist',
+      duration: song.duration != null
+          ? Duration(milliseconds: song.duration! * 1000)
+          : null,
+      artUri: song.albumArtPath != null 
+          ? Uri.file(song.albumArtPath!) 
+          : null,
     );
+    
+    // 关键：先设置 mediaItem
+    mediaItem.add(_currentMediaItem);
+    
+    // 然后立即更新 playbackState，确保控制中心有内容
+    playbackState.add(_createPlaybackState(
+      playing: player.state.playing,
+      position: player.state.position,
+      buffering: player.state.buffering,
+    ));
+    
+    print('MediaItem updated: ${song.title}');
   }
 
-  // 更新播放状态 - 由 PlayerProvider 调用
-  void updatePlaybackState({
-    required bool playing,
-    Duration? position,
-    AudioProcessingState? processingState,
-  }) {
-    playbackState.add(
-      playbackState.value.copyWith(
-        controls: [
-          MediaControl.skipToPrevious,
-          playing ? MediaControl.pause : MediaControl.play,
-          MediaControl.skipToNext,
-        ],
-        systemActions: const {
-          MediaAction.seek,
-          MediaAction.seekForward,
-          MediaAction.seekBackward,
-        },
-        androidCompactActionIndices: const [0, 1, 2],
-        processingState: processingState ?? AudioProcessingState.ready,
-        playing: playing,
-        updatePosition: position ?? Duration.zero,
-      ),
-    );
-  }
-
-  // 原有的播放方法，使用 media_kit 播放
   Future<void> playSong(Song song, {bool playNow = true}) async {
     try {
-      print('Playing song: ${song.filePath}');
-      await _database.updateSong(
-        song.copyWith(
-          lastPlayedTime: DateTime.now(),
-          playedCount: song.playedCount + 1,
-        ),
-      );
-
+      updateCurrentMediaItem(song);
       await player.open(Media(song.filePath), play: playNow);
     } catch (e) {
       print('Error playing song: $e');
-      updatePlaybackState(
-        playing: false,
-        processingState: AudioProcessingState.error,
-      );
     }
   }
 
-  // BaseAudioHandler 覆盖方法 - 这些会被系统通知栏调用
-  // 但实际播放控制仍然通过 PlayerProvider
   @override
   Future<void> play() async {
-    onPlay?.call(); // 调用 PlayerProvider 的 togglePlay
+    onPlay?.call();
   }
 
   @override
   Future<void> pause() async {
-    onPause?.call(); // 调用 PlayerProvider 的 togglePlay
+    onPause?.call();
   }
 
   @override
   Future<void> stop() async {
-    onStop?.call(); // 调用 PlayerProvider 的 stop
+    onStop?.call();
   }
 
   @override
   Future<void> skipToNext() async {
-    onNext?.call(); // 调用 PlayerProvider 的 next
+    onNext?.call();
   }
 
   @override
   Future<void> skipToPrevious() async {
-    onPrevious?.call(); // 调用 PlayerProvider 的 previous
+    onPrevious?.call();
   }
 
   @override
   Future<void> seek(Duration position) async {
-    onSeek?.call(position); // 调用 PlayerProvider 的 seekTo
+    onSeek?.call(position);
   }
 
-  // 保留原有的 media_kit 控制方法，供 PlayerProvider 调用
   Future<void> pausePlayer() async => await player.pause();
   Future<void> resume() async => await player.play();
-  Future<void> stopPlayer() async => await player.stop();
-  Future<void> seekPlayer(Duration position) async =>
-      await player.seek(position);
+  Future<void> stopPlayer() async {
+    await player.stop();
+    _currentMediaItem = null;
+  }
+  Future<void> seekPlayer(Duration position) async => await player.seek(position);
 
-  // 保留原有的流
   Stream<Duration> get positionStream => player.stream.position;
   Stream<Duration> get durationStream => player.stream.duration;
 
@@ -165,6 +193,7 @@ class AudioPlayerService extends BaseAudioHandler {
   }
 
   void dispose() {
+    _playbackStateSubscription?.cancel();
     player.dispose();
     super.stop();
   }

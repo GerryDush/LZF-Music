@@ -6,8 +6,6 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Lzf Music</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>lzf_music</string>
+	<string>LZF Music</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,6 +26,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -45,21 +47,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIFileSharingEnabled</key>
-    <true/>
-    <key>UISupportsDocumentBrowser</key>
-    <true/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
-    <key>NSMusicUsageDescription</key>
-    <string>需要访问音乐文件以进行播放</string>
-    <key>NSDocumentsFolderUsageDescription</key>
-    <string>需要访问文档目录以播放本地文件</string>
-    <key>NSDownloadsFolderUsageDescription</key>
-    <string>需要访问下载目录以播放本地文件</string>
-	<key>UIBackgroundModes</key>
-	<array>
-	<string>audio</string>
-	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
 </dict>
 </plist>

@@ -28,10 +28,8 @@ void main() async {
 
     final themeProvider = AppThemeProvider();
     await themeProvider.init();
-
-    final musicDatabase = MusicDatabase();
-
-    await AudioPlayerService.init(MusicDatabase());
+    final musicDatabase = MusicDatabase.initialize();
+    await AudioPlayerService.init();
 
     runApp(
       MultiProvider(

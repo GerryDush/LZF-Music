@@ -54,7 +54,7 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
     try {
       List<Song> loadedSongs;
       final keyword = searchKeyword;
-      loadedSongs = await AudioPlayerService.database.smartSearch(
+      loadedSongs = await MusicDatabase.database.smartSearch(
         keyword?.trim(),
         orderField: orderField,
         orderDirection: orderDirection,
