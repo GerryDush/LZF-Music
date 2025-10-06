@@ -137,9 +137,19 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
   }
 
   Future<void> refreshNowPlaying() async {
-    if (_currentMediaItem == null) return;
+    if (_currentMediaItem == null) {
+      print('refreshNowPlaying: No current media item');
+      return;
+    }
 
+    print('refreshNowPlaying: Refreshing ${_currentMediaItem!.title}');
+    
+    // 确保先设置 mediaItem
     mediaItem.add(_currentMediaItem);
+    
+    // 短暂延迟后再设置 playbackState，确保 iOS 控制中心能正确接收
+    await Future.delayed(const Duration(milliseconds: 50));
+    
     playbackState.add(
       _createPlaybackState(
         playing: player.state.playing,
@@ -147,6 +157,8 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
         buffering: player.state.buffering,
       ),
     );
+    
+    print('refreshNowPlaying: State refreshed - playing: ${player.state.playing}');
   }
 
   Future<void> playSong(Song song, {bool playNow = true}) async {

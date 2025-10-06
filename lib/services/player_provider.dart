@@ -67,6 +67,17 @@ class PlayerProvider with ChangeNotifier, WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _initializeListeners();
     _setupAudioServiceCallbacks();
+    _setupNativeCallbacks();
+  }
+  
+  void _setupNativeCallbacks() {
+    // 监听来自原生层的回调
+    _audioSessionChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onAppResumed') {
+        debugPrint('📱 Received onAppResumed from native - restoring Now Playing');
+        await _restoreAudioSessionIfNeeded();
+      }
+    });
   }
 
   void _initializeListeners() {
@@ -135,19 +146,55 @@ class PlayerProvider with ChangeNotifier, WidgetsBindingObserver {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
       return;
     }
+    
+    debugPrint('🔄 Starting audio session restoration...');
+    
     try {
+      // 如果没有正在播放的歌曲，不需要恢复
+      if (_currentSong == null) {
+        debugPrint('⚠️ No current song, skipping restoration');
+        return;
+      }
+      
+      debugPrint('🎵 Restoring Now Playing for: ${_currentSong!.title}');
+      
+      // 步骤1: 确保 Audio Session 激活
       await _audioSessionChannel.invokeMethod('activateSession');
+      debugPrint('✅ Audio session activated');
+      
+      // 步骤2: 短暂延迟，让 iOS 系统处理 session 激活
+      await Future.delayed(const Duration(milliseconds: 150));
+      
+      // 步骤3: 重新设置完整的 MediaItem（这会触发 audio_service 更新 MPNowPlayingInfoCenter）
+      _audioService.updateCurrentMediaItem(_currentSong!);
+      debugPrint('✅ MediaItem updated');
+      
+      // 步骤4: 再次延迟，确保 MediaItem 已经发送到原生层
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // 步骤5: 刷新 Now Playing 信息和 PlaybackState
+      await _audioService.refreshNowPlaying();
+      debugPrint('✅ Now Playing info fully restored');
+      
+      // 步骤6: 如果正在播放，确保播放状态正确
+      if (_isPlaying) {
+        debugPrint('▶️ Confirming playback state');
+        await _audioService.refreshNowPlaying();
+      }
+      
+      debugPrint('🎉 Audio session restoration completed successfully');
     } catch (e) {
-      debugPrint('Failed to activate audio session: $e');
+      debugPrint('❌ Failed to restore audio session: $e');
     }
-
-    await _audioService.refreshNowPlaying();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('App lifecycle state changed: $state');
+    
     if (state == AppLifecycleState.resumed) {
-      unawaited(_restoreAudioSessionIfNeeded());
+      // 使用 Future.microtask 确保在下一个事件循环执行
+      Future.microtask(() => _restoreAudioSessionIfNeeded());
     }
   }
 
