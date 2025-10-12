@@ -3,6 +3,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'dart:async';
 import '../database/database.dart';
+import 'package:audio_session/audio_session.dart'; 
 
 class AudioPlayerService extends BaseAudioHandler with SeekHandler {
   static final AudioPlayerService _instance = AudioPlayerService._internal();
@@ -76,10 +77,22 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
       bufferedPosition: position,
       speed: playing ? 1.0 : 0.0,
       queueIndex: 0,
+      updateTime: DateTime.now()
     );
+    
   }
 
   static Future<AudioPlayerService> init() async {
+       final session = await AudioSession.instance;
+    await session.configure(AudioSessionConfiguration(
+      avAudioSessionCategory: AVAudioSessionCategory.playback,
+      avAudioSessionMode: AVAudioSessionMode.moviePlayback,
+      androidAudioAttributes: const AndroidAudioAttributes(
+        contentType: AndroidAudioContentType.music,
+        usage: AndroidAudioUsage.media,
+      ),
+      androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+    ));
     await AudioService.init(
       builder: () => AudioPlayerService(),
       config: const AudioServiceConfig(

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import '../utils/theme_utils.dart';
 import '../database/database.dart';
 import 'dart:ui';
@@ -7,7 +10,7 @@ class PageHeader extends StatefulWidget {
   final Future<void> Function(String? keyword)? onSearch;
   final Future<void> Function()? onImportDirectory;
   final Future<void> Function()? onImportFiles;
-  final List<Song> ?songs;
+  final List<Song>? songs;
   final List<Widget>? children;
   final String title;
 
@@ -59,8 +62,7 @@ class _PageHeaderState extends State<PageHeader> {
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 16),
-            if(widget.songs!=null)
-            Text('共${widget.songs!.length}首音乐'),
+            if (widget.songs != null) Text('共${widget.songs!.length}首音乐'),
             const Spacer(),
 
             /// 搜索框 + 搜索按钮
@@ -104,24 +106,26 @@ class _PageHeaderState extends State<PageHeader> {
             if (widget.showImport)
               Row(
                 children: [
-                  if (isWide)
-                    TextButton.icon(
-                      icon: const Icon(Icons.folder_open_rounded),
-                      label: const Text('选择文件夹'),
-                      onPressed: () async {
-                        await widget.onImportDirectory?.call();
-                      },
-                    )
-                  else
-                    IconButton(
-                      icon: const Icon(Icons.folder_open_rounded, size: 24),
-                      color: ThemeUtils.primaryColor(context),
-                      tooltip: '选择文件夹',
-                      onPressed: () async {
-                        await widget.onImportDirectory?.call();
-                      },
-                    ),
-                  const SizedBox(width: 8),
+                  if (PlatformUtils.isDesktop) ...[
+                    if (isWide)
+                      TextButton.icon(
+                        icon: const Icon(Icons.folder_open_rounded),
+                        label: const Text('选择文件夹'),
+                        onPressed: () async {
+                          await widget.onImportDirectory?.call();
+                        },
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.folder_open_rounded, size: 24),
+                        color: ThemeUtils.primaryColor(context),
+                        tooltip: '选择文件夹',
+                        onPressed: () async {
+                          await widget.onImportDirectory?.call();
+                        },
+                      ),
+                    const SizedBox(width: 8)
+                  ],
                   if (isWide)
                     TextButton.icon(
                       icon: const Icon(Icons.library_music_rounded),

@@ -19,8 +19,7 @@ dependencies:
   path_provider: ^2.1.2
   provider: ^6.1.5
   media_kit: ^1.1.11
-  media_kit_video: ^1.2.5
-  media_kit_libs_video: ^1.0.5
+  media_kit_libs_audio: ^1.0.7
   window_manager: ^0.5.1
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.2

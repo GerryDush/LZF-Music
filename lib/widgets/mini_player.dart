@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
-import 'package:lzf_music/widgets/lzf_toast.dart';
 import 'package:provider/provider.dart';
-import '../views/mobile_now_playing_screen.dart';
 import '../views/now_playing_screen.dart';
 import '../services/player_provider.dart';
 import './slider_custom.dart';
@@ -75,9 +73,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           milliseconds: 200,
                         ), // 动画时长
                         pageBuilder: (context, animation, secondaryAnimation) {
-                          return widget.isMobile
-                              ? MobileNowPlayingScreen()
-                              : ImprovedNowPlayingScreen();
+                          return ImprovedNowPlayingScreen();
                         },
                         transitionsBuilder:
                             (context, animation, secondaryAnimation, child) {
@@ -408,25 +404,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                             }
                           },
                   ),
-                  IconButton(
-                    onPressed: () {
-                      _showPlaylist(context);
-                    },
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                    padding: EdgeInsets.zero,
-                    iconSize: 16,
-                    icon: Transform.translate(
-                      offset: const Offset(-2, 0),
-                      child: Icon(
-                        SFIcons.sf_icon_listbullet,
-                        size: 16,
-                        color: activeColor,
-                      ),
-                    ),
-                  ),
+                  
                 ],
               ),
             ],

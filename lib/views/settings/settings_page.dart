@@ -38,7 +38,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     16.0,
-                    CommonUtils.select(theme.isFloat, t: 70, f: 80),
+                    CommonUtils.select(theme.isFloat, t: CommonUtils.select(PlatformUtils.isIOS,t: 120,f: 70), f: 80),
                     16.0,
                     CommonUtils.select(theme.isFloat, t: 80, f: 80),
                   ),
