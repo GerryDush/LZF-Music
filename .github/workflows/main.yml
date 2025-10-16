@@ -173,6 +173,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🎉 发布版本 ${{ github.ref_name }}
+            
             🖥️ Windows 版本
             • 安装程序：支持 Windows 10/11 (x64)
             • 功能：自动创建桌面快捷方式
@@ -201,6 +202,16 @@ jobs:
             • Command ⌘ + 上下方向键：上一首 / 下一首
             • 支持主题切换
             • 背景高斯模糊与透明度调整
+
+            📱 iOS 版本
+            • 适用版本：iOS 14 及以上
+            • 智能音频控制：
+            • 拔掉耳机自动暂停播放
+            • 耳机 / 蓝牙按钮控制播放 / 暂停 / 切歌
+            • 控制中心播放支持
+            • 背景播放支持
+            • 支持主题切换
+            • 支持小组件显示当前播放歌曲及控制
 
             ✨ 更新内容
             • 支持按照添加时间排序
@@ -250,6 +261,16 @@ jobs:
             • Theme switching support
             • Background blur & transparency adjustment
 
+            📱 iOS
+            • Supported: iOS 14+
+            • Smart Audio Control:
+            • Auto-pause when headphones are unplugged
+            • Headset / Bluetooth buttons for play / pause / next / previous
+            • Control Center playback support
+            • Background playback support
+            • Theme switching support
+            • Home screen widget shows current track & controls
+
             ✨ What’s New
             • Support sorting by added time
             • Batch delete support
@@ -263,7 +284,6 @@ jobs:
             • New: Cover import — select an image to overwrite existing album art
             • Playback page animation optimized, more state persistence (playlist position, sidebar state)
             • Theme switching support
-            • Background blur & transparency adjustment
 
             <img src="https://github.com/user-attachments/assets/8d5b9065-8cd8-4b1e-bb6e-32b9ae5f0f25" height="500">
           files: |

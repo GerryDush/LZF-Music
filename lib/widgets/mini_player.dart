@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:lzf_music/database/database.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import 'package:provider/provider.dart';
 import '../views/now_playing_screen.dart';
@@ -7,7 +8,6 @@ import '../services/player_provider.dart';
 import './slider_custom.dart';
 import '../contants/app_contants.dart' show PlayMode;
 import '../utils/common_utils.dart' show CommonUtils;
-import '../widgets/sf_icon.dart';
 
 class MiniPlayer extends StatefulWidget {
   final double containerWidth;
@@ -31,7 +31,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
     // 根据容器宽度决定显示哪些控件
     final showVolumeControl = widget.containerWidth > 765;
     final showProgressControl = widget.containerWidth > 660;
-    double progressLength = (widget.containerWidth - 520).clamp(254, 312);
+    double progressLength = (widget.containerWidth - 520).clamp(260, 330);
     if (!showProgressControl) {
       progressLength = widget.containerWidth - 268;
     }
@@ -49,13 +49,13 @@ class _MiniPlayerState extends State<MiniPlayer> {
     return Consumer<PlayerProvider>(
       builder: (context, playerProvider, child) {
         final currentSong = playerProvider.currentSong;
-        final position = playerProvider.position;
-        final duration = playerProvider.duration;
 
         return Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: showVolumeControl ? 10.0 : 5.0,
-            horizontal: showVolumeControl ? 10.0 : 5.0,
+          padding: EdgeInsets.only(
+            bottom: showVolumeControl ? 0 : 0,
+            left: showVolumeControl ? 10.0 : 5.0,
+            right: showVolumeControl ? 10.0 : 5.0,
+            top: showVolumeControl ? 6.0 : 10.0,
           ),
           child: Row(
             children: [
@@ -65,54 +65,32 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
                   onTap: () {
-                    if (currentSong == null) return;
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        transitionDuration: const Duration(
-                          milliseconds: 200,
-                        ), // 动画时长
-                        pageBuilder: (context, animation, secondaryAnimation) {
-                          return ImprovedNowPlayingScreen();
-                        },
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                              final curvedAnimation = CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOut,
-                              );
-
-                              return SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0, 1),
-                                  end: Offset.zero,
-                                ).animate(curvedAnimation),
-                                child: FadeTransition(
-                                  opacity: curvedAnimation,
-                                  child: child,
-                                ),
-                              );
-                            },
-                      ),
-                    );
+                    pushToNowPlayingScreen(context, currentSong);
                   },
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      image: currentSong?.albumArtPath != null
-                          ? DecorationImage(
-                              image: FileImage(
-                                File(currentSong!.albumArtPath!),
-                              ),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: currentSong?.albumArtPath == null
-                        ? const Icon(Icons.music_note_rounded, size: 24)
-                        : null,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          image: currentSong?.albumArtPath != null
+                              ? DecorationImage(
+                                  image: FileImage(
+                                    File(currentSong!.albumArtPath!),
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: currentSong?.albumArtPath == null
+                            ? const Icon(Icons.music_note_rounded, size: 24)
+                            : null,
+                      ),
+                      SizedBox(
+                        height: 8,
+                      )
+                    ],
                   ),
                 ),
               ),
@@ -124,34 +102,49 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Text(
-                        currentSong?.title ?? '未播放',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
+                    MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                            onTap: () {
+                              pushToNowPlayingScreen(context, currentSong);
+                            },
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Text(
+                                currentSong?.title ?? '未播放',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ))),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Text(
-                              currentSong?.artist ?? '选择歌曲开始播放',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
+                          child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                  onTap: () {
+                                    pushToNowPlayingScreen(
+                                        context, currentSong);
+                                  },
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Text(
+                                      currentSong?.artist ?? '选择歌曲开始播放',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ))),
                         ),
                         if (showProgressControl)
                           SizedBox(
-                            width: 92,
+                            width: 101,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -176,7 +169,6 @@ class _MiniPlayerState extends State<MiniPlayer> {
                       ],
                     ),
                     if (showProgressControl) ...[
-                      SizedBox(height: 8),
                       Row(
                         children: [
                           // 进度条
@@ -184,19 +176,16 @@ class _MiniPlayerState extends State<MiniPlayer> {
                             child: ValueListenableBuilder<Duration>(
                               valueListenable: playerProvider.position,
                               builder: (context, position, child) {
-                                double sliderValue =
-                                    (_tempSliderValue >= 0
-                                            ? _tempSliderValue
-                                            : (playerProvider
-                                                          .duration
-                                                          .inMilliseconds >
-                                                      0
-                                                  ? position.inMilliseconds /
-                                                        playerProvider
-                                                            .duration
-                                                            .inMilliseconds
-                                                  : 0.0))
-                                        .clamp(0.0, 1.0);
+                                double sliderValue = (_tempSliderValue >= 0
+                                        ? _tempSliderValue
+                                        : (playerProvider
+                                                    .duration.inMilliseconds >
+                                                0
+                                            ? position.inMilliseconds /
+                                                playerProvider
+                                                    .duration.inMilliseconds
+                                            : 0.0))
+                                    .clamp(0.0, 1.0);
 
                                 return AnimatedTrackHeightSlider(
                                   trackHeight: 4,
@@ -213,12 +202,10 @@ class _MiniPlayerState extends State<MiniPlayer> {
                                   onChangeEnd: currentSong != null
                                       ? (value) async {
                                           final newPosition = Duration(
-                                            milliseconds:
-                                                (value *
-                                                        playerProvider
-                                                            .duration
-                                                            .inMilliseconds)
-                                                    .round(),
+                                            milliseconds: (value *
+                                                    playerProvider.duration
+                                                        .inMilliseconds)
+                                                .round(),
                                           );
                                           await playerProvider.seekTo(
                                             newPosition,
@@ -305,8 +292,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     playerProvider.playMode == PlayMode.singleLoop
                         ? Icons.repeat_one_rounded
                         : Icons.repeat_rounded,
-                    color:
-                        playerProvider.playMode == PlayMode.loop ||
+                    color: playerProvider.playMode == PlayMode.loop ||
                             playerProvider.playMode == PlayMode.singleLoop
                         ? activeColor
                         : inactiveColor,
@@ -333,8 +319,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   IconButton(
                     color: activeColor,
                     icon: Icon(Icons.skip_previous_rounded, size: 40),
-                    onPressed:
-                        (playerProvider.playMode == PlayMode.sequence &&
+                    onPressed: (playerProvider.playMode == PlayMode.sequence &&
                             !playerProvider.hasPrevious)
                         ? null
                         : () async {
@@ -388,8 +373,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   IconButton(
                     color: activeColor,
                     icon: Icon(Icons.skip_next_rounded, size: 40),
-                    onPressed:
-                        (playerProvider.playMode == PlayMode.sequence &&
+                    onPressed: (playerProvider.playMode == PlayMode.sequence &&
                             !playerProvider.hasNext)
                         ? null
                         : () async {
@@ -404,7 +388,6 @@ class _MiniPlayerState extends State<MiniPlayer> {
                             }
                           },
                   ),
-                  
                 ],
               ),
             ],
@@ -413,6 +396,38 @@ class _MiniPlayerState extends State<MiniPlayer> {
       },
     );
   }
+}
+
+void pushToNowPlayingScreen(BuildContext context, Song? currentSong) {
+  if (currentSong == null) return;
+  Navigator.push(
+    context,
+    PageRouteBuilder(
+      transitionDuration: const Duration(
+        milliseconds: 300,
+      ), // 动画时长
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return ImprovedNowPlayingScreen();
+      },
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
+
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(curvedAnimation),
+          child: FadeTransition(
+            opacity: curvedAnimation,
+            child: child,
+          ),
+        );
+      },
+    ),
+  );
 }
 
 void _showPlaylist(BuildContext context) {

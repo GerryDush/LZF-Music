@@ -43,8 +43,8 @@ class _MusicListHeaderState extends State<MusicListHeader> {
         builder: (context, constraints) {
           final containerWidth = constraints.maxWidth;
           final showSampleAndBitrate = containerWidth > 900;
-          final showDuration = containerWidth > 700;
-          final showAlbum = containerWidth > 500;
+          final showAlbum = containerWidth > 700;
+          final showArtist = containerWidth > 500;
           
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -90,6 +90,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                       ],
                     ),
                   ),
+                  if (showArtist)
                   // 艺术家列
                   Expanded(
                     flex: 2,
@@ -174,7 +175,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                       ),
                     ),
                   // 时长列
-                  if (showDuration)
+                  
                     SizedBox(
                       width: 60,
                       child: Row(
@@ -209,7 +210,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                 ],
               ),
             ),
-            SizedBox(width: !widget.showCheckbox ? 48 : 8,height: 40,),
+            SizedBox(width: !widget.showCheckbox ? 56 : 8,height: 48,),
             // 批量操作菜单
             if (widget.showCheckbox)
               PopupMenuButton<String>(
@@ -280,7 +281,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                   }
                 },
               ),
-              if(widget.onSelectAllChanged==null)const SizedBox(width: 40,)
+              if(widget.onSelectAllChanged==null)const SizedBox(width: 48,)
             ],
           ),
         );

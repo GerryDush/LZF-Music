@@ -20,10 +20,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.lzf_music"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -32,8 +29,15 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // 先禁用混淆测试能否编译成功
+            isMinifyEnabled = true
+            isShrinkResources = true
+            
+            // 如果上面测试成功，可以启用混淆（取消下面三行注释，注释掉上面两行）
+            // isMinifyEnabled = true
+            // isShrinkResources = true
+            // proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            
             signingConfig = signingConfigs.getByName("debug")
         }
     }

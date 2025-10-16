@@ -103,397 +103,19 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                   child: LayoutBuilder(builder: (context, constraints) {
                     final isNarrow = PlatformUtils.isMobileWidth(context);
                     if (isNarrow) {
-                      return GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onPanStart: (details) {
-                          // 仅当手势从上半部分（或自定义阈值）开始时才启用拖动退出，避免拦截底部控件
-                          final startDy = details.globalPosition.dy;
-                          final screenH = MediaQuery.of(context).size.height;
-                          const topFraction = 0.7; // 触点需在顶部 70% 区域内才启用
-                          _isDraggingForClose = startDy <= screenH * topFraction;
-                          // reset axis lock for this gesture
-                          _dragAxis = null;
-                        },
-                        onPanUpdate: (details) {
-                          if (!_isDraggingForClose) return; // 非顶部起始不处理
-
-                          // If axis is not yet decided, pick the dominant axis after a small threshold
-                          if (_dragAxis == null) {
-                            final dx = details.delta.dx.abs();
-                            final dy = details.delta.dy.abs();
-                            const axisLockThreshold = 4.0; // pixels
-                            if (dx >= axisLockThreshold || dy >= axisLockThreshold) {
-                              _dragAxis = dx > dy ? 'x' : 'y';
-                            } else {
-                              // not enough movement yet to decide
-                              return;
-                            }
-                          }
-                          setState(() {
-                            if (_dragAxis == 'x') {
-                              // horizontal drag: ignore vertical movement
-                              _dragOffsetX = (_dragOffsetX + details.delta.dx)
-                                  .clamp(-50.0, 500.0);
-                            } else if (_dragAxis == 'y') {
-                              // vertical drag: ignore horizontal movement
-                              _dragOffsetY = (_dragOffsetY + details.delta.dy)
-                                  .clamp(-50.0, 500.0);
-                            }
-                          });
-                        },
-                        onPanEnd: (details) {
-                          if (!_isDraggingForClose) return;
-                          _isDraggingForClose = false;
-                          // reset axis lock
-                          final axis = _dragAxis;
-                          _dragAxis = null;
-
-                          // 阈值：位移或速度达到则退出
-                          const distanceThreshold = 140.0;
-                          const velocityThreshold = 700.0;
-
-                          final vx = details.velocity.pixelsPerSecond.dx;
-                          final vy = details.velocity.pixelsPerSecond.dy;
-
-                          bool shouldClose = false;
-                          if (axis == 'x') {
-                            final shouldCloseByRight =
-                                _dragOffsetX > distanceThreshold ||
-                                    (vx > velocityThreshold);
-                            shouldClose = shouldCloseByRight;
-                          } else if (axis == 'y') {
-                            final shouldCloseByDown =
-                                _dragOffsetY > distanceThreshold ||
-                                    (vy > velocityThreshold);
-                            shouldClose = shouldCloseByDown;
-                          } else {
-                            // fallback: if either exceeds threshold
-                            shouldClose = _dragOffsetX > distanceThreshold ||
-                                _dragOffsetY > distanceThreshold ||
-                                vx > velocityThreshold ||
-                                vy > velocityThreshold;
-                          }
-
-                          if (shouldClose) {
-                            Navigator.maybePop(context);
-                          } else {
-                            // 回弹
-                            setState(() {
-                              _dragOffsetX = 0.0;
-                              _dragOffsetY = 0.0;
-                            });
-                          }
-                        },
-                        child: Transform.translate(
-                          offset: Offset(_dragOffsetX > 0 ? _dragOffsetX : 0.0,
-                              _dragOffsetY > 0 ? _dragOffsetY : 0.0),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              // 歌词作为背景层（放在最下方，但在我们之前的模糊背景之上）
-                              Positioned.fill(
-                                child: Center(
-                                    child: Padding(
-                                  padding: EdgeInsets.only(
-                                      left: 0.0,
-                                      right: 0.0,
-                                      top: 130.0,
-                                      bottom: 300.0),
-                                  child: ShaderMask(
-                                    shaderCallback: (rect) {
-                                      return const LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          Colors.transparent,
-                                          Colors.black,
-                                          Colors.black,
-                                          Colors.transparent,
-                                        ],
-                                        stops: [0.0, 0.1, 0.9, 1.0],
-                                      ).createShader(rect);
-                                    },
-                                    blendMode: BlendMode.dstIn,
-                                    child: KaraokeLyricsView(
-                                      key: ValueKey(currentSong!.id),
-                                      lyricsContent: currentSong.lyrics,
-                                      currentPosition: playerProvider
-                                          .position, // 直接传递Duration
-                                      onTapLine: (time) {
-                                        playerProvider.seekTo(time);
-                                      },
-                                    ),
-                                  ),
-                                )),
-                              ),
-
-                              // 左侧面板放在前面（移动端：居中显示，并限制最大宽度以避免溢出）
-                              Positioned.fill(
-                                child: Align(
-                                  alignment: Alignment.center,
+                      return DraggableCloseContainer(
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // 歌词作为背景层（放在最下方，但在我们之前的模糊背景之上）
+                            Positioned.fill(
+                              child: Center(
                                   child: Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 20,
-                                        right: 20,
-                                        top: 0,
-                                        bottom: 20),
-                                    child: Column(
-                                        // 顶部显示封面和标题，底部显示控制按钮
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Column(
-                                            children: [
-                                              InkWell(
-                                                onTap: () =>
-                                                    Navigator.pop(context),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                child: Icon(
-                                                  Icons.remove_rounded,
-                                                  color: Colors.white,
-                                                  size: 50,
-                                                ),
-                                              ),
-                                              Row(
-                                                children: [
-                                                  
-                                                  // 专辑封面
-                                                  Container(
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                            maxWidth: 60),
-                                                    child: ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
-                                                      child: currentSong
-                                                                      ?.albumArtPath !=
-                                                                  null &&
-                                                              File(currentSong!
-                                                                      .albumArtPath!)
-                                                                  .existsSync()
-                                                          ? Image.file(
-                                                              File(currentSong
-                                                                  .albumArtPath!),
-                                                              fit: BoxFit.cover,
-                                                            )
-                                                          : Container(
-                                                              color: Colors
-                                                                  .grey[800],
-                                                              child: const Icon(
-                                                                Icons
-                                                                    .music_note_rounded,
-                                                                color: Colors
-                                                                    .white,
-                                                                size: 40,
-                                                              ),
-                                                            ),
-                                                    ),
-                                                  ),
-
-                                                  const SizedBox(width: 20),
-
-                                                  // 歌曲信息
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Text(
-                                                          currentSong?.title ??
-                                                              '未知歌曲',
-                                                          style:
-                                                              const TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 24,
-                                                            fontWeight:
-                                                                FontWeight.bold
-                                                          ),
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 2),
-                                                        Text(
-                                                          currentSong?.artist ??
-                                                              '未知艺术家',
-                                                          style: TextStyle(
-                                                            color: Colors.white
-                                                                .withOpacity(
-                                                                    0.7),
-                                                            fontSize: 16
-                                                          ),
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-
-                                        
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                bottom: 8.0),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                SongInfoPanel(
-                                                  tempSliderValue:
-                                                      _tempSliderValue,
-                                                  onSliderChanged: (value) {
-                                                    setState(() {
-                                                      _tempSliderValue = value;
-                                                    });
-                                                  },
-                                                  onSliderChangeEnd: (value) {
-                                                    setState(() {
-                                                      _tempSliderValue = -1;
-                                                    });
-                                                    playerProvider.seekTo(
-                                                      Duration(
-                                                          seconds:
-                                                              value.toInt()),
-                                                    );
-                                                  },
-                                                  playerProvider:
-                                                      playerProvider,
-                                                ),
-                                                const SizedBox(height: 8),
-                                                MusicControlButtons(
-                                                  playerProvider:
-                                                      playerProvider,
-                                                  isPlaying: isPlaying,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    // 宽屏：保持原来的左右分栏布局
-                    return Row(
-                      children: [
-                        // 左侧面板
-                        Flexible(
-                          flex: 4,
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              top: 20,
-                              bottom: 20,
-                              left: 20,
-                              right: 20
-                            ),
-                            child: Center(
-                              child: SizedBox(
-                                width: CommonUtils.select(MediaQuery.of(context).size.width>1300, t: 380, f: 320),
-                                height: 700,
-                                child: Column(
-                                  // 顶部显示封面和标题，底部显示控制按钮
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      children: [
-                                        HoverIconButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                        ),
-                                        ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          child: currentSong?.albumArtPath !=
-                                                      null &&
-                                                  File(currentSong!
-                                                          .albumArtPath!)
-                                                      .existsSync()
-                                              ? Image.file(
-                                                  File(currentSong
-                                                      .albumArtPath!),
-                                                  width: double.infinity,
-                                                  height: 300,
-                                                  fit: BoxFit.cover,
-                                                )
-                                              : Container(
-                                                  width: double.infinity,
-                                                  height: 260,
-                                                  color: Colors.grey[800],
-                                                  child: const Icon(
-                                                    Icons.music_note_rounded,
-                                                    color: Colors.white,
-                                                    size: 48,
-                                                  ),
-                                                ),
-                                        ),
-                                        
-                                      ],
-                                    ),
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 8.0),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SongInfoPanel(
-                                            tempSliderValue: _tempSliderValue,
-                                            onSliderChanged: (value) {
-                                              setState(() {
-                                                _tempSliderValue = value;
-                                              });
-                                            },
-                                            onSliderChangeEnd: (value) {
-                                              setState(() {
-                                                _tempSliderValue = -1;
-                                              });
-                                              playerProvider.seekTo(
-                                                Duration(
-                                                    seconds: value.toInt()),
-                                              );
-                                            },
-                                            playerProvider: playerProvider,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          MusicControlButtons(
-                                            playerProvider: playerProvider,
-                                            isPlaying: isPlaying,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // 右侧歌词
-                        Flexible(
-                          flex: 5,
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                  top: 60.0, bottom: 60.0),
-                              child: SizedBox(
-                                width: 480,
+                                padding: EdgeInsets.only(
+                                    left: 0.0,
+                                    right: 0.0,
+                                    top: 100.0,
+                                    bottom: 210.0),
                                 child: ShaderMask(
                                   shaderCallback: (rect) {
                                     return const LinearGradient(
@@ -519,11 +141,286 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                                     },
                                   ),
                                 ),
+                              )),
+                            ),
+
+                            // 左侧面板放在前面（移动端：居中显示，并限制最大宽度以避免溢出）
+                            Positioned.fill(
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 20, right: 20, top: 0, bottom: 20),
+                                  child: Column(
+                                    // 顶部显示封面和标题，底部显示控制按钮
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        children: [
+                                          InkWell(
+                                            onTap: () => Navigator.pop(context),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                            child: Icon(
+                                              Icons.remove_rounded,
+                                              color: Colors.white,
+                                              size: 50,
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              // 专辑封面
+                                              Container(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                        maxWidth: 60),
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  child: currentSong
+                                                                  ?.albumArtPath !=
+                                                              null &&
+                                                          File(currentSong!
+                                                                  .albumArtPath!)
+                                                              .existsSync()
+                                                      ? Image.file(
+                                                          File(currentSong
+                                                              .albumArtPath!),
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                      : Container(
+                                                          color:
+                                                              Colors.grey[800],
+                                                          child: const Icon(
+                                                            Icons
+                                                                .music_note_rounded,
+                                                            color: Colors.white,
+                                                            size: 40,
+                                                          ),
+                                                        ),
+                                                ),
+                                              ),
+
+                                              const SizedBox(width: 10),
+
+                                              // 歌曲信息
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      currentSong?.title ??
+                                                          '未知歌曲',
+                                                      style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 24,
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      currentSong?.artist ??
+                                                          '未知艺术家',
+                                                      style: TextStyle(
+                                                          color: Colors.white
+                                                              .withOpacity(0.7),
+                                                          fontSize: 16),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 8.0),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            SongInfoPanel(
+                                              compactLayout: true,
+                                              tempSliderValue: _tempSliderValue,
+                                              onSliderChanged: (value) {
+                                                setState(() {
+                                                  _tempSliderValue = value;
+                                                });
+                                              },
+                                              onSliderChangeEnd: (value) {
+                                                setState(() {
+                                                  _tempSliderValue = -1;
+                                                });
+                                                playerProvider.seekTo(
+                                                  Duration(
+                                                      seconds: value.toInt()),
+                                                );
+                                              },
+                                              playerProvider: playerProvider,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            MusicControlButtons(
+                                              playerProvider: playerProvider,
+                                              isPlaying: isPlaying,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // 宽屏：保持原来的左右分栏布局
+                    return DraggableCloseContainer(
+                      child: Row(
+                        children: [
+                          // 左侧面板
+                          Flexible(
+                            flex: 4,
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 20, bottom: 20, left: 0, right: 0),
+                              child: Center(
+                                child: SizedBox(
+                                  width: CommonUtils.select(
+                                      MediaQuery.of(context).size.width > 1300,
+                                      t: 380,
+                                      f: 336),
+                                  height: 700,
+                                  child: Column(
+                                    // 顶部显示封面和标题，底部显示控制按钮
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        children: [
+                                          HoverIconButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                          ),
+                                          ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            child: currentSong?.albumArtPath !=
+                                                        null &&
+                                                    File(currentSong!
+                                                            .albumArtPath!)
+                                                        .existsSync()
+                                                ? Image.file(
+                                                    File(currentSong
+                                                        .albumArtPath!),
+                                                    width: double.infinity,
+                                                    height: 300,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : Container(
+                                                    width: double.infinity,
+                                                    height: 260,
+                                                    color: Colors.grey[800],
+                                                    child: const Icon(
+                                                      Icons.music_note_rounded,
+                                                      color: Colors.white,
+                                                      size: 48,
+                                                    ),
+                                                  ),
+                                          ),
+                                        ],
+                                      ),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 8.0),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            SongInfoPanel(
+                                              tempSliderValue: _tempSliderValue,
+                                              onSliderChanged: (value) {
+                                                setState(() {
+                                                  _tempSliderValue = value;
+                                                });
+                                              },
+                                              onSliderChangeEnd: (value) {
+                                                setState(() {
+                                                  _tempSliderValue = -1;
+                                                });
+                                                playerProvider.seekTo(
+                                                  Duration(
+                                                      seconds: value.toInt()),
+                                                );
+                                              },
+                                              playerProvider: playerProvider,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            MusicControlButtons(
+                                              playerProvider: playerProvider,
+                                              isPlaying: isPlaying,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+
+                          // 右侧歌词
+                          Flexible(
+                            flex: 5,
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                    top: 60.0, bottom: 60.0),
+                                child: SizedBox(
+                                  width: 480,
+                                  child: ShaderMask(
+                                    shaderCallback: (rect) {
+                                      return const LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.transparent,
+                                          Colors.black,
+                                          Colors.black,
+                                          Colors.transparent,
+                                        ],
+                                        stops: [0.0, 0.1, 0.9, 1.0],
+                                      ).createShader(rect);
+                                    },
+                                    blendMode: BlendMode.dstIn,
+                                    child: KaraokeLyricsView(
+                                      key: ValueKey(currentSong!.id),
+                                      lyricsContent: currentSong.lyrics,
+                                      currentPosition: playerProvider
+                                          .position, // 直接传递Duration
+                                      onTapLine: (time) {
+                                        playerProvider.seekTo(time);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   }),
                 ),
@@ -569,5 +466,108 @@ class _MeasureSizeState extends State<MeasureSize> {
       }
     });
     return widget.child;
+  }
+}
+
+/// 可拖拽退出的容器
+class DraggableCloseContainer extends StatefulWidget {
+  final Widget child;
+  final double topFraction; // 手势起始允许区域
+  final double distanceThreshold;
+  final double velocityThreshold;
+
+  const DraggableCloseContainer({
+    Key? key,
+    required this.child,
+    this.topFraction = 0.7,
+    this.distanceThreshold = 140.0,
+    this.velocityThreshold = 700.0,
+  }) : super(key: key);
+
+  @override
+  _DraggableCloseContainerState createState() =>
+      _DraggableCloseContainerState();
+}
+
+class _DraggableCloseContainerState extends State<DraggableCloseContainer> {
+  double _dragOffsetX = 0.0;
+  double _dragOffsetY = 0.0;
+  bool _isDraggingForClose = false;
+  String? _dragAxis;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onPanStart: (details) {
+        final startDy = details.globalPosition.dy;
+        final screenH = MediaQuery.of(context).size.height;
+        _isDraggingForClose = startDy <= screenH * widget.topFraction;
+        _dragAxis = null; // reset axis lock
+      },
+      onPanUpdate: (details) {
+        if (!_isDraggingForClose) return;
+
+        if (_dragAxis == null) {
+          final dx = details.delta.dx.abs();
+          final dy = details.delta.dy.abs();
+          const axisLockThreshold = 4.0;
+          if (dx >= axisLockThreshold || dy >= axisLockThreshold) {
+            _dragAxis = dx > dy ? 'x' : 'y';
+          } else {
+            return;
+          }
+        }
+
+        setState(() {
+          if (_dragAxis == 'x') {
+            _dragOffsetX =
+                (_dragOffsetX + details.delta.dx).clamp(-50.0, 500.0);
+          } else if (_dragAxis == 'y') {
+            _dragOffsetY =
+                (_dragOffsetY + details.delta.dy).clamp(-50.0, 500.0);
+          }
+        });
+      },
+      onPanEnd: (details) {
+        if (!_isDraggingForClose) return;
+        _isDraggingForClose = false;
+
+        final axis = _dragAxis;
+        _dragAxis = null;
+
+        final vx = details.velocity.pixelsPerSecond.dx;
+        final vy = details.velocity.pixelsPerSecond.dy;
+
+        bool shouldClose = false;
+        if (axis == 'x') {
+          shouldClose = _dragOffsetX > widget.distanceThreshold ||
+              vx > widget.velocityThreshold;
+        } else if (axis == 'y') {
+          shouldClose = _dragOffsetY > widget.distanceThreshold ||
+              vy > widget.velocityThreshold;
+        } else {
+          shouldClose = _dragOffsetX > widget.distanceThreshold ||
+              _dragOffsetY > widget.distanceThreshold ||
+              vx > widget.velocityThreshold ||
+              vy > widget.velocityThreshold;
+        }
+
+        if (shouldClose) {
+          Navigator.maybePop(context);
+        } else {
+          // 回弹
+          setState(() {
+            _dragOffsetX = 0.0;
+            _dragOffsetY = 0.0;
+          });
+        }
+      },
+      child: Transform.translate(
+        offset: Offset(_dragOffsetX > 0 ? _dragOffsetX : 0.0,
+            _dragOffsetY > 0 ? _dragOffsetY : 0.0),
+        child: widget.child,
+      ),
+    );
   }
 }

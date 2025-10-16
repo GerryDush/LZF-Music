@@ -161,8 +161,8 @@ class _MusicListViewState extends State<MusicListView> {
                     builder: (context, constraints) {
                       final containerWidth = constraints.maxWidth;
                       final showSampleAndBitrate = containerWidth > 900;
-                      final showDuration = containerWidth > 700;
-                      final showAlbum = containerWidth > 500;
+                      final showAlbum = containerWidth > 700;
+                      final showArtist = containerWidth > 500;
 
                       return Card(
                         elevation: 0,
@@ -177,8 +177,8 @@ class _MusicListViewState extends State<MusicListView> {
                                 context,
                               ).colorScheme.primary.withOpacity(0.1)
                             : isHovered
-                            ? Colors.grey.withOpacity(0.1)
-                            : Colors.transparent,
+                                ? Colors.grey.withOpacity(0.1)
+                                : Colors.transparent,
                         child: Row(
                           children: [
                             // 主要内容区域
@@ -191,6 +191,7 @@ class _MusicListViewState extends State<MusicListView> {
                                     setState(() => _hoveredIndex = null),
                                 child: GestureDetector(
                                   onDoubleTap: () => _handleSongPlay(index),
+                                  onTap: () => _handleSongPlay(index),
                                   child: Container(
                                     width: double.infinity,
                                     height: double.infinity,
@@ -232,41 +233,71 @@ class _MusicListViewState extends State<MusicListView> {
                                               // 歌曲名称
                                               Expanded(
                                                 flex: 3,
-                                                child: Text(
-                                                  song.title,
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: isSelected
-                                                        ? Theme.of(
-                                                            context,
-                                                          ).colorScheme.primary
-                                                        : Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurface,
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      song.title,
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: isSelected
+                                                            ? Theme.of(
+                                                                context,
+                                                              )
+                                                                .colorScheme
+                                                                .primary
+                                                            : Theme.of(context)
+                                                                .colorScheme
+                                                                .onSurface,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                    if (!showArtist)
+                                                      Text(
+                                                        song.artist ?? '未知艺术家',
+                                                        style: TextStyle(
+                                                          color: isSelected
+                                                              ? Theme.of(
+                                                                  context,
+                                                                )
+                                                                  .colorScheme
+                                                                  .primary
+                                                              : Colors
+                                                                  .grey[400],
+                                                        ),
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      )
+                                                  ],
                                                 ),
                                               ),
                                               // 艺术家
-                                              Expanded(
-                                                flex: 2,
-                                                child: Text(
-                                                  song.artist ?? '未知艺术家',
-                                                  style: TextStyle(
-                                                    color: isSelected
-                                                        ? Theme.of(
-                                                            context,
-                                                          ).colorScheme.primary
-                                                        : Theme.of(context)
+                                              if (showArtist)
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Text(
+                                                    song.artist ?? '未知艺术家',
+                                                    style: TextStyle(
+                                                      color: isSelected
+                                                          ? Theme.of(
+                                                              context,
+                                                            )
+                                                              .colorScheme
+                                                              .primary
+                                                          : Theme.of(context)
                                                               .colorScheme
                                                               .onSurface,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
                                                 ),
-                                              ),
                                               // 专辑
                                               if (showAlbum)
                                                 Expanded(
@@ -276,11 +307,11 @@ class _MusicListViewState extends State<MusicListView> {
                                                     style: TextStyle(
                                                       color: isSelected
                                                           ? Theme.of(context)
-                                                                .colorScheme
-                                                                .primary
+                                                              .colorScheme
+                                                              .primary
                                                           : Theme.of(context)
-                                                                .colorScheme
-                                                                .onSurface,
+                                                              .colorScheme
+                                                              .onSurface,
                                                     ),
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -297,11 +328,11 @@ class _MusicListViewState extends State<MusicListView> {
                                                     style: TextStyle(
                                                       color: isSelected
                                                           ? Theme.of(context)
-                                                                .colorScheme
-                                                                .primary
+                                                              .colorScheme
+                                                              .primary
                                                           : Theme.of(context)
-                                                                .colorScheme
-                                                                .onSurface,
+                                                              .colorScheme
+                                                              .onSurface,
                                                     ),
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -318,40 +349,40 @@ class _MusicListViewState extends State<MusicListView> {
                                                     style: TextStyle(
                                                       color: isSelected
                                                           ? Theme.of(context)
-                                                                .colorScheme
-                                                                .primary
+                                                              .colorScheme
+                                                              .primary
                                                           : Theme.of(context)
-                                                                .colorScheme
-                                                                .onSurface,
+                                                              .colorScheme
+                                                              .onSurface,
                                                     ),
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               // 时长
-                                              if (showDuration)
-                                                SizedBox(
-                                                  width: 60,
-                                                  child: Text(
-                                                    CommonUtils.formatDuration(
-                                                      Duration(
-                                                        seconds:
-                                                            song.duration ?? 0,
-                                                      ),
+
+                                              SizedBox(
+                                                width: 60,
+                                                child: Text(
+                                                  CommonUtils.formatDuration(
+                                                    Duration(
+                                                      seconds:
+                                                          song.duration ?? 0,
                                                     ),
-                                                    style: TextStyle(
-                                                      color: isSelected
-                                                          ? Theme.of(context)
-                                                                .colorScheme
-                                                                .primary
-                                                          : Theme.of(context)
-                                                                .colorScheme
-                                                                .onSurface,
-                                                    ),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
                                                   ),
+                                                  style: TextStyle(
+                                                    color: isSelected
+                                                        ? Theme.of(context)
+                                                            .colorScheme
+                                                            .primary
+                                                        : Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurface,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -362,7 +393,7 @@ class _MusicListViewState extends State<MusicListView> {
                               ),
                             ),
                             if (widget.onSongDeleted == null)
-                              const SizedBox(width: 40),
+                              const SizedBox(width: 48),
                             // 收藏按钮
                             ValueListenableBuilder<bool>(
                               valueListenable: _getFavoriteNotifier(song.id),
@@ -397,10 +428,10 @@ class _MusicListViewState extends State<MusicListView> {
                                       song: song,
                                       onDelete: () => _handleSongDelete(index),
                                       onImportAlbum: () async {
-                                        final res =
-                                            await MusicImportService.importAlbumArt(
-                                              song,
-                                            );
+                                        final res = await MusicImportService
+                                            .importAlbumArt(
+                                          song,
+                                        );
                                         LZFToast.show(
                                           context,
                                           res != null ? '导入成功' : '导入失败',
@@ -415,10 +446,10 @@ class _MusicListViewState extends State<MusicListView> {
                                       onFavoriteToggle: () =>
                                           _handleFavoriteToggle(index),
                                       onImportLyrics: () async {
-                                        final res =
-                                            await MusicImportService.importLyrics(
-                                              song,
-                                            );
+                                        final res = await MusicImportService
+                                            .importLyrics(
+                                          song,
+                                        );
                                         LZFToast.show(
                                           context,
                                           res ? '导入成功' : '导入失败',

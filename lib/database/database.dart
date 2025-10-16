@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:lzf_music/utils/common_utils.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/foundation.dart';
@@ -59,15 +60,18 @@ class MusicDatabase extends _$MusicDatabase {
       ..orderBy([
         // 优先显示标题匹配的结果
         (song) => OrderingTerm(
-          expression: CaseWhenExpression(
-            cases: [
-              CaseWhen(song.title.like('%$keyword%'), then: const Constant(0)),
-              CaseWhen(song.artist.like('%$keyword%'), then: const Constant(1)),
-              CaseWhen(song.album.like('%$keyword%'), then: const Constant(2)),
-            ],
-            orElse: const Constant(3),
-          ),
-        ),
+              expression: CaseWhenExpression(
+                cases: [
+                  CaseWhen(song.title.like('%$keyword%'),
+                      then: const Constant(0)),
+                  CaseWhen(song.artist.like('%$keyword%'),
+                      then: const Constant(1)),
+                  CaseWhen(song.album.like('%$keyword%'),
+                      then: const Constant(2)),
+                ],
+                orElse: const Constant(3),
+              ),
+            ),
         // 然后按标题排序
         (song) => OrderingTerm.asc(song.title),
       ]);
@@ -178,8 +182,7 @@ class MusicDatabase extends _$MusicDatabase {
     for (final keyword in keywords) {
       if (keyword.trim().isEmpty) continue;
 
-      final keywordCondition =
-          songs.title.like('%$keyword%') |
+      final keywordCondition = songs.title.like('%$keyword%') |
           songs.artist.like('%$keyword%') |
           songs.album.like('%$keyword%');
 
@@ -216,24 +219,24 @@ class MusicDatabase extends _$MusicDatabase {
       ..orderBy([
         // 标题匹配优先
         (song) => OrderingTerm(
-          expression: CaseWhenExpression(
-            cases: [
-              CaseWhen(
-                song.title.like('%$lowerKeyword%'),
-                then: const Constant(0),
+              expression: CaseWhenExpression(
+                cases: [
+                  CaseWhen(
+                    song.title.like('%$lowerKeyword%'),
+                    then: const Constant(0),
+                  ),
+                  CaseWhen(
+                    song.artist.like('%$lowerKeyword%'),
+                    then: const Constant(1),
+                  ),
+                  CaseWhen(
+                    song.album.like('%$lowerKeyword%'),
+                    then: const Constant(2),
+                  ),
+                ],
+                orElse: const Constant(3),
               ),
-              CaseWhen(
-                song.artist.like('%$lowerKeyword%'),
-                then: const Constant(1),
-              ),
-              CaseWhen(
-                song.album.like('%$lowerKeyword%'),
-                then: const Constant(2),
-              ),
-            ],
-            orElse: const Constant(3),
-          ),
-        ),
+            ),
         (song) => OrderingTerm.asc(song.title),
       ]);
 
@@ -312,36 +315,36 @@ class MusicDatabase extends _$MusicDatabase {
       if (isLastPlayed == null) {
         query.orderBy([
           (song) => OrderingTerm(
-            expression: CaseWhenExpression(
-              cases: [
-                CaseWhen(
-                  song.title.lower().equals(lowerKeyword),
-                  then: const Constant(0),
+                expression: CaseWhenExpression(
+                  cases: [
+                    CaseWhen(
+                      song.title.lower().equals(lowerKeyword),
+                      then: const Constant(0),
+                    ),
+                    CaseWhen(
+                      song.artist.lower().equals(lowerKeyword),
+                      then: const Constant(1),
+                    ),
+                    CaseWhen(
+                      song.album.lower().equals(lowerKeyword),
+                      then: const Constant(2),
+                    ),
+                    CaseWhen(
+                      song.title.lower().like('$lowerKeyword%'),
+                      then: const Constant(3),
+                    ),
+                    CaseWhen(
+                      song.artist.lower().like('$lowerKeyword%'),
+                      then: const Constant(4),
+                    ),
+                    CaseWhen(
+                      song.album.lower().like('$lowerKeyword%'),
+                      then: const Constant(5),
+                    ),
+                  ],
+                  orElse: const Constant(6),
                 ),
-                CaseWhen(
-                  song.artist.lower().equals(lowerKeyword),
-                  then: const Constant(1),
-                ),
-                CaseWhen(
-                  song.album.lower().equals(lowerKeyword),
-                  then: const Constant(2),
-                ),
-                CaseWhen(
-                  song.title.lower().like('$lowerKeyword%'),
-                  then: const Constant(3),
-                ),
-                CaseWhen(
-                  song.artist.lower().like('$lowerKeyword%'),
-                  then: const Constant(4),
-                ),
-                CaseWhen(
-                  song.album.lower().like('$lowerKeyword%'),
-                  then: const Constant(5),
-                ),
-              ],
-              orElse: const Constant(6),
-            ),
-          ),
+              ),
         ]);
       }
     }
@@ -459,14 +462,15 @@ Future<void> _deleteDirectoryContents(Directory directory) async {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    final oldDbFolder = await getApplicationSupportDirectory();
-    if (await oldDbFolder.exists()) {
-      await _deleteDirectoryContents(oldDbFolder);
-      debugPrint('旧目录及其内容已删除：$oldDbFolder');
-    } else {
-      debugPrint('旧目录不存在：$oldDbFolder');
+    if (PlatformUtils.isDesktop) {
+      final oldDbFolder = await getApplicationSupportDirectory();
+      if (await oldDbFolder.exists()) {
+        await _deleteDirectoryContents(oldDbFolder);
+        debugPrint('旧目录及其内容已删除：$oldDbFolder');
+      } else {
+        debugPrint('旧目录不存在：$oldDbFolder');
+      }
     }
-
     final basePath = await CommonUtils.getAppBaseDirectory();
     debugPrint("APP根目录：${basePath}");
     final file = File(p.join(basePath, 'lzf-music.db'));

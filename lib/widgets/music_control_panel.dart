@@ -42,14 +42,12 @@ class SongInfoPanel extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
           Text(
             playerProvider.currentSong?.artist ?? "未知歌手",
             style: const TextStyle(color: Colors.white70, fontSize: 18),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 24),
         ],
         ValueListenableBuilder<Duration>(
   valueListenable: playerProvider.position,
@@ -65,7 +63,7 @@ class SongInfoPanel extends StatelessWidget {
           onChanged: onSliderChanged,
           onChangeEnd: onSliderChangeEnd,
         );}),
-        const SizedBox(height: 8),
+        
         Row(
           children: [
             ValueListenableBuilder<Duration>(
@@ -81,8 +79,8 @@ class SongInfoPanel extends StatelessWidget {
               child: Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
+                    horizontal: 0,
+                    vertical: 0,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),

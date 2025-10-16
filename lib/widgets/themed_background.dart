@@ -44,7 +44,7 @@ class ThemedBackground extends StatelessWidget {
               sidebarBg: sidebarBg,
               bodyBg: bodyBg,
               isFloat: true,
-              sidebarIsExtended: false,
+              sidebarIsExtended: themeProvider.sidebarIsExtended,
               themeProvider: themeProvider,
             ),
           );

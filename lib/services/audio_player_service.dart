@@ -96,8 +96,8 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
     await AudioService.init(
       builder: () => AudioPlayerService(),
       config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.example.app.channel.audio',
-        androidNotificationChannelName: 'Audio Service',
+        androidNotificationChannelId: 'org.tttx.lzf_music.channel.audio',
+        androidNotificationChannelName: 'LZF Music',
         androidNotificationOngoing: true,
         androidNotificationClickStartsActivity: true,
         androidShowNotificationBadge: true,

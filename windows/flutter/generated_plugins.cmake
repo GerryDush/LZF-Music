@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_acrylic
   media_kit_libs_windows_audio
   screen_retriever_windows
+  sqlite3_flutter_libs
   tray_manager
   url_launcher_windows
   window_manager

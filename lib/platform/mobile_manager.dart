@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
+import '../utils/theme_utils.dart';
 
 class MobileManager {
   static Future<void> initialize() async {
@@ -45,13 +46,7 @@ class MobileManager {
 
   static Future<void> _initializeAndroid() async {
     try {
-      SystemChrome.setSystemUIOverlayStyle(
-        const SystemUiOverlayStyle(
-          systemNavigationBarColor: Colors.transparent,
-          systemNavigationBarDividerColor: Colors.transparent,
-          systemNavigationBarIconBrightness: Brightness.dark,
-        ),
-      );
+     
 
       await SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,

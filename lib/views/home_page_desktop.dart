@@ -35,9 +35,7 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
   @override
   Widget build(BuildContext context,) {
     return ThemedBackground(
-      builder:
-          (
-            context, theme) {
+      builder: (context, theme) {
             return Scaffold(
               body: Row(
                 children: [
@@ -217,7 +215,10 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                                 f: Icons.menu_rounded,
                               ),
                             ),
-                            onPressed: () => theme.themeProvider.toggleExtended(),
+                            onPressed: () {
+                              print('fuck : ${theme.sidebarIsExtended}');
+                              theme.themeProvider.toggleExtended();
+                            },
                           ),
                         ),
                       ],

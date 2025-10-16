@@ -25,7 +25,7 @@ class HiddenThumbComponentShape extends SliderComponentShape {
 
 class NoPaddingOverlayShape extends RoundSliderOverlayShape {
   const NoPaddingOverlayShape({double overlayRadius = 10.0})
-    : super(overlayRadius: overlayRadius);
+      : super(overlayRadius: overlayRadius);
 
   @override
   Size getPreferredSize(bool isEnabled, bool isDiscrete) => Size.zero;
@@ -71,40 +71,88 @@ class _AnimatedTrackHeightSliderState extends State<AnimatedTrackHeightSlider> {
         widget.inactiveColor ?? (isDarkMode ? Colors.white30 : Colors.black26);
 
     return Focus(
-  canRequestFocus: false, // 禁止抢焦点
-  child: MouseRegion(
-    onEnter: (_) => setState(() => isHovered = true),
-    onExit: (_) => setState(() => isHovered = false),
-    child: TweenAnimationBuilder<double>(
-      tween: Tween<double>(
-        begin: widget.trackHeight,
-        end: isHovered ? widget.trackHeight + 6 : widget.trackHeight,
-      ),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      builder: (context, trackHeight, child) {
-        return SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: trackHeight,
-            thumbShape: HiddenThumbComponentShape(),
-            overlayShape: const NoPaddingOverlayShape(overlayRadius: 10.0),
-            activeTrackColor: activeColor,
-            inactiveTrackColor: inactiveColor,
+      canRequestFocus: false, // 禁止抢焦点
+      child: MouseRegion(
+        onEnter: (_) => setState(() => isHovered = true),
+        onExit: (_) => setState(() => isHovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque, // 确保透明区域也能响应触摸
+          onPanUpdate: (details) {
+            setState(() => isHovered = true);
+            final box = context.findRenderObject() as RenderBox;
+            final localPosition = box.globalToLocal(details.globalPosition);
+            final width = box.size.width;
+            final newValue = widget.min +
+                (widget.max - widget.min) * (localPosition.dx / width);
+            final v = newValue.clamp(widget.min, widget.max);
+            widget.onChanged?.call(v);
+          },
+          onPanEnd: (details) {
+            setState(() => isHovered = false);
+            final box = context.findRenderObject() as RenderBox;
+            final localPosition = box.globalToLocal(details.globalPosition);
+            final width = box.size.width;
+            final newValue = widget.min +
+                (widget.max - widget.min) * (localPosition.dx / width);
+            final v = newValue.clamp(widget.min, widget.max);
+            widget.onChanged?.call(v);
+            widget.onChangeEnd?.call(v);
+          },
+          onPanCancel: () {
+            setState(() => isHovered = false);
+          },
+          onTapDown: (details) {
+            setState(() => isHovered = true);
+            final box = context.findRenderObject() as RenderBox;
+            final localPosition = box.globalToLocal(details.globalPosition);
+            final width = box.size.width;
+            final newValue = widget.min +
+                (widget.max - widget.min) * (localPosition.dx / width);
+            final v = newValue.clamp(widget.min, widget.max);
+            widget.onChanged?.call(v);
+            widget.onChangeEnd?.call(v);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10), // 扩大触摸区域
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(
+                begin: widget.trackHeight,
+                end: isHovered ? widget.trackHeight + 6 : widget.trackHeight,
+              ),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              builder: (context, trackHeight, child) {
+                return SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: trackHeight,
+                    thumbShape: HiddenThumbComponentShape(),
+                    overlayShape:
+                        const NoPaddingOverlayShape(overlayRadius: 10.0),
+                    activeTrackColor: activeColor,
+                    inactiveTrackColor: inactiveColor,
+                  ),
+                  child: child!,
+                );
+              },
+              child: Slider(
+                value: widget.value.clamp(widget.min, widget.max),
+                max: widget.max,
+                min: widget.min,
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
+                onChanged: (v){
+                  setState(() => isHovered = true);
+                  widget.onChanged?.call(v);
+                },
+                onChangeEnd: (v){
+                  setState(() => isHovered = false);
+                  widget.onChangeEnd?.call(v);
+                },
+              ),
+            ),
           ),
-          child: child!,
-        );
-      },
-      child: Slider(
-        value: widget.value.clamp(widget.min, widget.max),
-        max: widget.max,
-        min: widget.min,
-        activeColor: activeColor,
-        inactiveColor: inactiveColor,
-        onChanged: widget.onChanged,
-        onChangeEnd: widget.onChangeEnd,
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 }
