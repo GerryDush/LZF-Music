@@ -168,7 +168,7 @@ class _MusicListViewState extends State<MusicListView> {
                         elevation: 0,
                         margin: EdgeInsets.fromLTRB(
                           8,
-                          CommonUtils.select(index == 0, t: 0, f: 4),
+                          0,
                           8,
                           4,
                         ),
@@ -262,6 +262,7 @@ class _MusicListViewState extends State<MusicListView> {
                                                       Text(
                                                         song.artist ?? '未知艺术家',
                                                         style: TextStyle(
+                                                          fontSize: 12,
                                                           color: isSelected
                                                               ? Theme.of(
                                                                   context,
@@ -476,8 +477,8 @@ class _MusicListViewState extends State<MusicListView> {
                     theme.isFloat,
                     t: CommonUtils.select(
                       PlatformUtils.isMobileWidth(context),
-                      t: 66,
-                      f: 88,
+                      t: 136,
+                      f: 80,
                     ),
                     f: 0,
                   ),

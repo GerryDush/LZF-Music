@@ -55,10 +55,9 @@ class _HomePageMobileState extends State<HomePageMobile> {
                       child: MediaQuery(
                         data: MediaQuery.of(context).copyWith(
                           padding: MediaQuery.of(context).padding.copyWith(
-                            bottom:
-                                MediaQuery.of(context).padding.bottom +
-                                80, // 增加底部导航栏高度
-                          ),
+                                bottom: MediaQuery.of(context).padding.bottom +
+                                    80, // 增加底部导航栏高度
+                              ),
                         ),
                         child: ValueListenableBuilder<PlayerPage>(
                           valueListenable: menuManager.currentPage,
@@ -90,24 +89,122 @@ class _HomePageMobileState extends State<HomePageMobile> {
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 0, //
+                      bottom: 0,
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          return ClipRect(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: ThemeUtils.backgroundColor(
-                                    context,
-                                  ).withValues(alpha: 0.8),
-                                ),
-                                child: MiniPlayer(
-                                  containerWidth: constraints.maxWidth,
-                                  isMobile: true,
+                          return Column(
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 22),
+                                child: ClipRRect(
+                                   borderRadius: BorderRadius.circular(16),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                        sigmaX: 10, sigmaY: 10),
+                                    child: Container(
+                                        decoration: BoxDecoration(
+                                          color: ThemeUtils.backgroundColor(
+                                            context,
+                                          ).withValues(alpha: 0.8),
+                                        ),
+                                        child: MiniPlayer(
+                                          containerWidth: constraints.maxWidth,
+                                          isMobile: true,
+                                        )),
+                                  ),
                                 ),
                               ),
-                            ),
+                              SizedBox(
+                                height: 4,
+                              ),
+                              SizedBox(
+                                height: 80,
+                                child: ValueListenableBuilder<PlayerPage>(
+                                  valueListenable: menuManager.currentPage,
+                                  builder: (context, currentPage, _) {
+                                    return ClipRect(
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(
+                                            sigmaX: 10, sigmaY: 10),
+                                        child: Container(
+                                            decoration: BoxDecoration(
+                                              color: ThemeUtils.backgroundColor(
+                                                context,
+                                              ).withValues(alpha: 0.8),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: List.generate(
+                                                  menuManager.items.length, (
+                                                index,
+                                              ) {
+                                                final item =
+                                                    menuManager.items[index];
+                                                final isSelected =
+                                                    index == currentPage.index;
+
+                                                Color iconColor;
+                                                Color textColor;
+
+                                                if (isSelected) {
+                                                  iconColor = primary;
+                                                  textColor = primary;
+                                                } else {
+                                                  iconColor = defaultTextColor
+                                                      .withValues(alpha: 0.6);
+                                                  textColor = defaultTextColor
+                                                      .withValues(alpha: 0.6);
+                                                }
+
+                                                return Expanded(
+                                                  child: InkWell(
+                                                    onTap: () =>
+                                                        _onTabChanged(index),
+                                                    child: Container(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 8),
+                                                      child: Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Icon(item.icon,
+                                                              color: iconColor,
+                                                              size: 24),
+                                                          const SizedBox(
+                                                              height: 4),
+                                                          Text(
+                                                            item.label,
+                                                            style: TextStyle(
+                                                              color: textColor,
+                                                              fontSize: 14,
+                                                              fontWeight: isSelected
+                                                                  ? FontWeight
+                                                                      .bold
+                                                                  : FontWeight
+                                                                      .normal,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }),
+                                            )),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -117,65 +214,6 @@ class _HomePageMobileState extends State<HomePageMobile> {
               ),
 
               // 底部导航栏
-              Container(
-                height: 80,
-                decoration: BoxDecoration(
-                  color: sidebarBg
-                ),
-                child: ValueListenableBuilder<PlayerPage>(
-                  valueListenable: menuManager.currentPage,
-                  builder: (context, currentPage, _) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: List.generate(menuManager.items.length, (
-                        index,
-                      ) {
-                        final item = menuManager.items[index];
-                        final isSelected = index == currentPage.index;
-
-                        Color iconColor;
-                        Color textColor;
-
-                        if (isSelected) {
-                          iconColor = primary;
-                          textColor = primary;
-                        } else {
-                          iconColor = defaultTextColor.withValues(alpha: 0.6);
-                          textColor = defaultTextColor.withValues(alpha: 0.6);
-                        }
-
-                        return Expanded(
-                          child: InkWell(
-                            onTap: () => _onTabChanged(index),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(item.icon, color: iconColor, size: 24),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    item.label,
-                                    style: TextStyle(
-                                      color: textColor,
-                                      fontSize: 12,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    );
-                  },
-                ),
-              ),
             ],
           ),
         );

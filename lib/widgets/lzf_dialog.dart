@@ -35,7 +35,7 @@ class LZFDialog extends StatelessWidget {
     String? cancelText,
     VoidCallback? onCancel,
     bool danger = false,
-    int width = 400,
+    double width = 400,
   }) async {
     showDialog(
       context: context,
@@ -54,7 +54,8 @@ class LZFDialog extends StatelessWidget {
             onConfirm: onConfirm,
             cancelText: cancelText,
             onCancel: onCancel,
-            danger: danger, // 传入参数
+            danger: danger,
+            width: width,
           ),
         ),
       ),

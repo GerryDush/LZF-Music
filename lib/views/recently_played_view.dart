@@ -89,9 +89,9 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
               children: [
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    16.0,
+                    4,
                     CommonUtils.select(theme.isFloat, t: 20, f: 136),
-                    16.0,
+                    4,
                     CommonUtils.select(theme.isFloat, t: 0, f: 80),
                   ),
                   child: MusicListView(

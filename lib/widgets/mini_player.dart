@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lzf_music/database/database.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import 'package:provider/provider.dart';
 import '../views/now_playing_screen.dart';
@@ -51,12 +52,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
         final currentSong = playerProvider.currentSong;
 
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: showVolumeControl ? 0 : 0,
-            left: showVolumeControl ? 10.0 : 5.0,
-            right: showVolumeControl ? 10.0 : 5.0,
-            top: showVolumeControl ? 6.0 : 10.0,
-          ),
+          padding: EdgeInsets.all(CommonUtils.select(PlatformUtils.isMobileWidth(context), t: 4, f: 6)),
           child: Row(
             children: [
               const SizedBox(width: 4),
@@ -70,10 +66,12 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   child: Column(
                     children: [
                       Container(
-                        width: 52,
-                        height: 52,
+                        width: CommonUtils.select(showProgressControl,
+                            t: 52, f: 40),
+                        height: CommonUtils.select(showProgressControl,
+                            t: 52, f: 40),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(8),
                           image: currentSong?.albumArtPath != null
                               ? DecorationImage(
                                   image: FileImage(
@@ -87,9 +85,6 @@ class _MiniPlayerState extends State<MiniPlayer> {
                             ? const Icon(Icons.music_note_rounded, size: 24)
                             : null,
                       ),
-                      SizedBox(
-                        height: 8,
-                      )
                     ],
                   ),
                 ),
@@ -102,6 +97,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // if(!PlatformUtils.isMobileWidth(context)) SizedBox(height: 4,),
                     MouseRegion(
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
@@ -112,9 +108,9 @@ class _MiniPlayerState extends State<MiniPlayer> {
                               scrollDirection: Axis.horizontal,
                               child: Text(
                                 currentSong?.title ?? '未播放',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 18,
+                                  fontSize: 16,
                                 ),
                               ),
                             ))),
@@ -222,8 +218,8 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           SizedBox(width: 30),
                         ],
                       ),
-                      SizedBox(height: 6),
-                    ],
+                    ] else
+                      ...[],
                   ],
                 ),
               ),
@@ -314,11 +310,16 @@ class _MiniPlayerState extends State<MiniPlayer> {
 
               // 控制按钮
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // 上一首按钮
                   IconButton(
                     color: activeColor,
-                    icon: Icon(Icons.skip_previous_rounded, size: 40),
+                    icon: Icon(
+                      Icons.skip_previous_rounded,
+                      size:
+                          CommonUtils.select(showProgressControl, t: 40, f: 32),
+                    ),
                     onPressed: (playerProvider.playMode == PlayMode.sequence &&
                             !playerProvider.hasPrevious)
                         ? null
@@ -335,44 +336,37 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           },
                   ),
                   // 播放/暂停按钮
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      IconButton(
-                        color: activeColor,
-                        icon: Icon(
-                          playerProvider.isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          size: 40,
-                        ),
-                        onPressed: currentSong != null
-                            ? () async {
-                                try {
-                                  await playerProvider.togglePlay();
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('操作失败: $e')),
-                                    );
-                                  }
-                                }
+                  IconButton(
+                    color: activeColor,
+                    icon: Icon(
+                      playerProvider.isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      size:
+                          CommonUtils.select(showProgressControl, t: 40, f: 32),
+                    ),
+                    onPressed: currentSong != null
+                        ? () async {
+                            try {
+                              await playerProvider.togglePlay();
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('操作失败: $e')),
+                                );
                               }
-                            : null,
-                      ),
-                      // 加载指示器
-                      if (playerProvider.isLoading)
-                        const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                    ],
+                            }
+                          }
+                        : null,
                   ),
                   // 下一首按钮
                   IconButton(
                     color: activeColor,
-                    icon: Icon(Icons.skip_next_rounded, size: 40),
+                    icon: Icon(
+                      Icons.skip_next_rounded,
+                      size:
+                          CommonUtils.select(showProgressControl, t: 40, f: 32),
+                    ),
                     onPressed: (playerProvider.playMode == PlayMode.sequence &&
                             !playerProvider.hasNext)
                         ? null

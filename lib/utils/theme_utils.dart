@@ -4,7 +4,7 @@ class ThemeUtils {
   ThemeUtils._();
 
   static const Color lightBg = Color(0xffededed);
-  static const Color darkBg = Color(0xff191919);
+  static const Color darkBg = Color(0xff1e1c23);
 
   static bool isDark(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark;

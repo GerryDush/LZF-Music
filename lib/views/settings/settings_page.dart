@@ -37,10 +37,10 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
               children: [
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    16.0,
+                    4,
                     CommonUtils.select(theme.isFloat, t: CommonUtils.select(PlatformUtils.isIOS,t: 120,f: 70), f: 80),
-                    16.0,
-                    CommonUtils.select(theme.isFloat, t: 80, f: 80),
+                    4,
+                    CommonUtils.select(theme.isFloat, t: 0, f: 80),
                   ),
                   child: ListView(
                     padding: EdgeInsets.fromLTRB(
@@ -48,7 +48,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                       CommonUtils.select(theme.isFloat, t: 18, f: 8),
                       8.0,
                       8.0,
-                    ), // 底部留出88单位空间（8+80）
+                    ),
                     children: [
                       _buildSectionHeader('外观设置'),
                       _buildThemeSettingCard(),
@@ -61,6 +61,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                       const SizedBox(height: 18),
                       _buildSectionHeader('其他设置'),
                       _buildOtherSettingsCard(),
+                      if(theme.isFloat) const SizedBox(height: 80,)
                     ],
                   ),
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../database/database.dart';
 import '../widgets/toggleable_popup_menu.dart';
+import '../utils/platform_utils.dart';
 
 class MusicListHeader extends StatefulWidget {
   final List<Song> songs;
@@ -38,7 +39,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 0),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final containerWidth = constraints.maxWidth;
@@ -210,7 +211,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                 ],
               ),
             ),
-            SizedBox(width: !widget.showCheckbox ? 56 : 8,height: 48,),
+            SizedBox(width: !widget.showCheckbox ? 56 : 8,height: PlatformUtils.select(desktop: 40, mobile: 48),),
             // 批量操作菜单
             if (widget.showCheckbox)
               PopupMenuButton<String>(
@@ -281,7 +282,7 @@ class _MusicListHeaderState extends State<MusicListHeader> {
                   }
                 },
               ),
-              if(widget.onSelectAllChanged==null)const SizedBox(width: 48,)
+              if(widget.onSelectAllChanged==null)SizedBox(width: PlatformUtils.select(desktop: 40, mobile: 48))
             ],
           ),
         );

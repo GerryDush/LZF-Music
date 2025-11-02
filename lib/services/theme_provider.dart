@@ -153,8 +153,8 @@ class AppThemeProvider extends ChangeNotifier {
   ThemeData buildDarkTheme() {
     return ThemeData(
       popupMenuTheme: PopupMenuThemeData(
-        color: Color(0xff2f2f2f),
-        shadowColor: Color(0xff2f2f2f),
+        color: Color(0xff1e1c23),
+        shadowColor: Color(0xff1e1c23),
         position: PopupMenuPosition.under,
       ),
       dialogTheme: DialogThemeData(backgroundColor: ThemeUtils.darkBg),

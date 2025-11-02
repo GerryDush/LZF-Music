@@ -113,7 +113,7 @@ class _AnimatedTrackHeightSliderState extends State<AnimatedTrackHeightSlider> {
             widget.onChangeEnd?.call(v);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10), // 扩大触摸区域
+            padding: const EdgeInsets.symmetric(vertical: 6), // 扩大触摸区域
             child: TweenAnimationBuilder<double>(
               tween: Tween<double>(
                 begin: widget.trackHeight,

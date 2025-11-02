@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import 'dart:ui';
 import '../utils/theme_utils.dart';
@@ -17,7 +18,7 @@ class FrostedContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled && PlatformUtils.isDesktop) return child;
+    if (!enabled && PlatformUtils.isDesktop) return  CommonUtils.select(backgroundColor==null, t: child, f: Container(decoration: BoxDecoration(color: backgroundColor),child: child,));
 
     return ClipRect(
       child: BackdropFilter(

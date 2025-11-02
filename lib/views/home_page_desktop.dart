@@ -42,7 +42,7 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                   AnimatedContainer(
                     color: theme.sidebarBg,
                     duration: const Duration(milliseconds: 200),
-                    width: CommonUtils.select(theme.sidebarIsExtended, t: 220, f: 70),
+                    width: CommonUtils.select(theme.sidebarIsExtended, t: 200, f: 70),
                     child: Column(
                       children: [
                         Padding(
@@ -224,7 +224,7 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                       ],
                     ),
                   ),
-                  const VerticalDivider(width: 1, thickness: 1),
+                  
                   Expanded(
                     child: Stack(
                       children: [
@@ -253,18 +253,22 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
 
                         // MiniPlayer
                         Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: LayoutBuilder(
+                          left: CommonUtils.select(theme.isFloat, t: 22, f: 0),
+                          right: CommonUtils.select(theme.isFloat, t: 22, f: 0),
+                          bottom: 6,
+                          child: ClipRRect(
+                             borderRadius: BorderRadius.circular(16),
+                             child: LayoutBuilder(
                             builder: (context, constraints) {
                               return FrostedContainer(
                                 enabled: theme.isFloat,
+                                
                                 child: MiniPlayer(
                                   containerWidth: constraints.maxWidth,
                                 ),
                               );
                             },
+                          ),
                           ),
                         ),
                       ],
