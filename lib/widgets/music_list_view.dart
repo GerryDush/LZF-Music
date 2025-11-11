@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lzf_music/services/audio_player_service.dart';
+import 'package:lzf_music/utils/theme_utils.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
 import 'dart:io';
 import '../database/database.dart';
@@ -269,8 +270,9 @@ class _MusicListViewState extends State<MusicListView> {
                                                                 )
                                                                   .colorScheme
                                                                   .primary
-                                                              : Colors
-                                                                  .grey[400],
+                                                              : CommonUtils.select(ThemeUtils.isDark(context), t: Colors
+                                                                  .grey[400], f: Colors
+                                                                  .grey[800]),
                                                         ),
                                                         overflow: TextOverflow
                                                             .ellipsis,

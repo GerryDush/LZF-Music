@@ -55,7 +55,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
           padding: EdgeInsets.all(CommonUtils.select(PlatformUtils.isMobileWidth(context), t: 4, f: 6)),
           child: Row(
             children: [
-              const SizedBox(width: 4),
+              SizedBox(width: CommonUtils.select(PlatformUtils.isMobileWidth(context), t: 4, f: 3)),
               // 歌曲封面
               MouseRegion(
                 cursor: SystemMouseCursors.click,
@@ -67,11 +67,11 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     children: [
                       Container(
                         width: CommonUtils.select(showProgressControl,
-                            t: 52, f: 40),
+                            t: 54, f: 40),
                         height: CommonUtils.select(showProgressControl,
                             t: 52, f: 40),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(40),
                           image: currentSong?.albumArtPath != null
                               ? DecorationImage(
                                   image: FileImage(
@@ -397,6 +397,7 @@ void pushToNowPlayingScreen(BuildContext context, Song? currentSong) {
   Navigator.push(
     context,
     PageRouteBuilder(
+      settings: const RouteSettings(name: 'NowPlayingScreen'),
       transitionDuration: const Duration(
         milliseconds: 300,
       ), // 动画时长

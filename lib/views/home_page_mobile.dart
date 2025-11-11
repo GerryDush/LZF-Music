@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/utils/common_utils.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import '../widgets/mini_player.dart';
-import '../widgets/resolution_display.dart';
 import 'package:provider/provider.dart';
 import '../../services/theme_provider.dart';
 import '../contants/app_contants.dart' show PlayerPage;
 import '../router/router.dart';
 import 'dart:ui';
+import '../utils/native_tab_bar_utils.dart';
 
 class HomePageMobile extends StatefulWidget {
   const HomePageMobile({super.key});
@@ -42,6 +44,10 @@ class _HomePageMobileState extends State<HomePageMobile> {
         );
         Color sidebarBg = ThemeUtils.backgroundColor(context);
         Color bodyBg = ThemeUtils.backgroundColor(context);
+
+        NativeTabBarController.setEventHandler(onTabSelected: (index) {
+          _onTabChanged(index);
+        });
 
         return Scaffold(
           body: Column(
@@ -95,114 +101,167 @@ class _HomePageMobileState extends State<HomePageMobile> {
                           return Column(
                             children: [
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 22),
+                                padding: EdgeInsets.symmetric(horizontal: 12),
                                 child: ClipRRect(
-                                   borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(66),
                                   child: BackdropFilter(
                                     filter: ImageFilter.blur(
                                         sigmaX: 10, sigmaY: 10),
                                     child: Container(
-                                        decoration: BoxDecoration(
-                                          color: ThemeUtils.backgroundColor(
-                                            context,
-                                          ).withValues(alpha: 0.8),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            ThemeUtils.backgroundColor(context)
+                                                .withValues(alpha: 0.8),
+                                        border: Border.all(
+                                          color: CommonUtils.select(
+                                              ThemeUtils.isDark(context),
+                                              t: const Color.fromRGBO(
+                                                  255, 255, 255, 0.05),
+                                              f: const Color.fromRGBO(
+                                                  0, 0, 0, 0.05)),
+                                          width: 1.0,
                                         ),
-                                        child: MiniPlayer(
-                                          containerWidth: constraints.maxWidth,
-                                          isMobile: true,
-                                        )),
+                                        borderRadius:
+                                            BorderRadius.circular(65.5),
+                                      ),
+                                      child: MiniPlayer(
+                                        containerWidth: constraints.maxWidth,
+                                        isMobile: true,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                               SizedBox(
-                                height: 4,
+                                height: 8,
                               ),
                               SizedBox(
                                 height: 80,
-                                child: ValueListenableBuilder<PlayerPage>(
-                                  valueListenable: menuManager.currentPage,
-                                  builder: (context, currentPage, _) {
-                                    return ClipRect(
-                                      child: BackdropFilter(
-                                        filter: ImageFilter.blur(
-                                            sigmaX: 10, sigmaY: 10),
-                                        child: Container(
-                                            decoration: BoxDecoration(
-                                              color: ThemeUtils.backgroundColor(
-                                                context,
-                                              ).withValues(alpha: 0.8),
-                                            ),
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceEvenly,
-                                              children: List.generate(
-                                                  menuManager.items.length, (
-                                                index,
-                                              ) {
-                                                final item =
-                                                    menuManager.items[index];
-                                                final isSelected =
-                                                    index == currentPage.index;
-
-                                                Color iconColor;
-                                                Color textColor;
-
-                                                if (isSelected) {
-                                                  iconColor = primary;
-                                                  textColor = primary;
-                                                } else {
-                                                  iconColor = defaultTextColor
-                                                      .withValues(alpha: 0.6);
-                                                  textColor = defaultTextColor
-                                                      .withValues(alpha: 0.6);
-                                                }
-
-                                                return Expanded(
-                                                  child: InkWell(
-                                                    onTap: () =>
-                                                        _onTabChanged(index),
-                                                    child: Container(
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 8),
-                                                      child: Column(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          Icon(item.icon,
-                                                              color: iconColor,
-                                                              size: 24),
-                                                          const SizedBox(
-                                                              height: 4),
-                                                          Text(
-                                                            item.label,
-                                                            style: TextStyle(
-                                                              color: textColor,
-                                                              fontSize: 14,
-                                                              fontWeight: isSelected
-                                                                  ? FontWeight
-                                                                      .bold
-                                                                  : FontWeight
-                                                                      .normal,
-                                                            ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                          ),
-                                                        ],
+                                child: (PlatformUtils.isIOS)
+                                    ? SizedBox()
+                                    : ValueListenableBuilder<PlayerPage>(
+                                        valueListenable:
+                                            menuManager.currentPage,
+                                        builder: (context, currentPage, _) {
+                                          return ClipRect(
+                                            child: BackdropFilter(
+                                              filter: ImageFilter.blur(
+                                                  sigmaX: 10, sigmaY: 10),
+                                              child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: ThemeUtils
+                                                        .backgroundColor(
+                                                      context,
+                                                    ).withValues(alpha: 0.8),
+                                                    border: Border(
+                                                      top: BorderSide(
+                                                        color:
+                                                            CommonUtils.select(
+                                                                ThemeUtils
+                                                                    .isDark(
+                                                                        context),
+                                                                t: const Color
+                                                                    .fromRGBO(
+                                                                    255,
+                                                                    255,
+                                                                    255,
+                                                                    0.05),
+                                                                f: const Color
+                                                                    .fromRGBO(
+                                                                    0,
+                                                                    0,
+                                                                    0,
+                                                                    0.05)),
+                                                        width: 1.0,
                                                       ),
                                                     ),
                                                   ),
-                                                );
-                                              }),
-                                            )),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceEvenly,
+                                                    children: List.generate(
+                                                        menuManager
+                                                            .items.length, (
+                                                      index,
+                                                    ) {
+                                                      final item = menuManager
+                                                          .items[index];
+                                                      final isSelected =
+                                                          index ==
+                                                              currentPage.index;
+
+                                                      Color iconColor;
+                                                      Color textColor;
+
+                                                      if (isSelected) {
+                                                        iconColor = primary;
+                                                        textColor = primary;
+                                                      } else {
+                                                        iconColor =
+                                                            defaultTextColor
+                                                                .withValues(
+                                                                    alpha: 0.6);
+                                                        textColor =
+                                                            defaultTextColor
+                                                                .withValues(
+                                                                    alpha: 0.6);
+                                                      }
+
+                                                      return Expanded(
+                                                        child: InkWell(
+                                                          onTap: () =>
+                                                              _onTabChanged(
+                                                                  index),
+                                                          child: Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    vertical:
+                                                                        8),
+                                                            child: Column(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .center,
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Icon(item.icon,
+                                                                    color:
+                                                                        iconColor,
+                                                                    size: 24),
+                                                                const SizedBox(
+                                                                    height: 4),
+                                                                Text(
+                                                                  item.label,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color:
+                                                                        textColor,
+                                                                    fontSize:
+                                                                        14,
+                                                                    fontWeight: isSelected
+                                                                        ? FontWeight
+                                                                            .bold
+                                                                        : FontWeight
+                                                                            .normal,
+                                                                  ),
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }),
+                                                  )),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
-                                ),
                               ),
                             ],
                           );

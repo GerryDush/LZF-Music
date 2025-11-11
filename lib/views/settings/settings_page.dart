@@ -40,7 +40,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                     4,
                     CommonUtils.select(theme.isFloat, t: CommonUtils.select(PlatformUtils.isIOS,t: 120,f: 70), f: 80),
                     4,
-                    CommonUtils.select(theme.isFloat, t: 0, f: 80),
+                    CommonUtils.select(theme.isFloat, t: 0, f: 90),
                   ),
                   child: ListView(
                     padding: EdgeInsets.fromLTRB(

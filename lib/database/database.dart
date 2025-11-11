@@ -462,15 +462,15 @@ Future<void> _deleteDirectoryContents(Directory directory) async {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    if (PlatformUtils.isDesktop) {
-      final oldDbFolder = await getApplicationSupportDirectory();
-      if (await oldDbFolder.exists()) {
-        await _deleteDirectoryContents(oldDbFolder);
-        debugPrint('旧目录及其内容已删除：$oldDbFolder');
-      } else {
-        debugPrint('旧目录不存在：$oldDbFolder');
-      }
-    }
+    // if (PlatformUtils.isDesktop) {
+    //   final oldDbFolder = await getApplicationSupportDirectory();
+    //   if (await oldDbFolder.exists()) {
+    //     await _deleteDirectoryContents(oldDbFolder);
+    //     debugPrint('旧目录及其内容已删除：$oldDbFolder');
+    //   } else {
+    //     debugPrint('旧目录不存在：$oldDbFolder');
+    //   }
+    // }
     final basePath = await CommonUtils.getAppBaseDirectory();
     debugPrint("APP根目录：${basePath}");
     final file = File(p.join(basePath, 'lzf-music.db'));

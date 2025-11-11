@@ -13,6 +13,39 @@ import 'platform/mobile_manager.dart';
 import 'widgets/keyboard_handler.dart';
 import './utils/platform_utils.dart';
 import './router/route_observer.dart';
+import '../utils/native_tab_bar_utils.dart';
+
+class GlobalRouteObserver extends NavigatorObserver {
+  void _printRoute(Route<dynamic> route, String action) {
+    print('$action: ${route.settings.name ?? route.runtimeType}');
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    if (route.settings.name == 'NowPlayingScreen') {
+      if (PlatformUtils.isIOS) {
+        NativeTabBarController.hide();
+      }
+    }
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (route.settings.name == 'NowPlayingScreen') {
+      if (PlatformUtils.isIOS) {
+        NativeTabBarController.show();
+      }
+    }
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (newRoute != null) _printRoute(newRoute, 'REPLACE');
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,7 +119,7 @@ class _MainAppState extends State<MainApp> with DesktopWindowMixin {
             darkTheme: themeProvider.buildDarkTheme(),
             themeMode: themeProvider.themeMode,
             home: HomePageWrapper(),
-            navigatorObservers: [routeObserver],
+            navigatorObservers: [GlobalRouteObserver()],
             builder: (context, child) {
               if (PlatformUtils.isDesktopNotMac) {
                 return DesktopManager.buildWithTitleBar(child);
@@ -98,15 +131,13 @@ class _MainAppState extends State<MainApp> with DesktopWindowMixin {
       },
     );
   }
-
-  
 }
+
 class HomePageWrapper extends StatelessWidget {
   const HomePageWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     if (PlatformUtils.isMobileWidth(context)) {
       // 小屏幕（手机）
       return const HomePageMobile();

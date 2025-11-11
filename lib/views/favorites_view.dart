@@ -92,7 +92,7 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                     4,
                     CommonUtils.select(theme.isFloat, t: 20, f: 136),
                     4,
-                    CommonUtils.select(theme.isFloat, t: 0, f: 80),
+                    CommonUtils.select(theme.isFloat, t: 0, f: 90),
                   ),
                   child: MusicListView(
                     songs: songs,
