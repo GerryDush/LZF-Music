@@ -1,10 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import 'package:webdav_client/webdav_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../router/route_observer.dart';
-// 假设您的 LZFDialog 和 LZFToast 在以下路径
-import '../../widgets/lzf_dialog.dart';
 import '../../widgets/lzf_toast.dart';
+import '../../widgets/lzf_dialog.dart';
+import '../../ui/lzf_button.dart';
+import '../../ui/lzf_select.dart';
+import '../../ui/lzf_text_feild.dart';
+
+// -------------------------------------------------------------------
+// 存储配置模型 (无变化)
+// -------------------------------------------------------------------
+
+class StorageConfig {
+  String id;
+  String name;
+  String type; // WebDAV, S3, etc.
+  String protocol; // HTTP, HTTPS
+  String server;
+  String path;
+  String username;
+  String password;
+
+  StorageConfig({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.protocol,
+    required this.server,
+    required this.path,
+    required this.username,
+    required this.password,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'type': type,
+      'protocol': protocol,
+      'server': server,
+      'path': path,
+      'username': username,
+      'password': password,
+    };
+  }
+
+  factory StorageConfig.fromJson(Map<String, dynamic> json) {
+    return StorageConfig(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      type: json['type'] ?? 'WebDAV',
+      protocol: json['protocol'] ?? 'HTTPS',
+      server: json['server'] ?? '',
+      path: json['path'] ?? '/',
+      username: json['username'] ?? '',
+      password: json['password'] ?? '',
+    );
+  }
+
+  String get fullUrl {
+    return '${protocol.toLowerCase()}://$server$path';
+  }
+}
+
+// -------------------------------------------------------------------
+// 存储设置页面 (已修改)
+// -------------------------------------------------------------------
 
 class StorageSettingPage extends StatefulWidget {
   const StorageSettingPage({super.key});
@@ -16,6 +80,7 @@ class StorageSettingPage extends StatefulWidget {
 class StorageSettingPageState extends State<StorageSettingPage>
     with RouteAware {
   List<StorageConfig> _storageList = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -48,6 +113,7 @@ class StorageSettingPageState extends State<StorageSettingPage>
   @override
   void didPopNext() {
     debugPrint("StorageSettingPage: didPopNext (别的页面返回到我)");
+    _loadStorageList(); // 重新加载数据
   }
 
   @override
@@ -55,55 +121,110 @@ class StorageSettingPageState extends State<StorageSettingPage>
     debugPrint("StorageSettingPage: didPushNext (我被盖住了)");
   }
 
+  // 加载存储列表
   Future<void> _loadStorageList() async {
-    // TODO: 从持久化存储加载配置列表
     setState(() {
-      _storageList = [];
+      _isLoading = true;
     });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storageListJson = prefs.getString('storage_list') ?? '[]';
+      final List<dynamic> decoded = jsonDecode(storageListJson);
+
+      setState(() {
+        _storageList =
+            decoded.map((item) => StorageConfig.fromJson(item)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('加载存储列表失败: $e');
+      setState(() {
+        _storageList = [];
+        _isLoading = false;
+      });
+    }
   }
 
+  // 保存存储列表
   Future<void> _saveStorageList() async {
-    // TODO: 保存到持久化存储
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storageListJson =
+          jsonEncode(_storageList.map((e) => e.toJson()).toList());
+      await prefs.setString('storage_list', storageListJson);
+    } catch (e) {
+      debugPrint('保存存储列表失败: $e');
+      LZFToast.show(context, '保存失败: $e');
+    }
   }
 
-  void _showAddStorageDialog({StorageConfig? editConfig, int? editIndex}) {
+  // 添加存储 (已修改)
+  void _showAddStorageDialog() {
+    final formKey = GlobalKey<_StorageFormState>();
     LZFDialog.show(
       context,
+      titleText: '添加存储',
       width: 600,
-      titleText: editConfig == null ? '添加存储' : '编辑存储',
-      content: StorageConfigDialogContent(
-        config: editConfig,
-        onSave: (config) {
+      content: _StorageForm(key: formKey),
+      confirmText: '保存',
+      onConfirm: () async {
+        final newConfig = formKey.currentState?.saveAndGetConfig();
+        if (newConfig != null) {
           setState(() {
-            if (editIndex != null) {
-              _storageList[editIndex] = config;
-            } else {
-              _storageList.add(config);
-            }
+            _storageList.add(newConfig);
           });
-          _saveStorageList();
-          LZFDialog.close(context); // 保存后关闭弹窗
-        },
-      ),
-      // LZFDialog 默认的按钮逻辑在 content 内部处理，所以这里可以不传
-      // 如果需要在外部控制按钮，则需要修改 LZFDialog 的实现
-      // 这里我们在 StorageConfigDialogContent 内部实现按钮逻辑
+          await _saveStorageList();
+          LZFDialog.close(context); // 确认成功后关闭弹窗
+          LZFToast.show(context, '添加成功');
+        }
+      },
+      cancelText: '取消',
     );
   }
 
-  void _deleteStorage(int index) {
+  // 编辑存储 (已修改)
+  void _showEditStorageDialog(StorageConfig config) {
+    final formKey = GlobalKey<_StorageFormState>();
+    LZFDialog.show(
+      context,
+      titleText: '编辑存储',
+      width: 600,
+      content: _StorageForm(key: formKey, config: config),
+      confirmText: '保存',
+      onConfirm: () async {
+        final updatedConfig = formKey.currentState?.saveAndGetConfig();
+        if (updatedConfig != null) {
+          setState(() {
+            final index = _storageList.indexWhere((e) => e.id == config.id);
+            if (index != -1) {
+              _storageList[index] = updatedConfig;
+            }
+          });
+          await _saveStorageList();
+          LZFDialog.close(context); // 确认成功后关闭弹窗
+          LZFToast.show(context, '保存成功');
+        }
+      },
+      cancelText: '取消',
+    );
+  }
+
+  // 删除存储 (已修改)
+  void _deleteStorage(StorageConfig config) {
     LZFDialog.show(
       context,
       titleText: '确认删除',
-      content: Text('确定要删除存储「${_storageList[index].name}」吗？此操作无法撤销。'),
-      confirmText: '删除',
+      content: Text('确定要删除存储 "${config.name}" 吗?'),
       danger: true,
-      onConfirm: () {
+      confirmText: '删除',
+      onConfirm: () async {
         setState(() {
-          _storageList.removeAt(index);
+          _storageList.removeWhere((e) => e.id == config.id);
         });
-        _saveStorageList();
-        LZFToast.show(context, '已删除存储配置');
+        await _saveStorageList();
+        LZFDialog.close(context); // 确认成功后关闭弹窗
+        LZFToast.show(context, '删除成功');
       },
       cancelText: '取消',
     );
@@ -111,9 +232,6 @@ class StorageSettingPageState extends State<StorageSettingPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('存储设置'),
@@ -122,258 +240,138 @@ class StorageSettingPageState extends State<StorageSettingPage>
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _storageList.isEmpty ? _buildEmptyState() : _buildStorageList(),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: FloatingActionButton.extended(
-          onPressed: () => _showAddStorageDialog(),
-          icon: const Icon(Icons.add),
-          label: const Text('添加存储'),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.cloud_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            '还没有添加存储',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '添加 WebDAV 或其他云存储开始同步数据',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStorageList() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _storageList.length,
-      itemBuilder: (context, index) {
-        final storage = _storageList[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: theme.colorScheme.outlineVariant,
-              width: 1,
-            ),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () =>
-                _showAddStorageDialog(editConfig: storage, editIndex: index),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  // 图标
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      _getStorageIcon(storage.type),
-                      color: theme.colorScheme.onPrimaryContainer,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // 信息
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                storage.name,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                SizedBox(height: 400,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _storageList.length,
+                    itemBuilder: (context, index) {
+                      final storage = _storageList[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                Theme.of(context).primaryColor.withOpacity(0.1),
+                            child: Icon(
+                              Icons.cloud,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                          title: Text(
+                            storage.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text(
+                                storage.type,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
                                 ),
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                storage.type == StorageType.webdav
-                                    ? 'WebDAV'
-                                    : '阿里云',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.onSecondaryContainer,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              storage.protocol == 'https'
-                                  ? Icons.lock_outline
-                                  : Icons.lock_open_outlined,
-                              size: 14,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                '${storage.protocol}://${storage.host}${storage.path}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                              const SizedBox(height: 2),
+                              Text(
+                                storage.fullUrl,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
-                        ),
-                        if (storage.username.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                size: 14,
-                                color: theme.colorScheme.onSurfaceVariant,
+                            ],
+                          ),
+                          trailing: PopupMenuButton<String>(
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showEditStorageDialog(storage);
+                              } else if (value == 'delete') {
+                                _deleteStorage(storage);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('编辑'),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                storage.username,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete,
+                                        size: 20, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('删除',
+                                        style: TextStyle(color: Colors.red)),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // 菜单按钮
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showAddStorageDialog(
-                            editConfig: storage, editIndex: index);
-                      } else if (value == 'delete') {
-                        _deleteStorage(index);
-                      }
+                        ),
+                      );
                     },
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<String>>[
-                      const PopupMenuItem<String>(
-                        value: 'edit',
-                        child: Text('编辑'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'delete',
-                        child: Text('删除'),
-                      ),
-                    ],
                   ),
-                ],
-              ),
+                ),
+                FilledButton.icon(
+                        onPressed: _showAddStorageDialog,
+                        icon: const Icon(Icons.add),
+                        label: const Text('添加存储'),
+                      ),
+              ],
             ),
-          ),
-        );
-      },
     );
-  }
-
-  IconData _getStorageIcon(StorageType type) {
-    switch (type) {
-      case StorageType.webdav:
-        return Icons.cloud_outlined;
-      case StorageType.aliyun:
-        return Icons.cloud_upload_outlined;
-    }
   }
 }
 
-// 将原来的 StorageConfigDialog 的内容提取出来，作为 LZFDialog 的 content
-class StorageConfigDialogContent extends StatefulWidget {
-  final StorageConfig? config;
-  final Function(StorageConfig) onSave;
+// -------------------------------------------------------------------
+// 新的私有表单组件
+// -------------------------------------------------------------------
 
-  const StorageConfigDialogContent({
+class _StorageForm extends StatefulWidget {
+  final StorageConfig? config;
+
+  const _StorageForm({
     super.key,
     this.config,
-    required this.onSave,
   });
 
   @override
-  State<StorageConfigDialogContent> createState() =>
-      _StorageConfigDialogContentState();
+  State<_StorageForm> createState() => _StorageFormState();
 }
 
-class _StorageConfigDialogContentState
-    extends State<StorageConfigDialogContent> {
+class _StorageFormState extends State<_StorageForm> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  late TextEditingController _hostController;
+  late TextEditingController _serverController;
   late TextEditingController _pathController;
   late TextEditingController _usernameController;
   late TextEditingController _passwordController;
 
-  StorageType _selectedType = StorageType.webdav;
-  String _selectedProtocol = 'https';
-  bool _isPasswordVisible = false;
+  String _selectedType = 'WebDAV';
+  String _selectedProtocol = 'HTTPS';
+  bool _obscurePassword = true;
   bool _isTesting = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.config?.name ?? '');
-    _hostController = TextEditingController(text: widget.config?.host ?? '');
+    _serverController =
+        TextEditingController(text: widget.config?.server ?? '');
     _pathController = TextEditingController(text: widget.config?.path ?? '/');
     _usernameController =
         TextEditingController(text: widget.config?.username ?? '');
@@ -389,125 +387,99 @@ class _StorageConfigDialogContentState
   @override
   void dispose() {
     _nameController.dispose();
-    _hostController.dispose();
+    _serverController.dispose();
     _pathController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  // 测试连接
   Future<void> _testConnection() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_serverController.text.isEmpty) {
+      LZFToast.show(context, '请输入服务器地址');
       return;
     }
-    setState(() => _isTesting = true);
+
+    setState(() {
+      _isTesting = true;
+    });
+
     try {
-      final url =
-          '$_selectedProtocol://${_hostController.text}${_pathController.text}';
       final client = newClient(
-        url,
+        '${_selectedProtocol.toLowerCase()}://${_serverController.text}',
         user: _usernameController.text,
         password: _passwordController.text,
       );
-      client.setConnectTimeout(8000);
-      client.setReceiveTimeout(8000);
-      client.setSendTimeout(8000);
-      await client.ping();
-      if (mounted) {
-        LZFToast.show(context, '✓ 连接成功');
 
-            var list = await client.readDir('/');
-    list.forEach((f) {
-        print('${f.name} ${f.path}');
-      });
-      
+      client.setConnectTimeout(8000);
+      client.setSendTimeout(8000);
+      client.setReceiveTimeout(8000);
+
+      await client.ping();
+
+      if (mounted) {
+        LZFToast.show(context, '连接成功!');
       }
     } catch (e) {
       if (mounted) {
-        LZFToast.show(context, '连接失败: ${e.toString()}');
+        LZFToast.show(context, '连接失败: $e');
       }
     } finally {
       if (mounted) {
-        setState(() => _isTesting = false);
+        setState(() {
+          _isTesting = false;
+        });
       }
     }
   }
 
-  void _save() {
-    if (!_formKey.currentState!.validate()) {
-      return;
+  // 保存配置并返回配置对象，如果验证失败则返回 null
+  StorageConfig? saveAndGetConfig() {
+    // 简单验证
+    if (_nameController.text.isEmpty) {
+      LZFToast.show(context, '请输入存储名称');
+      return null;
     }
-    final config = StorageConfig(
+    if (_serverController.text.isEmpty) {
+      LZFToast.show(context, '请输入服务器地址');
+      return null;
+    }
+    if (_pathController.text.isEmpty) {
+      LZFToast.show(context, '请输入路径');
+      return null;
+    }
+
+    return StorageConfig(
+      id: widget.config?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text,
       type: _selectedType,
       protocol: _selectedProtocol,
-      host: _hostController.text,
+      server: _serverController.text,
       path: _pathController.text,
       username: _usernameController.text,
       password: _passwordController.text,
     );
-    widget.onSave(config);
   }
 
-  // 1. 统一的输入框样式函数 (关键)
-  InputDecoration _buildInputDecoration({
-    required String hintText,
-    Widget? suffixIcon,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final fillColor = isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.black.withOpacity(0.04);
-    final focusedBorderColor = theme.colorScheme.primary;
-
-    return InputDecoration(
-      hintText: hintText,
-      filled: true,
-      fillColor: fillColor,
-      isDense: true,
-      suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        borderSide: BorderSide(color: focusedBorderColor, width: 1),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        borderSide: BorderSide(color: theme.colorScheme.error, width: 1),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        borderSide: BorderSide(color: theme.colorScheme.error, width: 1),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    );
-  }
-
-  // 2. 创建一个可复用的表单行布局 (关键)
-  Widget _buildFormRow({required String label, required Widget inputField}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 80, // 统一标签宽度，确保对齐
-            child: Text(
-              label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.w500),
+  // 构建表单行(label在左侧)
+  Widget _buildFormRow(String label, Widget child) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(child: inputField),
-        ],
-      ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(child: child),
+      ],
     );
   }
 
@@ -515,472 +487,107 @@ class _StorageConfigDialogContentState
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildFormRow(
-              label: '存储类型',
-              inputField: ElegantDropdown<StorageType>(
-                value: _selectedType,
-                hintText: '选择类型',
-                items: const [
-                  ElegantDropdownItem(
-                      value: StorageType.webdav, text: 'WebDAV'),
-                  ElegantDropdownItem(
-                      value: StorageType.aliyun,
-                      text: '阿里云 OSS (即将支持)',
-                      disabled: true),
-                ],
-                onChanged: (value) {
-                  if (value != null) setState(() => _selectedType = value);
-                },
-              ),
-            ),
-            _buildFormRow(
-              label: '存储名称',
-              inputField: TextFormField(
-                controller: _nameController,
-                decoration: _buildInputDecoration(hintText: '例如: 我的云盘'),
-                validator: (v) => v == null || v.isEmpty ? '请输入存储名称' : null,
-              ),
-            ),
-            _buildFormRow(
-              label: '服务器',
-              inputField: Row(
-                children: [
-                  ElegantDropdown<String>(
-                    width: 110, // 可以指定固定宽度
-                    value: _selectedProtocol,
-                    items: const [
-                      ElegantDropdownItem(value: 'https', text: 'HTTPS'),
-                      ElegantDropdownItem(value: 'http', text: 'HTTP'),
-                    ],
-                    onChanged: (value) {
-                      if (value != null)
-                        setState(() => _selectedProtocol = value);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _hostController,
-                      decoration: _buildInputDecoration(
-                          hintText: 'example.com:8080'), // 复用之前的输入框样式
-                      validator: (v) =>
-                          v == null || v.isEmpty ? '请输入主机地址' : null,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _buildFormRow(
-              label: '路径',
-              inputField: TextFormField(
-                controller: _pathController,
-                decoration: _buildInputDecoration(hintText: '/webdav'),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return '请输入路径';
-                  if (!v.startsWith('/')) return '路径必须以 / 开头';
-                  return null;
-                },
-              ),
-            ),
-            _buildFormRow(
-              label: '用户名',
-              inputField: TextFormField(
-                controller: _usernameController,
-                decoration: _buildInputDecoration(hintText: '选填'),
-              ),
-            ),
-            _buildFormRow(
-              label: '密码',
-              inputField: TextFormField(
-                controller: _passwordController,
-                obscureText: !_isPasswordVisible,
-                decoration: _buildInputDecoration(
-                  hintText: '选填',
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isPasswordVisible
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.6),
-                    ),
-                    onPressed: () => setState(
-                        () => _isPasswordVisible = !_isPasswordVisible),
-                  ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('存储类型'),
+          RadixSelect(
+            value: _selectedType,
+            items: const ['WebDAV'],
+            onChanged: (value) {
+              setState(() {
+                _selectedType = value;
+              });
+            },
+            size: RadixButtonSize.medium,
+          ),
+          const SizedBox(height: 8),
+          Text('存储名称'),
+
+          RadixTextField(
+            controller: _nameController,
+            placeholder: '例如: 我的云盘',
+            size: RadixFieldSize.small,
+          ),
+
+          const SizedBox(height: 8),
+          Text('服务器地址'),
+          Row(
+            children: [
+              SizedBox(
+                width: 102,
+                child: RadixSelect(
+                  value: _selectedProtocol,
+                  items: const ['HTTPS', 'HTTP'],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedProtocol = value;
+                    });
+                  },
+                  size: RadixButtonSize.medium,
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // 底部按钮区域
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _isTesting ? null : _testConnection,
-                icon: _isTesting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.wifi_find),
-                label: Text(_isTesting ? '测试中...' : '测试连接'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RadixTextField(
+                  controller: _serverController,
+                  placeholder: 'example.com:8080',
+                  size: RadixFieldSize.small,
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => LZFDialog.close(context),
-                  child: const Text('取消'),
-                ),
-                const SizedBox(width: 12),
-                FilledButton(
-                  onPressed: _save,
-                  child: const Text('保存'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+            ],
+          ),
 
-// 存储配置模型 (保持不变)
-class StorageConfig {
-  final String name;
-  final StorageType type;
-  final String protocol;
-  final String host;
-  final String path;
-  final String username;
-  final String password;
+          const SizedBox(height: 8),
+          Text('路径'),
+          RadixTextField(
+            controller: _pathController,
+            placeholder: '/',
+            size: RadixFieldSize.small,
+          ),
 
-  StorageConfig({
-    required this.name,
-    required this.type,
-    required this.protocol,
-    required this.host,
-    required this.path,
-    this.username = '',
-    this.password = '',
-  });
+          const SizedBox(height: 8),
+          Text('用户名'),
+          RadixTextField(
+            controller: _usernameController,
+            size: RadixFieldSize.small,
+          ),
 
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'type': type.name,
-      'protocol': protocol,
-      'host': host,
-      'path': path,
-      'username': username,
-      'password': password,
-    };
-  }
-
-  factory StorageConfig.fromJson(Map<String, dynamic> json) {
-    return StorageConfig(
-      name: json['name'],
-      type: StorageType.values.firstWhere((e) => e.name == json['type']),
-      protocol: json['protocol'],
-      host: json['host'],
-      path: json['path'],
-      username: json['username'] ?? '',
-      password: json['password'] ?? '',
-    );
-  }
-}
-
-enum StorageType {
-  webdav,
-  aliyun,
-}
-
-class ElegantDropdownItem<T> {
-  final T value;
-  final String text;
-  final bool disabled;
-
-  const ElegantDropdownItem(
-      {required this.value, required this.text, this.disabled = false});
-}
-
-class ElegantDropdown<T> extends StatefulWidget {
-  final T? value;
-  final List<ElegantDropdownItem<T>> items;
-  final ValueChanged<T?> onChanged;
-  final String hintText;
-  final double width;
-
-  const ElegantDropdown({
-    super.key,
-    required this.items,
-    required this.onChanged,
-    this.value,
-    this.hintText = '',
-    this.width = double.infinity,
-  });
-
-  @override
-  State<ElegantDropdown<T>> createState() => _ElegantDropdownState<T>();
-}
-
-class _ElegantDropdownState<T> extends State<ElegantDropdown<T>>
-    with SingleTickerProviderStateMixin {
-  final LayerLink _layerLink = LayerLink();
-  final GlobalKey _buttonKey = GlobalKey();
-  OverlayEntry? _overlayEntry;
-  OverlayEntry? _barrierEntry;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-
-  bool get _isMenuOpen =>
-      _animationController.status == AnimationStatus.completed ||
-      _animationController.status == AnimationStatus.forward;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-
-    _fadeAnimation =
-        CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
-    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _toggleMenu() {
-    if (_isMenuOpen) {
-      _hideMenu();
-    } else {
-      _showMenu();
-    }
-  }
-
-  void _showMenu() {
-  final overlay = Overlay.of(context);
-  final renderBox = _buttonKey.currentContext!.findRenderObject() as RenderBox;
-  final size = renderBox.size;
-
-  // 1. 创建屏障层 (Barrier)
-  _barrierEntry = OverlayEntry(
-    builder: (context) => Positioned.fill(
-      // 使用 Flutter 内置的 ModalBarrier，它能很好地处理点击事件
-      child: GestureDetector(
-        onTap: _hideMenu, // 点击屏障时关闭菜单
-        behavior: HitTestBehavior.opaque, // 确保整个区域都能响应点击
-        child: Container(color: Colors.transparent), // 透明背景
-      ),
-    ),
-  );
-
-  // 2. 创建菜单层 (和以前一样)
-  _overlayEntry = OverlayEntry(
-    builder: (context) => Positioned(
-      width: size.width,
-      child: CompositedTransformFollower(
-        link: _layerLink,
-        showWhenUnlinked: false,
-        offset: Offset(0.0, size.height + 6.0),
-        child: _buildMenu(),
-      ),
-    ),
-  );
-
-  // 3. 关键：先插入屏障，再插入菜单
-  overlay.insert(_barrierEntry!);
-  overlay.insert(_overlayEntry!);
-
-  _animationController.forward();
-}
-
-void _hideMenu() async {
-  // 等待动画完成
-  await _animationController.reverse();
-
-  // 关键：同时移除菜单和屏障
-  _overlayEntry?.remove();
-  _overlayEntry = null;
-
-  _barrierEntry?.remove();
-  _barrierEntry = null;
-}
-
-  void _onItemSelected(ElegantDropdownItem<T> item) {
-    if (item.disabled) return;
-    widget.onChanged(item.value);
-    _hideMenu();
-  }
-
-  // 构建真正美观的菜单
-  Widget _buildMenu() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF2A2A2E) : Colors.white;
-    final shadowColor =
-        isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08);
-
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        alignment: Alignment.topCenter,
-        child: Material(
-          color: Colors.transparent,
-          child: GestureDetector(
-            onTap: () {},
-            child: Container(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(maxHeight: 220),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(12.0),
-              boxShadow: [
-                BoxShadow(
-                  color: shadowColor,
-                  blurRadius: 20.0,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12.0),
-              child: Padding(padding: EdgeInsets.all(6),child: ListView.separated(
-                padding: EdgeInsets.zero,
-                itemCount: widget.items.length,
-                shrinkWrap: true,
-                 separatorBuilder: (context, index) => const SizedBox(height: 6.0),
-                itemBuilder: (context, index) {
-                  final item = widget.items[index];
-                  final isSelected = item.value == widget.value;
-
-                  return Material(
-                      // 1. 直接在 Material 上定义形状
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      // 2. 将背景色也移到 Material 上
-                      color: isSelected
-                          ? ThemeUtils.primaryColor(context).withOpacity(0.1)
-                          : Colors.transparent,
-                      // 3. 使用 Clip.antiAlias 确保子内容被完美裁剪
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => _onItemSelected(item),
-                        splashColor: item.disabled ? Colors.transparent : null,
-                        highlightColor:
-                            item.disabled ? Colors.transparent : null,
-                        child: Container(
-                          // 4. Container 现在只负责内边距(padding)
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 12.0),
-                          child: Text(
-                            item.text,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: item.disabled
-                                  ? theme.disabledColor
-                                  : (isSelected
-                                      ? ThemeUtils.primaryColor(context)
-                                      : theme.textTheme.bodyLarge?.color),
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                },
-              ),),
+          const SizedBox(height: 8),
+          Text('密码'),
+          RadixTextField(
+            controller: _passwordController,
+            size: RadixFieldSize.small,
+            trailing: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                size: 18,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
           ),
-          )
-        ),
-      ),
-    );
-  }
+          const SizedBox(height: 24),
 
-  // 构建按钮部分
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final fillColor = isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.black.withOpacity(0.04);
-    final selectedItem = widget.items.firstWhere(
-        (item) => item.value == widget.value,
-        orElse: () => ElegantDropdownItem<T>(
-            value: widget.value as T, text: widget.hintText));
-
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: SizedBox(
-        key: _buttonKey,
-        width: widget.width,
-        child: GestureDetector(
-          onTap: _toggleMenu,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: fillColor,
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(
-                color: _isMenuOpen
-                    ? ThemeUtils.primaryColor(context)
-                    : Colors.transparent,
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    selectedItem.text,
-                    style: TextStyle(
-                      color: widget.value != null
-                          ? theme.textTheme.bodyLarge?.color
-                          : theme.hintColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                AnimatedRotation(
-                  turns: _isMenuOpen ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child:
-                      const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-                ),
-              ],
+          // 测试连接按钮
+          SizedBox(
+            width: double.infinity,
+            child: RadixButton(
+              label: _isTesting ? '测试中...' : '测试连接',
+              icon: _isTesting ? null : Icons.link,
+              variant: RadixButtonVariant.outline,
+              size: RadixButtonSize.medium,
+              disabled: _isTesting,
+              onPressed: _testConnection,
             ),
           ),
-        ),
+        ],
       ),
     );
   }
