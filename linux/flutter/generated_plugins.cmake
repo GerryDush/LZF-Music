@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   bitsdojo_window_linux
   flutter_acrylic
+  flutter_localization
   media_kit_libs_linux
   screen_retriever_linux
   sqlite3_flutter_libs

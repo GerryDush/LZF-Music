@@ -146,6 +146,7 @@ class AppThemeProvider extends ChangeNotifier {
         backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: PlatformUtils.isDesktopNotMac ? 56 : null,
+        surfaceTintColor: Colors.transparent,
       ),
     );
   }
@@ -153,8 +154,8 @@ class AppThemeProvider extends ChangeNotifier {
   ThemeData buildDarkTheme() {
     return ThemeData(
       popupMenuTheme: PopupMenuThemeData(
-        color: Color(0xff1e1c23),
-        shadowColor: Color(0xff1e1c23),
+        color: Color(0xff151515),
+        shadowColor: Color(0xff151515),
         position: PopupMenuPosition.under,
       ),
       dialogTheme: DialogThemeData(backgroundColor: ThemeUtils.darkBg),
@@ -171,6 +172,7 @@ class AppThemeProvider extends ChangeNotifier {
         backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: PlatformUtils.isDesktop ? 56 : null,
+        surfaceTintColor: Colors.transparent,
       ),
     );
   }

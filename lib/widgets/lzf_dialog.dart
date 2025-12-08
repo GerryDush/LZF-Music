@@ -11,19 +11,20 @@ class LZFDialog extends StatelessWidget {
   final VoidCallback? onCancel;
   final bool danger;
   final double width;
+  final double? height;
 
-  const LZFDialog({
-    super.key,
-    this.title,
-    this.titleText,
-    required this.content,
-    this.confirmText,
-    this.onConfirm,
-    this.cancelText,
-    this.onCancel,
-    this.danger = false,
-    this.width = 400,
-  });
+  const LZFDialog(
+      {super.key,
+      this.title,
+      this.titleText,
+      required this.content,
+      this.confirmText,
+      this.onConfirm,
+      this.cancelText,
+      this.onCancel,
+      this.danger = false,
+      this.width = 400,
+      this.height});
 
   static Future<void> show(
     BuildContext context, {
@@ -36,34 +37,63 @@ class LZFDialog extends StatelessWidget {
     VoidCallback? onCancel,
     bool danger = false,
     double width = 400,
+    double? height,
   }) async {
-    showDialog(
+    showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => PopScope(
-        onPopInvokedWithResult: (_, __) {
-          onCancel?.call();
-        },
-        child: GestureDetector(
-          onTap: () {}, // 阻止点击穿透
-          child: LZFDialog(
-            title: title,
-            titleText: titleText,
-            content: content,
-            confirmText: confirmText,
-            onConfirm: onConfirm,
-            cancelText: cancelText,
-            onCancel: onCancel,
-            danger: danger,
-            width: width,
+      barrierLabel: "",
+      barrierColor: Colors.black54, // 蒙层颜色，可自定义
+      transitionDuration: const Duration(milliseconds: 200), // 动画时间
+      pageBuilder: (_, __, ___) {
+        return PopScope(
+          onPopInvokedWithResult: (_, __) {
+            onCancel?.call();
+          },
+          child: GestureDetector(
+            onTap: () {}, // 阻止点击穿透
+            child: Center(
+              child: LZFDialog(
+                title: title,
+                titleText: titleText,
+                content: content,
+                confirmText: confirmText,
+                onConfirm: onConfirm,
+                cancelText: cancelText,
+                onCancel: onCancel,
+                danger: danger,
+                width: width,
+                height: height,
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
+
+      transitionBuilder: (_, animation, __, child) {
+        final fade = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
+
+        final scale = Tween<double>(begin: 1.2, end: 1).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        ));
+
+        return FadeTransition(
+          opacity: fade,
+          child: ScaleTransition(
+            scale: scale,
+            child: child,
+          ),
+        );
+      },
     );
   }
 
   static void close(BuildContext context) {
-    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+    if (Navigator.of(context, rootNavigator: true).canPop()) Navigator.of(context, rootNavigator: true).pop();
   }
 
   @override
@@ -72,24 +102,32 @@ class LZFDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: SizedBox(
         width: width,
+        height: height,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 22.0, horizontal: 26.0),
+          padding: EdgeInsets.only(top: 18, left: 18, right: 18, bottom: (cancelText != null || confirmText != null)?16:18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (title != null) ...[
                 title!,
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
               ] else if (titleText != null) ...[
                 Text(
                   titleText!,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
               ],
-              content,
-              const SizedBox(height: 24),
+              height != null
+                  ? Expanded(
+                      child: SingleChildScrollView(
+                        child: content,
+                      ),
+                    )
+                  : content,
+              if (cancelText != null || confirmText != null)
+                const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -108,7 +146,7 @@ class LZFDialog extends StatelessWidget {
                       ),
                       child: Text(cancelText!),
                     ),
-                  if (cancelText != null && confirmText != null)
+                  if (cancelText != null || confirmText != null)
                     const SizedBox(width: 12),
                   if (confirmText != null)
                     TextButton(
@@ -135,7 +173,7 @@ class LZFDialog extends StatelessWidget {
                       ),
                     ),
                 ],
-              ),
+              )
             ],
           ),
         ),

@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localization/flutter_localization.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import 'package:lzf_music/widgets/frosted_container.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
 import '../widgets/mini_player.dart';
-import '../widgets/resolution_display.dart';
-import 'package:provider/provider.dart';
-import '../../services/theme_provider.dart';
 import '../contants/app_contants.dart' show PlayerPage;
 import '../router/router.dart';
-import 'dart:ui';
-import '../widgets/custom_drawer.dart';
 
 class HomePageDesktop extends StatefulWidget {
   const HomePageDesktop({super.key});
@@ -48,25 +44,7 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                     CommonUtils.select(theme.sidebarIsExtended, t: 202, f: 90),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(8, 8, 0, 8),
-                  child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                          child: Container(
-                              decoration: BoxDecoration(
-                                color: ThemeUtils.backgroundColor(context)
-                                    .withValues(alpha: 0),
-                                border: Border.all(
-                                  color: CommonUtils.select(
-                                      ThemeUtils.isDark(context),
-                                      t: const Color.fromRGBO(
-                                          255, 255, 255, 0.05),
-                                      f: const Color.fromRGBO(0, 0, 0, 0.05)),
-                                  width: 1.0,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
+                  child: Column(
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.only(
@@ -263,14 +241,11 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                                                                             Alignment.centerLeft,
                                                                         child:
                                                                             Text(
-                                                                          item.label,
+                                                                          item.languageKey.getString(context),
                                                                           style:
                                                                               TextStyle(
                                                                             color:
                                                                                 textColor,
-                                                                            fontWeight: isSelected
-                                                                                ? FontWeight.bold
-                                                                                : FontWeight.normal,
                                                                           ),
                                                                           overflow:
                                                                               TextOverflow.ellipsis,
@@ -314,7 +289,7 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                                     ),
                                   ),
                                 ],
-                              )))),
+                              ),
                 ),
               ),
               Expanded(

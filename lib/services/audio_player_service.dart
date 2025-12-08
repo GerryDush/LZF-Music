@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
+import 'package:lzf_music/services/file_access_manager.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'dart:async';
@@ -136,7 +139,6 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
           : null,
     );
     
-    // 关键：先设置 mediaItem
     mediaItem.add(_currentMediaItem);
     
     // 然后立即更新 playbackState，确保控制中心有内容
@@ -152,6 +154,13 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
   Future<void> playSong(Song song, {bool playNow = true}) async {
     try {
       updateCurrentMediaItem(song);
+      if(Platform.isIOS||Platform.isMacOS && !song.filePath.startsWith('/')){
+        // macOS 和 iOS 需要处理书签访问
+        print('Attempting to access file via bookmark: ${song.filePath}');
+         final resolved = await FileAccessManager.startAccessing(song.filePath!);
+        await player.open(Media(resolved!), play: playNow);
+        return;
+      }
       await player.open(Media(song.filePath), play: playNow);
     } catch (e) {
       print('Error playing song: $e');

@@ -134,6 +134,8 @@ func setTabBar(hidden: Bool, animated: Bool = true) {
     guard let engine = flutterEngine else { return }
     let channel = FlutterMethodChannel(name: "native_tab_bar", binaryMessenger: engine.binaryMessenger)
     channel.invokeMethod("onTabBarVisibilityChanged", arguments: !hidden)
+
+    
 }
 }
 

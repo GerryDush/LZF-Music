@@ -12,8 +12,9 @@ import 'platform/desktop_manager.dart';
 import 'platform/mobile_manager.dart';
 import 'widgets/keyboard_handler.dart';
 import './utils/platform_utils.dart';
-import './router/route_observer.dart';
 import '../utils/native_tab_bar_utils.dart';
+import 'package:flutter_localization/flutter_localization.dart';
+import './i18n/i18n.dart';
 
 class GlobalRouteObserver extends NavigatorObserver {
   void _printRoute(Route<dynamic> route, String action) {
@@ -49,6 +50,7 @@ class GlobalRouteObserver extends NavigatorObserver {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await FlutterLocalization.instance.ensureInitialized();
 
   try {
     if (PlatformUtils.isDesktop) {
@@ -91,8 +93,25 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp> with DesktopWindowMixin {
+  final FlutterLocalization _localization = FlutterLocalization.instance;
   @override
   void initState() {
+     _localization.init(
+      mapLocales: [
+        const MapLocale(
+          'en',
+          AppLocale.EN,
+          countryCode: 'US',
+        ),
+        const MapLocale(
+          'zh',
+          AppLocale.ZH,
+          countryCode: 'ZH',
+        ),
+      ],
+      initLanguageCode: 'en',
+    );
+    _localization.onTranslatedLanguage = _onTranslatedLanguage;
     super.initState();
     if (PlatformUtils.isDesktop) {
       DesktopManager.initializeListeners(this);
@@ -109,10 +128,14 @@ class _MainAppState extends State<MainApp> with DesktopWindowMixin {
 
   @override
   Widget build(BuildContext context) {
+   
+
     return Consumer<AppThemeProvider>(
       builder: (context, themeProvider, child) {
         return MyKeyboardHandler(
           child: MaterialApp(
+            supportedLocales: _localization.supportedLocales,
+            localizationsDelegates: _localization.localizationsDelegates,
             color: Colors.transparent,
             title: 'LZF Music',
             theme: themeProvider.buildLightTheme(),
@@ -130,6 +153,11 @@ class _MainAppState extends State<MainApp> with DesktopWindowMixin {
         );
       },
     );
+  }
+
+  void _onTranslatedLanguage(Locale? locale) {
+    print('语言已切换至: ${locale?.languageCode}');
+    setState(() {});
   }
 }
 

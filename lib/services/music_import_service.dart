@@ -3,13 +3,13 @@ import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:drift/drift.dart';
+import 'package:lzf_music/services/file_access_manager.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import '../database/database.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p; // 跨平台路径处理
 import 'dart:async';
-import '../services/audio_player_service.dart';
+
 
 class CoverImage {
   final Uint8List bytes;
@@ -353,9 +353,13 @@ class MusicImportService {
     }
     final basePath = await CommonUtils.getAppBaseDirectory();
 
-
     String targetFilePath = file.path;
-    print(PlatformUtils.isMobile);
+
+    if (PlatformUtils.isMacOS || PlatformUtils.isIOS) {
+      targetFilePath = await FileAccessManager.createBookmark(file.path) ?? file.path;
+      print(' 文件已保存为书签：$targetFilePath');
+    }
+    
     if (PlatformUtils.isMobile) {
       final targetDir = Directory(
         p.join(basePath, 'Music', artist ?? 'Unknow'),
@@ -369,6 +373,7 @@ class MusicImportService {
     }
 
     String? albumArtPath;
+    print(metadata.pictures);
     if (metadata.pictures.isNotEmpty) {
       final picture = metadata.pictures.first;
       CoverImage? cover = CoverImage.fromBytes(picture.bytes);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/utils/theme_utils.dart';
 
 
 
@@ -96,7 +97,7 @@ class _RadixTextFieldState extends State<RadixTextField> {
     final enabled = widget.enabled;
 
     // 基础颜色
-    final surface = theme.colorScheme.surface;
+    final surface = ThemeUtils.select(context, light: Colors.white, dark: Color(0xff1f1f1f));
     final onSurface = theme.colorScheme.onSurface;
     final primary = theme.colorScheme.primary;
     final outline = theme.brightness == Brightness.dark ? Colors.white12 : Colors.black12;

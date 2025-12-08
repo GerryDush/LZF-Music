@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localization/flutter_localization.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
@@ -234,18 +235,13 @@ class _HomePageMobileState extends State<HomePageMobile> {
                                                                 const SizedBox(
                                                                     height: 4),
                                                                 Text(
-                                                                  item.label,
+                                                                  item.languageKey.getString(context),
                                                                   style:
                                                                       TextStyle(
                                                                     color:
                                                                         textColor,
                                                                     fontSize:
                                                                         14,
-                                                                    fontWeight: isSelected
-                                                                        ? FontWeight
-                                                                            .bold
-                                                                        : FontWeight
-                                                                            .normal,
                                                                   ),
                                                                   overflow:
                                                                       TextOverflow

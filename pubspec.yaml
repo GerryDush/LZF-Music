@@ -1,7 +1,7 @@
 name: lzf_music
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.2.8
+version: 0.2.9
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -35,6 +35,10 @@ dependencies:
   crypto: ^3.0.0
   flutter_colorpicker: ^1.1.0
   flutter_acrylic: ^1.1.4
+  flutter_localization: ^0.3.3
+  xml: ^6.6.1
+  palette_generator: ^0.3.3+7
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:
@@ -50,5 +54,6 @@ flutter:
       fonts:
         - asset: assets/fonts/sf_icons.ttf
   assets:
+    - assets/LICENSE
     - assets/icons/
     - assets/windows/icons/
