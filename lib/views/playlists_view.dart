@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import 'package:lzf_music/widgets/page_header.dart';
 import 'dart:async';
 import '../database/database.dart';
@@ -23,7 +24,7 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
   final ScrollController _scrollController = ScrollController();
   late MusicDatabase database = MusicDatabase.database;
   late MusicImportService importService;
-  List<Song> songs = [];
+  List<SongListItem> songs = [];
   String? orderField = null;
   String? orderDirection = null;
   String? searchKeyword = null;
@@ -64,8 +65,8 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
   Future<void> _loadSongs() async {
     final playerProvider = context.read<PlayerProvider>();
     try {
-      List<Song> loadedSongs;
-      loadedSongs = playerProvider.currentPlaylists();
+      List<SongListItem> loadedSongs;
+      loadedSongs = await playerProvider.currentPlaylists();
       setState(() {
         songs = loadedSongs;
       });
@@ -118,7 +119,7 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
                     });
                   },
                   onSongPlay: (song, playlist, index) {
-                    playerProvider.playSong(song, playlist: playlist, index: index);
+                    playerProvider.playSong(song.id, playlist: songs.map((s) => s.id).toList(), index: index);
                   },
                   onCheckboxChanged: (songId, isChecked) {
                     // 不使用复选框

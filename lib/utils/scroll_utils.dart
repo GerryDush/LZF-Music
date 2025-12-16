@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import '../database/database.dart';
 
 class ScrollUtils {
@@ -42,7 +43,7 @@ class ScrollUtils {
 
   static scrollToCurrentSong(
     ScrollController scrollController,
-    List<Song> songs,
+    List<SongListItem> songs,
     Song? song,
   ) {
     if (song == null) {

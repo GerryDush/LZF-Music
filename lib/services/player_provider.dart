@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:audio_service/audio_service.dart';
 import 'dart:async';
@@ -24,9 +25,9 @@ class PlayerProvider with ChangeNotifier {
 
   PlayMode _playMode = PlayMode.loop;
 
-  List<Song> _playlist = [];
-  List<Song> _originalPlaylist = [];
-  List<Song> _shuffledPlaylist = [];
+  List<int> _playlist = [];
+  List<int> _originalPlaylist = [];
+  List<int> _shuffledPlaylist = [];
   int _currentIndex = -1;
 
   final math.Random _random = math.Random();
@@ -92,9 +93,8 @@ class PlayerProvider with ChangeNotifier {
     });
 
     // 初始化状态
-    PlayerStateStorage.getInstance().then((state) {
+    PlayerStateStorage.getInstance().then((state) async {
       playerState = state;
-      _currentSong = state.currentSong;
       _playlist = state.playlist;
       _originalPlaylist = state.playlist;
       _shuffledPlaylist = state.playlist;
@@ -102,13 +102,13 @@ class PlayerProvider with ChangeNotifier {
       _playMode = state.playMode;
       _position.value = state.position;
       _isPlaying = state.isPlaying;
-      if (_currentSong != null) {
+      if (state.currentSong != null) {
         playSong(
-          _currentSong!,
+          state.currentSong!,
           playlist: _playlist,
-          index: _playlist.indexWhere((s) => s.id == _currentSong!.id),
+          index: _playlist.indexWhere((s) => s == state.currentSong),
           shuffle: false,
-          playNow: false,
+          playNow: true,
         );
       }
       setVolume(_volume);
@@ -142,8 +142,8 @@ class PlayerProvider with ChangeNotifier {
     _shuffledPlaylist = List.from(_originalPlaylist);
 
     if (_currentSong != null) {
-      _shuffledPlaylist.removeWhere((song) => song.id == _currentSong!.id);
-      _shuffledPlaylist.insert(0, _currentSong!);
+      _shuffledPlaylist.removeWhere((song) => song == _currentSong!.id);
+      _shuffledPlaylist.insert(0, _currentSong!.id);
     }
 
     if (_shuffledPlaylist.length > 1) {
@@ -155,12 +155,12 @@ class PlayerProvider with ChangeNotifier {
 
   int _getCurrentSongIndexInOriginal() {
     if (_currentSong == null) return -1;
-    return _originalPlaylist.indexWhere((song) => song.id == _currentSong!.id);
+    return _originalPlaylist.indexWhere((song) => song == _currentSong!.id);
   }
 
   Future<void> playSong(
-    Song song, {
-    List<Song>? playlist,
+    int songId, {
+    List<int>? playlist,
     int? index,
     bool shuffle = true,
     bool playNow = true,
@@ -175,15 +175,15 @@ class PlayerProvider with ChangeNotifier {
         _originalPlaylist = List.from(playlist);
 
         if (_playMode == PlayMode.shuffle && shuffle) {
-          _currentSong = song;
+          _currentSong = await MusicDatabase.database.getSongById(songId);
           _createShuffledPlaylist();
           _playlist = _shuffledPlaylist;
-          _currentIndex = _shuffledPlaylist.indexWhere((s) => s.id == song.id);
+          _currentIndex = _shuffledPlaylist.indexWhere((s) => s == songId);
         } else if (_playMode == PlayMode.shuffle && !shuffle) {
           _playlist = _shuffledPlaylist.isNotEmpty
               ? _shuffledPlaylist
               : _originalPlaylist;
-          _currentIndex = _playlist.indexWhere((s) => s.id == song.id);
+          _currentIndex = _playlist.indexWhere((s) => s == songId);
           if (_currentIndex == -1) {
             _playlist = _originalPlaylist;
             _currentIndex = index ?? 0;
@@ -193,38 +193,37 @@ class PlayerProvider with ChangeNotifier {
           _currentIndex = index ?? 0;
         }
       } else if (_originalPlaylist.isEmpty ||
-          !_originalPlaylist.any((s) => s.id == song.id)) {
-        _originalPlaylist = [song];
-        _shuffledPlaylist = [song];
-        _playlist = [song];
+          !_originalPlaylist.any((s) => s == songId)) {
+        _originalPlaylist = [songId];
+        _shuffledPlaylist = [songId];
+        _playlist = [songId];
         _currentIndex = 0;
       } else {
         if (_playMode == PlayMode.shuffle) {
-          _currentIndex = _shuffledPlaylist.indexWhere((s) => s.id == song.id);
+          _currentIndex = _shuffledPlaylist.indexWhere((s) => s == songId);
           _playlist = _shuffledPlaylist;
         } else {
-          _currentIndex = _originalPlaylist.indexWhere((s) => s.id == song.id);
+          _currentIndex = _originalPlaylist.indexWhere((s) => s == songId);
           _playlist = _originalPlaylist;
         }
       }
 
-      _currentSong = song;
+      _currentSong = await MusicDatabase.database.getSongById(songId);
 
       // 更新 AudioService 媒体项
-      _audioService.updateCurrentMediaItem(song);
+      _audioService.updateCurrentMediaItem(_currentSong!);
 
-      await _audioService.playSong(song, playNow: playNow);
+      await _audioService.playSong(_currentSong!, playNow: playNow);
 
-      print('Playing song: ${song.filePath}');
 
       await MusicDatabase.database.updateSong(
-        song.copyWith(
+        _currentSong!.copyWith(
           lastPlayedTime: DateTime.now(),
-          playedCount: song.playedCount + 1,
+          playedCount: _currentSong!.playedCount + 1,
         ),
       );
 
-      playerState.setCurrentSong(song);
+      playerState.setCurrentSong(_currentSong);
       playerState.setPlaylist(_playlist);
     } catch (e) {
       _isLoading = false;
@@ -367,8 +366,8 @@ class PlayerProvider with ChangeNotifier {
     playerState.setPlayMode(mode);
   }
 
-  List<Song> currentPlaylists() {
-    return _playlist;
+  Future<List<SongListItem>> currentPlaylists() async{
+    return MusicDatabase.database.getSongsByIds(_playlist);
   }
 
   void _handlePlayModeChange(PlayMode previousMode, PlayMode newMode) {
@@ -395,7 +394,7 @@ class PlayerProvider with ChangeNotifier {
     _playlist = _shuffledPlaylist;
     if (_currentSong != null) {
       _currentIndex = _shuffledPlaylist.indexWhere(
-        (s) => s.id == _currentSong!.id,
+        (s) => s == _currentSong!.id,
       );
       if (_currentIndex == -1) _currentIndex = 0;
     }
@@ -411,7 +410,7 @@ class PlayerProvider with ChangeNotifier {
         _createShuffledPlaylist();
         _playlist = _shuffledPlaylist;
         _currentIndex = _shuffledPlaylist.indexWhere(
-          (s) => s.id == _currentSong!.id,
+          (s) => s == _currentSong!.id,
         );
       }
     } else {
@@ -425,31 +424,31 @@ class PlayerProvider with ChangeNotifier {
   }
 
   void addToPlaylist(Song song) {
-    _originalPlaylist.add(song);
+    _originalPlaylist.add(song.id);
 
     if (_playMode == PlayMode.shuffle) {
       if (_shuffledPlaylist.isEmpty) {
-        _shuffledPlaylist.add(song);
+        _shuffledPlaylist.add(song.id);
       } else {
         final randomIndex = _random.nextInt(_shuffledPlaylist.length + 1);
-        _shuffledPlaylist.insert(randomIndex, song);
+        _shuffledPlaylist.insert(randomIndex, song.id);
       }
       _playlist = _shuffledPlaylist;
     } else {
-      _playlist.add(song);
+      _playlist.add(song.id);
     }
     notifyListeners();
   }
 
-  void removeFromPlaylist(int index) {
+  void removeFromPlaylist(int index) async {
     if (index < 0 || index >= _playlist.length) return;
 
     final removedSong = _playlist[index];
     _playlist.removeAt(index);
-    _originalPlaylist.removeWhere((song) => song.id == removedSong.id);
+    _originalPlaylist.removeWhere((song) => song == removedSong);
 
     if (_playMode == PlayMode.shuffle) {
-      _shuffledPlaylist.removeWhere((song) => song.id == removedSong.id);
+      _shuffledPlaylist.removeWhere((song) => song == removedSong);
     }
 
     if (index < _currentIndex) {
@@ -461,7 +460,8 @@ class PlayerProvider with ChangeNotifier {
       if (_playlist.isEmpty) {
         stop();
       } else {
-        _currentSong = _playlist[_currentIndex];
+        final cs = await MusicDatabase.database.getSongById(_playlist[_currentIndex]);
+        _currentSong = cs;
       }
     }
     notifyListeners();
@@ -475,7 +475,7 @@ class PlayerProvider with ChangeNotifier {
 
     if (_currentSong != null) {
       _currentIndex = _shuffledPlaylist.indexWhere(
-        (s) => s.id == _currentSong!.id,
+        (s) => s == _currentSong!.id,
       );
       if (_currentIndex == -1) _currentIndex = 0;
     }

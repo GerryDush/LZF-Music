@@ -156,7 +156,7 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
       updateCurrentMediaItem(song);
       if(Platform.isIOS||Platform.isMacOS && !song.filePath.startsWith('/')){
         // macOS 和 iOS 需要处理书签访问
-        print('Attempting to access file via bookmark: ${song.filePath}');
+        // print('Attempting to access file via bookmark: ${song.filePath}');
          final resolved = await FileAccessManager.startAccessing(song.filePath!);
         await player.open(Media(resolved!), play: playNow);
         return;

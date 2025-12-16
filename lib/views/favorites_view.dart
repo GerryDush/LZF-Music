@@ -14,6 +14,7 @@ import '../widgets/lzf_toast.dart';
 import '../widgets/music_list_header.dart';
 import '../widgets/music_list_view.dart';
 import '../widgets/page_header.dart';
+import '../model/song_list_item.dart';
 
 class FavoritesView extends StatefulWidget {
   const FavoritesView({super.key});
@@ -24,7 +25,7 @@ class FavoritesView extends StatefulWidget {
 
 class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
   late MusicImportService importService;
-  List<Song> songs = [];
+  List<SongListItem> songs = [];
   Song? currentSong = null;
   String? orderField;
   String? orderDirection;
@@ -50,7 +51,7 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
 
   Future<void> _loadSongs() async {
     try {
-      List<Song> loadedSongs;
+      List<SongListItem> loadedSongs;
       final keyword = searchKeyword;
       loadedSongs = await MusicDatabase.database.smartSearch(
         keyword?.trim(),
@@ -101,8 +102,8 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                     onSongUpdated: (_,__){_loadSongs();},
                     onSongPlay: (song, playlist, index) {
                       playerProvider.playSong(
-                        song,
-                        playlist: playlist,
+                        song.id,
+                        playlist: songs.map((s) => s.id).toList(),
                         index: index,
                       );
                     },

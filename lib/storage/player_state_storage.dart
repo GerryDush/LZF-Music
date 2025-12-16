@@ -26,23 +26,23 @@ class PlayerStateStorage {
   // 私有成员
   bool _isPlaying = false;
   Duration _position = Duration.zero;
-  Song? _currentSong;
+  int? _currentSong;
   PlayMode _playMode = PlayMode.shuffle;
   double _volume = 1.0;
   PlayerPage _currentPage = PlayerPage.library;
   Map<String, SortState> _pageSortStates = {};
-  List<Song> _playlist = [];
+  List<int> _playlist = [];
 
   /// 对外只读属性
   bool get isPlaying => _isPlaying;
   Duration get position => _position;
-  Song? get currentSong => _currentSong;
+  int? get currentSong => _currentSong;
   PlayMode get playMode => _playMode;
   double get volume => _volume;
   PlayerPage get currentPage => _currentPage;
   Map<String, SortState> get pageSortStates =>
       Map.unmodifiable(_pageSortStates);
-  List<Song> get playlist => List.unmodifiable(_playlist);
+  List<int> get playlist => List.unmodifiable(_playlist);
 
   /// 启动时初始化，从本地读取
   static Future<PlayerStateStorage> _load() async {
@@ -52,10 +52,11 @@ class PlayerStateStorage {
     state._isPlaying = prefs.getBool(_isPlayingKey) ?? false;
     state._position = Duration(seconds: prefs.getInt(_positionKey) ?? 0);
 
-    final songJson = prefs.getString(_songKey);
-    if (songJson != null) {
-      state._currentSong = Song.fromJson(jsonDecode(songJson));
+    if (prefs.get(_songKey).runtimeType == String){
+      prefs.remove(_songKey);
     }
+    state._currentSong  = prefs.getInt(_songKey);
+
 
     final modeIndex = prefs.getInt(_playModeKey);
     if (modeIndex != null &&
@@ -81,12 +82,16 @@ class PlayerStateStorage {
       });
     }
 
-    final playlistStr = prefs.getString(_playlistKey);
+    String? playlistStr = prefs.getString(_playlistKey);
+    if(playlistStr != null){
+      if(playlistStr.contains('{')){
+        prefs.remove(_playlistKey);
+        playlistStr = null;
+      }
+    }
     if (playlistStr != null) {
       final List<dynamic> listJson = jsonDecode(playlistStr);
-      state._playlist = listJson
-          .map((e) => Song.fromJson(e as Map<String, dynamic>))
-          .toList();
+      state._playlist = listJson.map((e) => e as int).toList();
     }
 
     return state;
@@ -97,9 +102,7 @@ class PlayerStateStorage {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_isPlayingKey, _isPlaying);
     await prefs.setInt(_positionKey, _position.inSeconds);
-    if (_currentSong != null) {
-      await prefs.setString(_songKey, jsonEncode(_currentSong!.toJson()));
-    }
+    await prefs.setInt(_songKey, currentSong!);
   }
 
   Future<void> _savePlayMode() async {
@@ -128,30 +131,30 @@ class PlayerStateStorage {
 
   Future<void> _savePlaylist() async {
     final prefs = await SharedPreferences.getInstance();
-    final listJson = _playlist.map((s) => s.toJson()).toList();
+    final listJson = _playlist.map((s) => s).toList();
     await prefs.setString(_playlistKey, jsonEncode(listJson));
   }
 }
 
 /// 对外操作扩展
 extension PlayerStateSetters on PlayerStateStorage {
-  Future<void> setCurrentSong(Song song) async {
-    _currentSong = song;
+  Future<void> setCurrentSong(Song? song) async {
+    _currentSong = song!.id;
     await _savePlaybackState();
   }
 
-  Future<void> setPlaylist(List<Song> songs) async {
+  Future<void> setPlaylist(List<int> songs) async {
     _playlist = songs;
     await _savePlaylist();
   }
 
   Future<void> addToPlaylist(Song song) async {
-    _playlist.add(song);
+    _playlist.add(song.id);
     await _savePlaylist();
   }
 
   Future<void> removeFromPlaylist(Song song) async {
-    _playlist.removeWhere((s) => s.id == song.id);
+    _playlist.removeWhere((s) => s == song.id);
     await _savePlaylist();
   }
 

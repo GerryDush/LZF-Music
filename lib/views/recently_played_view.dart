@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import 'package:lzf_music/services/audio_player_service.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
@@ -25,7 +26,7 @@ class RecentlyPlayedView extends StatefulWidget {
 
 class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePage {
   late MusicImportService importService;
-  List<Song> songs = [];
+  List<SongListItem> songs = [];
   Song? currentSong = null;
   String? orderField;
   String? orderDirection;
@@ -40,7 +41,6 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
       ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
     });
     PlayerProvider.onSongChange = (() {
-      print(111);
       ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
     });
   }
@@ -52,7 +52,7 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
 
   Future<void> _loadSongs() async {
     try {
-      List<Song> loadedSongs;
+      List<SongListItem> loadedSongs;
       final keyword = searchKeyword;
       loadedSongs = await MusicDatabase.database.smartSearch(
         keyword?.trim(),
@@ -102,8 +102,8 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
                     checkedIds: checkedIds,
                     onSongPlay: (song, playlist, index) {
                       playerProvider.playSong(
-                        song,
-                        playlist: playlist,
+                        song.id,
+                        playlist: songs.map((s) => s.id).toList(),
                         index: index,
                       );
                     },

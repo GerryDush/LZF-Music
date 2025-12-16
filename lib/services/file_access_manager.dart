@@ -4,6 +4,7 @@ import 'package:lzf_music/utils/platform_utils.dart';
 class FileAccessManager {
   static const MethodChannel _channel =
       MethodChannel('com.lzf_music/secure_bookmarks');
+      
 
   /// 为文件路径创建持久化访问书签 (支持 iOS & macOS)
   /// [filePath] 原始文件路径
@@ -45,6 +46,25 @@ class FileAccessManager {
       await _channel.invokeMethod('stopAccessing', {'bookmark': bookmark});
     } catch (e) {
       print('[FileAccessManager] 停止访问失败: $e');
+    }
+  }
+
+
+   /// 仅 iOS: 调用原生文件选择器，直接返回包含书签的结果
+  static Future<List<Map<String, String>>> pickMusicNative() async {
+    if (!PlatformUtils.isIOS) return [];
+    
+    try {
+      // 调用我们在 Swift 里写的 "pickMusic"
+      final List<dynamic>? result = await _channel.invokeMethod('pickMusic');
+      
+      if (result == null) return [];
+      
+      // 转换类型
+      return result.map((e) => Map<String, String>.from(e)).toList();
+    } catch (e) {
+      print('Native picker failed: $e');
+      return [];
     }
   }
 }

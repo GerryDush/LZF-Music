@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lzf_music/utils/common_utils.dart';
@@ -7,8 +6,6 @@ import 'package:lzf_music/widgets/liquid_gradient_painter.dart';
 import 'package:provider/provider.dart';
 import '../services/player_provider.dart';
 import 'package:flutter/services.dart';
-import '../widgets/lyric/lyrics_models.dart';
-import '../widgets/lyric/lyrics_parser.dart';
 import 'package:lzf_music/widgets/karaoke_lyrics_view.dart';
 import 'package:lzf_music/widgets/music_control_panel.dart';
 
@@ -43,8 +40,6 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
 
   final FocusNode _focusNode = FocusNode();
   int? _currentSongId;
-  LyricsData? _cachedLyricsData;
-  List<Color>? _extractedColors;
   @override
   Widget build(BuildContext context) {
     return Focus(
@@ -65,23 +60,6 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
             final bool isPlaying = playerProvider.isPlaying;
             if (currentSong != null && currentSong.id != _currentSongId) {
               _currentSongId = currentSong.id;
-              _cachedLyricsData = null;
-              LyricsParser.parse(currentSong.lyrics ?? "").then((data) {
-                if (mounted && _currentSongId == currentSong.id) {
-                  setState(() {
-                    _cachedLyricsData = data;
-                  });
-                }
-              });
-              extractColorsFromImages(
-                  playerProvider.currentSong?.albumArtPath != null
-                      ? [File(playerProvider.currentSong!.albumArtPath!)]
-                      : []).then((v){
-                        setState((){
-                          _extractedColors = v;
-                          print(_extractedColors);
-                        });
-                      });
             }
 
             return Scaffold(
@@ -92,7 +70,12 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                   ClipRect(
                     child: Stack(
                       fit: StackFit.expand,
-                      children: [LiquidGeneratorPage(liquidColors: _extractedColors)],
+                      children: [
+                        LiquidGeneratorPage(
+                          liquidColors: currentSong!.palette,
+                          isPlaying: isPlaying,
+                        )
+                      ],
                     ),
                   ),
                   SafeArea(
@@ -100,8 +83,8 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                       final isNarrow = PlatformUtils.isMobileWidth(context);
 
                       final lyricsView = KaraokeLyricsView(
-                        key: ValueKey(currentSong?.id ?? 'none'),
-                        lyricsData: _cachedLyricsData,
+                        key: ValueKey(currentSong.id),
+                        lyricsData: currentSong.lyricsBlob,
                         currentPosition: playerProvider.position,
                         onTapLine: (time) => playerProvider.seekTo(time),
                       );
@@ -157,76 +140,72 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                                                   color: Colors.white,
                                                   size: 50),
                                             ),
-                                            if (currentSong != null)
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                            maxWidth: 60),
-                                                    child: ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
-                                                      child: currentSong
-                                                                      .albumArtPath !=
-                                                                  null &&
-                                                              File(currentSong
-                                                                      .albumArtPath!)
-                                                                  .existsSync()
-                                                          ? Image.file(
-                                                              File(currentSong
-                                                                  .albumArtPath!),
-                                                              fit: BoxFit.cover)
-                                                          : Container(
-                                                              color: Colors
-                                                                  .grey[800],
-                                                              child: const Icon(
-                                                                  Icons.music_note_rounded,
-                                                                  color: Colors.white,
-                                                                  size: 40)),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 10),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(currentSong.title,
-                                                            style: const TextStyle(
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                          maxWidth: 60),
+                                                  child: ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    child: currentSong.albumArtPath !=
+                                                                null &&
+                                                            File(currentSong
+                                                                    .albumArtPath!)
+                                                                .existsSync()
+                                                        ? Image.file(
+                                                            File(currentSong
+                                                                .albumArtPath!),
+                                                            fit: BoxFit.cover)
+                                                        : Container(
+                                                            color: Colors
+                                                                .grey[800],
+                                                            child: const Icon(
+                                                                Icons
+                                                                    .music_note_rounded,
                                                                 color: Colors
                                                                     .white,
-                                                                fontSize: 24,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold),
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis),
-                                                        const SizedBox(
-                                                            height: 2),
-                                                        Text(
-                                                            currentSong
-                                                                    .artist ??
-                                                                '未知艺术家',
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .white
-                                                                    .withOpacity(
-                                                                        0.7),
-                                                                fontSize: 16),
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis),
-                                                      ],
-                                                    ),
+                                                                size: 40)),
                                                   ),
-                                                ],
-                                              ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(currentSong.title,
+                                                          style: const TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: 24,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                          currentSong.artist ??
+                                                              '未知艺术家',
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .white
+                                                                  .withOpacity(
+                                                                      0.7),
+                                                              fontSize: 16),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ],
                                         ),
                                         Padding(
@@ -299,11 +278,9 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                                             ClipRRect(
                                               borderRadius:
                                                   BorderRadius.circular(20),
-                                              child: currentSong
-                                                              ?.albumArtPath !=
+                                              child: currentSong.albumArtPath !=
                                                           null &&
-                                                      File(currentSong!
-                                                              .albumArtPath!)
+                                                      File(currentSong.albumArtPath!)
                                                           .existsSync()
                                                   ? Image.file(
                                                       File(currentSong

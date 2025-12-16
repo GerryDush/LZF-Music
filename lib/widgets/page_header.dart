@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import '../utils/theme_utils.dart';
 import '../database/database.dart';
@@ -10,7 +11,7 @@ class PageHeader extends StatefulWidget {
   final Future<void> Function(String? keyword)? onSearch;
   final Future<void> Function()? onImportDirectory;
   final Future<void> Function()? onImportFiles;
-  final List<Song>? songs;
+  final List<SongListItem>? songs;
   final List<Widget>? children;
   final String title;
 

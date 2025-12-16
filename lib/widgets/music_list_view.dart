@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import 'package:lzf_music/services/audio_player_service.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
@@ -12,14 +13,14 @@ import '../utils/platform_utils.dart';
 import '../services/music_import_service.dart';
 
 class MusicListView extends StatefulWidget {
-  final List<Song> songs;
+  final List<SongListItem> songs;
   final ScrollController? scrollController;
   final PlayerProvider playerProvider;
   final bool showCheckbox;
   final List<int> checkedIds;
   final VoidCallback? onSongDeleted;
-  final void Function(Song song, int? index)? onSongUpdated;
-  final Function(Song, List<Song>, int)? onSongPlay;
+  final void Function(SongListItem song, int? index)? onSongUpdated;
+  final Function(SongListItem, List<SongListItem>, int)? onSongPlay;
   final Function(int, bool)? onCheckboxChanged;
 
   const MusicListView({
@@ -51,8 +52,8 @@ class _MusicListViewState extends State<MusicListView> {
     } else {
       // 默认播放行为
       widget.playerProvider.playSong(
-        widget.songs[index],
-        playlist: widget.songs,
+        widget.songs[index].id,
+        playlist: widget.songs.map((s) => s.id).toList(),
         index: index,
       );
     }
@@ -63,12 +64,13 @@ class _MusicListViewState extends State<MusicListView> {
     final newFavoriteState = !song.isFavorite;
 
     // 更新数据库
-    MusicDatabase.database.updateSong(
-      song.copyWith(isFavorite: newFavoriteState),
+    MusicDatabase.database.updateSongFavorite(
+      song.id,
+      newFavoriteState,
     );
 
     // 更新本地列表中的歌曲状态
-    widget.songs[index] = song.copyWith(isFavorite: newFavoriteState);
+    song.isFavorite = newFavoriteState;
 
     // 只更新对应歌曲的收藏状态通知器
     _getFavoriteNotifier(song.id).value = newFavoriteState;
@@ -209,12 +211,12 @@ class _MusicListViewState extends State<MusicListView> {
                                               4,
                                             ),
                                           ),
-                                          child: song.albumArtPath != null
+                                          child: song.albumArtThumbPath != null
                                               ? ClipRRect(
                                                   borderRadius:
                                                       BorderRadius.circular(4),
                                                   child: Image.file(
-                                                    File(song.albumArtPath!),
+                                                    File(song.albumArtThumbPath!),
                                                     width: 50,
                                                     height: 50,
                                                     fit: BoxFit.cover,
@@ -433,7 +435,7 @@ class _MusicListViewState extends State<MusicListView> {
                                       onImportAlbum: () async {
                                         final res = await MusicImportService
                                             .importAlbumArt(
-                                          song,
+                                          song.id,
                                         );
                                         LZFToast.show(
                                           context,
@@ -451,7 +453,7 @@ class _MusicListViewState extends State<MusicListView> {
                                       onImportLyrics: () async {
                                         final res = await MusicImportService
                                             .importLyrics(
-                                          song,
+                                          song.id,
                                         );
                                         LZFToast.show(
                                           context,

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import '../database/database.dart';
 import '../widgets/toggleable_popup_menu.dart';
 import '../utils/platform_utils.dart';
 
 class MusicListHeader extends StatefulWidget {
-  final List<Song> songs;
+  final List<SongListItem> songs;
   final String? orderField;
   final String? orderDirection;
   final bool showCheckbox;

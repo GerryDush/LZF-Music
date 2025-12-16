@@ -39,6 +39,8 @@ PODS:
     - DKImagePickerController/PhotoGallery
     - Flutter
   - Flutter (1.0.0)
+  - flutter_localization (0.0.1):
+    - Flutter
   - media_kit_libs_ios_audio (1.0.4):
     - Flutter
   - path_provider_foundation (0.0.1):
@@ -87,6 +89,7 @@ DEPENDENCIES:
   - audio_session (from `.symlinks/plugins/audio_session/ios`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - Flutter (from `Flutter`)
+  - flutter_localization (from `.symlinks/plugins/flutter_localization/ios`)
   - media_kit_libs_ios_audio (from `.symlinks/plugins/media_kit_libs_ios_audio/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -111,6 +114,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/file_picker/ios"
   Flutter:
     :path: Flutter
+  flutter_localization:
+    :path: ".symlinks/plugins/flutter_localization/ios"
   media_kit_libs_ios_audio:
     :path: ".symlinks/plugins/media_kit_libs_ios_audio/ios"
   path_provider_foundation:
@@ -131,6 +136,7 @@ SPEC CHECKSUMS:
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_localization: 72299fb6cb4e51cae587bd953ed0b958040b71e6
   media_kit_libs_ios_audio: 905e6323b72e65c63ab9262b2e473f52c024a3a8
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   SDWebImage: 16309af6d214ba3f77a7c6f6fdda888cb313a50a

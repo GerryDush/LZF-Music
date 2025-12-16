@@ -67,7 +67,7 @@ class MainFlutterWindow: NSWindow {
         // 对于只读访问，使用 .securityScopeAllowOnlyReadAccess
         
         do {
-            let data = try url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
+            let data = try url.bookmarkData(options: [.withSecurityScope],
                                             includingResourceValuesForKeys: nil,
                                             relativeTo: nil)
             let base64 = data.base64EncodedString()

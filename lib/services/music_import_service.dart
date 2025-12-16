@@ -1,15 +1,20 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import 'package:lzf_music/services/file_access_manager.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import '../database/database.dart';
-import 'package:path/path.dart' as p; // 跨平台路径处理
+import 'package:path/path.dart' as p;
 import 'dart:async';
-
+import '../widgets/lyric/lyrics_parser.dart';
+import '../utils/cover_utils.dart';
+import 'package:image/image.dart' as img;
 
 class CoverImage {
   final Uint8List bytes;
@@ -29,28 +34,26 @@ class CoverImage {
     }
   }
 
+  static String? extensionFromDecoder(img.Decoder decoder) {
+    if (decoder is img.PngDecoder) return 'png';
+    if (decoder is img.JpegDecoder) return 'jpg';
+    if (decoder is img.GifDecoder) return 'gif';
+    if (decoder is img.WebPDecoder) return 'webp';
+    if (decoder is img.BmpDecoder) return 'bmp';
+    if (decoder is img.TiffDecoder) return 'tiff';
+    if (decoder is img.IcoDecoder) return 'ico';
+    if (decoder is img.TgaDecoder) return 'tga';
+    return null;
+  }
+
   static CoverImage? fromBytes(Uint8List data) {
-    final pngHeader = [0x89, 0x50, 0x4E, 0x47]; // PNG
-    final jpegHeader = [0xFF, 0xD8]; // JPEG
+    final decoder = img.findDecoderForData(data);
+    if (decoder == null) return null;
 
-    int start = -1;
-    String? type;
+    final ext = extensionFromDecoder(decoder);
+    if (ext == null) return null;
 
-    for (int i = 0; i < data.length - 4; i++) {
-      if (data.sublist(i, i + 4).join(',') == pngHeader.join(',')) {
-        start = i;
-        type = 'png';
-        break;
-      }
-      if (i < data.length - 2 &&
-          data.sublist(i, i + 2).join(',') == jpegHeader.join(',')) {
-        start = i;
-        type = 'jpeg';
-        break;
-      }
-    }
-    if (start == -1 || type == null) return null;
-    return CoverImage._(data.sublist(start), type);
+    return CoverImage._(data, ext);
   }
 }
 
@@ -153,11 +156,57 @@ class MusicImportService {
     }
   }
 
-  /// 导入选定的文件
+  
+
   Stream<ImportEvent> importFiles() async* {
     _isCancelled = false;
 
     try {
+      // ================= iOS 原生流程 =================
+      if (PlatformUtils.isIOS) {
+        // 1. 调用原生选择器，直接获取路径和书签
+        final nativeFiles = await FileAccessManager.pickMusicNative();
+        
+        // 如果未选择或取消
+        if (nativeFiles.isEmpty) return;
+
+        yield const SelectedEvent();
+
+        if (_isCancelled) {
+          yield const CancelledEvent();
+          return;
+        }
+
+        yield ScanCompletedEvent(nativeFiles.length);
+
+        // 2. 处理 iOS 文件列表
+        int processed = 0;
+        for (var item in nativeFiles) {
+          if (_isCancelled) break;
+          
+          String? path = item['path']!;
+          final String bookmark = item['bookmark']!;
+          final String fileName = p.basename(path);
+          
+          yield ProgressingEvent(fileName, processed, nativeFiles.length);
+
+          try {
+            // 关键：传入原生生成的书签
+            path = await FileAccessManager.startAccessing(bookmark);
+            await _processMusicFile(File(path!));
+            await FileAccessManager.stopAccessing(bookmark);
+            processed++;
+            yield ProgressingEvent(fileName, processed, nativeFiles.length);
+          } catch (e) {
+            yield FailedEvent(e.toString(), filePath: path);
+          }
+        }
+        
+        yield const CompletedEvent();
+        return; // iOS 流程结束
+      }
+
+      // ================= Android / Desktop 流程 (FilePicker) =================
       final result = await FilePicker.platform.pickFiles(
         allowedExtensions: supportedExtensions,
         type: FileType.custom,
@@ -187,14 +236,17 @@ class MusicImportService {
         return;
       }
 
+      // 通用处理流程
       yield* _processFiles(musicFiles);
+      
     } catch (e) {
       yield FailedEvent('选择文件时发生错误: ${e.toString()}');
       yield const CompletedEvent();
     }
   }
 
-  static Future<bool> importLyrics(Song song) async {
+  static Future<bool> importLyrics(int songId) async {
+    Song song = await MusicDatabase.database.getSongById(songId) as Song;
     final result = await FilePicker.platform.pickFiles(
       allowedExtensions: ['lrc', 'ttml'],
       type: FileType.custom,
@@ -221,7 +273,8 @@ class MusicImportService {
     return false;
   }
 
-  static Future<String?> importAlbumArt(Song song) async {
+  static Future<String?> importAlbumArt(int songId) async {
+    Song song = await MusicDatabase.database.getSongById(songId) as Song;
     try {
       final result = await FilePicker.platform.pickFiles(
         allowedExtensions: ['jpg', 'jpeg', 'png'],
@@ -333,61 +386,129 @@ class MusicImportService {
     _isCancelled = true;
   }
 
+  Uint8List createThumbnail(Uint8List originalBytes,
+      {int width = 200, int height = 200}) {
+    final image = img.decodeImage(originalBytes);
+    if (image == null) throw Exception('无法解码图片');
+
+    final thumbnail = img.copyResize(image, width: width, height: height);
+
+    final thumbnailBytes = img.encodeJpg(thumbnail);
+    return Uint8List.fromList(thumbnailBytes);
+  }
+
+  CoverProcessOutput processCoverInIsolate(CoverProcessInput input) {
+    // 判断图片格式
+    final decoder = img.findDecoderForData(input.bytes);
+    if (decoder == null) {
+      throw Exception('Unsupported image format');
+    }
+    late final String ext;
+    if (decoder is img.PngDecoder) ext = 'png';
+    if (decoder is img.JpegDecoder) ext =  'jpg';
+    if (decoder is img.GifDecoder) ext =  'gif';
+    if (decoder is img.WebPDecoder) ext =  'webp';
+    if (decoder is img.BmpDecoder) ext =  'bmp';
+    if (decoder is img.TiffDecoder) ext =  'tiff';
+    if (decoder is img.IcoDecoder) ext =  'ico';
+    if (decoder is img.TgaDecoder) ext =  'tga';
+    
+
+    // 生成缩略图（CPU 密集）
+    final thumbBytes = createThumbnail(input.bytes);
+
+    // MD5（CPU）
+    final hash = md5.convert(input.bytes).toString();
+
+    return CoverProcessOutput(
+      coverBytes: input.bytes,
+      thumbBytes: thumbBytes,
+      ext: ext,
+      md5: hash,
+      palette: null,
+    );
+  }
+
+  Future<CoverProcessOutput?> _processCover(Uint8List bytes) async {
+    try {
+      return await compute(
+        processCoverInIsolate,
+        CoverProcessInput(bytes),
+      );
+    } catch (e) {
+      debugPrint('Cover process failed: $e');
+      return null;
+    }
+  }
+
   Future<void> _processMusicFile(File file) async {
-    final metadata = readMetadata(file, getImage: true);
+    final metadata = await readMetadata(file, getImage: true);
     final String title = metadata.title ?? p.basename(file.path);
     final String? artist = metadata.artist;
 
-    final existingSongs =
-        await (MusicDatabase.database.songs.select()..where(
-              (tbl) =>
-                  tbl.title.equals(title) &
-                  (artist != null
-                      ? tbl.artist.equals(artist)
-                      : tbl.artist.isNull()),
-            ))
-            .get();
+    final existingSongs = await (MusicDatabase.database.songs.select()
+          ..where(
+            (tbl) =>
+                tbl.title.equals(title) &
+                (artist != null
+                    ? tbl.artist.equals(artist)
+                    : tbl.artist.isNull()),
+          ))
+        .get();
 
-    if (existingSongs.isNotEmpty) {
-      return;
-    }
+    if (existingSongs.isNotEmpty) return;
+
     final basePath = await CommonUtils.getAppBaseDirectory();
 
     String targetFilePath = file.path;
 
     if (PlatformUtils.isMacOS || PlatformUtils.isIOS) {
-      targetFilePath = await FileAccessManager.createBookmark(file.path) ?? file.path;
-      print(' 文件已保存为书签：$targetFilePath');
-    }
-    
-    if (PlatformUtils.isMobile) {
+      targetFilePath =
+          await FileAccessManager.createBookmark(file.path) ?? file.path;
+    } else if (PlatformUtils.isAndroid) {
       final targetDir = Directory(
-        p.join(basePath, 'Music', artist ?? 'Unknow'),
+        p.join(basePath, 'Music', artist ?? 'Unknown'),
       );
-      if (!await targetDir.exists()) {
-        await targetDir.create(recursive: true);
-      }
-      targetFilePath = p.join(targetDir.path, "$title${p.extension(file.path)}");
+      await targetDir.create(recursive: true);
+
+      targetFilePath =
+          p.join(targetDir.path, '$title${p.extension(file.path)}');
+
       await file.copy(targetFilePath);
-      print('文件已保存到：$targetFilePath');
     }
 
     String? albumArtPath;
-    print(metadata.pictures);
+    String? albumArtThumbPath;
+    List<Color>? palette;
+
     if (metadata.pictures.isNotEmpty) {
       final picture = metadata.pictures.first;
-      CoverImage? cover = CoverImage.fromBytes(picture.bytes);
-      if (cover != null) {
-        // 计算图片内容的MD5哈希
-        final md5Hash = md5.convert(cover.bytes).toString();
-        final fileName = '$md5Hash.${cover.type}';
-        final albumArtFile = File(p.join(basePath, 'Cover', fileName));
-        await albumArtFile.parent.create(recursive: true);
-        // 如果文件已存在则不重复写入
-        if (!await albumArtFile.exists()) {
-          await albumArtFile.writeAsBytes(cover.bytes);
+
+      final coverResult = await _processCover(picture.bytes);
+      if (coverResult != null) {
+        coverResult.palette = await PaletteUtils.fromBytes(picture.bytes);
+      }
+
+      if (coverResult != null) {
+        final fileName = '${coverResult.md5}.${coverResult.ext}';
+
+        final coverFile = File(p.join(basePath, 'Cover', fileName));
+        final thumbFile = File(p.join(basePath, 'Cover', 'thumb', fileName));
+
+        await coverFile.parent.create(recursive: true);
+        await thumbFile.parent.create(recursive: true);
+
+        if (!await coverFile.exists()) {
+          await coverFile.writeAsBytes(coverResult.coverBytes);
         }
-        albumArtPath = albumArtFile.path;
+
+        if (!await thumbFile.exists()) {
+          await thumbFile.writeAsBytes(coverResult.thumbBytes);
+        }
+
+        albumArtPath = coverFile.path;
+        albumArtThumbPath = thumbFile.path;
+        palette = coverResult.palette;
       }
     }
 
@@ -402,7 +523,37 @@ class MusicImportService {
         sampleRate: Value(metadata.sampleRate),
         duration: Value(metadata.duration?.inSeconds),
         albumArtPath: Value(albumArtPath),
+        albumArtThumbPath: Value(albumArtThumbPath),
+        palette: Value(palette),
+        dateAdded: Value(DateTime.now()),
+        source: Value('local'),
+        lyricsBlob: Value(
+          metadata.lyrics != null
+              ? await LyricsParser.parse(metadata.lyrics!)
+              : null,
+        ),
       ),
     );
   }
+}
+
+class CoverProcessInput {
+  final Uint8List bytes;
+  CoverProcessInput(this.bytes);
+}
+
+class CoverProcessOutput {
+  final Uint8List coverBytes;
+  final Uint8List thumbBytes;
+  final String ext;
+  final String md5;
+  List<Color>? palette;
+
+  CoverProcessOutput({
+    required this.coverBytes,
+    required this.thumbBytes,
+    required this.ext,
+    required this.md5,
+    required this.palette,
+  });
 }

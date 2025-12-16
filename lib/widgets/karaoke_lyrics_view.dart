@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import './lyric/lyrics_models.dart'; // 引入上面的 Model
+import './lyric/lyrics_models.dart';
 
 class KaraokeLyricsView extends StatefulWidget {
-  final LyricsData? lyricsData; 
+  final LyricsData? lyricsData;
   final ValueNotifier<Duration> currentPosition;
   final Function(Duration) onTapLine;
 
@@ -58,8 +58,6 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       });
     });
     // 立即计算一次当前位置
-    
-    
   }
 
   void _onPositionChanged() {
@@ -76,10 +74,11 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
 
   void _updateCurrentLine(Duration position) {
     if (_lyricLines.isEmpty) return;
-    
+
     // 查找逻辑：找到开始时间 <= 当前时间 的最后一行
     final newIndex = _lyricLines.lastIndexWhere(
-      (line) => (position + const Duration(milliseconds: 200)) >= line.startTime,
+      (line) =>
+          (position + const Duration(milliseconds: 200)) >= line.startTime,
     );
 
     if (newIndex != -1 && newIndex != _currentLineIndex) {
@@ -96,7 +95,6 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
     for (int i = 0; i < _currentLineIndex; i++) {
       offsetUpToCurrent += _lineHeights[i] ?? 100.0;
     }
-    
 
     double maxScroll = _scrollController.position.maxScrollExtent;
     double targetOffset = offsetUpToCurrent.clamp(0.0, maxScroll);
@@ -111,10 +109,11 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
   @override
   Widget build(BuildContext context) {
     final contentHeight = MediaQuery.of(context).size.height;
-    
+
     if (_lyricLines.isEmpty) {
       return const Center(
-        child: Text("暂无歌词", style: TextStyle(color: Colors.white70, fontSize: 24)),
+        child:
+            Text("暂无歌词", style: TextStyle(color: Colors.white70, fontSize: 24)),
       );
     }
 
@@ -123,56 +122,59 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
         _scrollToCurrentLine(force: true);
       },
       child: ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        child: Column(
-          children: [
-            const SizedBox(height: 160),
-            ..._lyricLines.asMap().entries.map((entry) {
-              final index = entry.key;
-              final line = entry.value;
-              final isCurrent = index == _currentLineIndex;
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            children: [
+              const SizedBox(height: 160),
+              ..._lyricLines.asMap().entries.map((entry) {
+                final index = entry.key;
+                final line = entry.value;
+                final isCurrent = index == _currentLineIndex;
 
-              return ValueListenableBuilder<Duration>(
-                valueListenable: widget.currentPosition,
-                builder: (context, position, child) {
-                  return HoverableLyricLine(
-                    isCurrent: isCurrent,
-                    onSizeChange: (size) => _lineHeights[index] = size.height,
-                    onHoverChanged: (hover) => _isHoveringLyrics = hover,
-                    onTap: () {
-                      widget.onTapLine(line.startTime);
-                      setState(() => _currentLineIndex = index);
-                      _scrollToCurrentLine(force: true);
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildKaraokeText(line, position,isCurrent),
-                        if (line.translation != null && line.translation!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(
-                              line.translation!,
-                              style: TextStyle(
-                                color: isCurrent ? Colors.white.withOpacity(0.8) : Colors.white54,
-                                fontSize: 18,
-                                fontWeight: FontWeight.normal,
+                return ValueListenableBuilder<Duration>(
+                  valueListenable: widget.currentPosition,
+                  builder: (context, position, child) {
+                    return HoverableLyricLine(
+                      isCurrent: isCurrent,
+                      onSizeChange: (size) => _lineHeights[index] = size.height,
+                      onHoverChanged: (hover) => _isHoveringLyrics = hover,
+                      onTap: () {
+                        widget.onTapLine(line.startTime);
+                        setState(() => _currentLineIndex = index);
+                        _scrollToCurrentLine(force: true);
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildKaraokeText(line, position, isCurrent),
+                          if (line.translations != null &&
+                              line.translations!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                line.translations![line.translations!.keys.first]!,
+                                style: TextStyle(
+                                  color: isCurrent
+                                      ? Colors.white.withOpacity(0.8)
+                                      : Colors.white54,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.normal,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            }),
-            SizedBox(height: contentHeight - 320),
-          ],
+                        ],
+                      ),
+                    );
+                  },
+                );
+              }),
+              SizedBox(height: contentHeight - 320),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -181,13 +183,20 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       fontSize: 32,
       fontWeight: FontWeight.bold,
       height: 1.4,
-      shadows: isCurrent?[Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)]:null,
+      shadows: isCurrent
+          ? [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)]
+          : null,
     );
 
     if (position < line.startTime || position > line.endTime) {
-      final color = (position > line.endTime) ? Colors.white.withAlpha(230) : Colors.white70.withAlpha(200);
+      final color = (position > line.endTime)
+          ? Colors.white.withAlpha(230)
+          : Colors.white70.withAlpha(200);
       return Wrap(
-        children: line.spans.map((span) => Text(span.text, style: textStyle.copyWith(color: color))).toList(),
+        children: line.spans
+            .map((span) =>
+                Text(span.text, style: textStyle.copyWith(color: color)))
+            .toList(),
       );
     }
 
@@ -206,8 +215,9 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       currentOffset += painter.width;
     }
     double progressInPixels = 0.0;
-    
-    final currentSpanIndex = line.spans.lastIndexWhere((s) => position >= s.start);
+
+    final currentSpanIndex =
+        line.spans.lastIndexWhere((s) => position >= s.start);
 
     if (currentSpanIndex != -1) {
       final span = line.spans[currentSpanIndex];
@@ -217,7 +227,8 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       double spanProgress = 0.0;
       final durationMs = (span.end - span.start).inMilliseconds;
       if (durationMs > 0) {
-        spanProgress = (position.inMilliseconds - span.start.inMilliseconds) / durationMs;
+        spanProgress =
+            (position.inMilliseconds - span.start.inMilliseconds) / durationMs;
         spanProgress = spanProgress.clamp(0.0, 1.0);
       } else if (position >= span.end) {
         spanProgress = 1.0;
@@ -239,16 +250,18 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
         shaderCallback: (rect) {
           // 完全已唱过
           if (spanEnd <= gradientStart) {
-            return const LinearGradient(colors: [Colors.white, Colors.white]).createShader(rect);
+            return const LinearGradient(colors: [Colors.white, Colors.white])
+                .createShader(rect);
           }
           // 完全未唱
           if (spanStart >= gradientEnd) {
-            return const LinearGradient(colors: [Colors.white70, Colors.white70]).createShader(rect);
+            return const LinearGradient(
+                colors: [Colors.white70, Colors.white70]).createShader(rect);
           }
           // 交界处渐变
           final localStart = (gradientStart - spanStart) / rect.width;
           final localEnd = (gradientEnd - spanStart) / rect.width;
-          
+
           return LinearGradient(
             colors: const [Colors.white, Colors.white70],
             stops: [localStart.clamp(0.0, 1.0), localEnd.clamp(0.0, 1.0)],
@@ -301,7 +314,7 @@ class _HoverableLyricLineState extends State<HoverableLyricLine> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => _updateHover(true),
-        onExit: (_)=>_updateHover(false),
+        onExit: (_) => _updateHover(false),
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: widget.onTap,

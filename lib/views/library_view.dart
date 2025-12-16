@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import 'package:lzf_music/services/audio_player_service.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
@@ -26,7 +27,7 @@ class LibraryView extends StatefulWidget {
 
 class LibraryViewState extends State<LibraryView> with ShowAwarePage {
   late MusicImportService importService;
-  List<Song> songs = [];
+  List<SongListItem> songs = [];
   Song? currentSong;
   String? orderField;
   String? orderDirection;
@@ -52,7 +53,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
 
   Future<void> _loadSongs() async {
     try {
-      List<Song> loadedSongs;
+      List<SongListItem> loadedSongs;
       final keyword = searchKeyword;
       loadedSongs = await MusicDatabase.database.smartSearch(
         keyword?.trim(),
@@ -105,8 +106,8 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                       _loadSongs().then((_) {
                         if (playerProvider.currentSong?.id == song.id) {
                           playerProvider.playSong(
-                            songs[index!],
-                            playlist: songs,
+                            songs[index!].id,
+                            playlist: songs.map((s) => s.id).toList(),
                             index: index,
                           );
                         }
@@ -114,8 +115,8 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                     },
                     onSongPlay: (song, playlist, index) {
                       playerProvider.playSong(
-                        song,
-                        playlist: playlist,
+                        song.id,
+                        playlist: songs.map((s) => s.id).toList(),
                         index: index,
                       );
                     },

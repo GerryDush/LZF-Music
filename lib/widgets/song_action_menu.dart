@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/model/song_list_item.dart';
 import '../database/database.dart';
 import 'lzf_dialog.dart';
 
 class SongActionMenu extends StatelessWidget {
-  final Song song;
+  final SongListItem song;
   final VoidCallback? onDelete;
   final VoidCallback? onFavoriteToggle;
   final VoidCallback? onImportLyrics;
