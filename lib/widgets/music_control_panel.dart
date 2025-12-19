@@ -50,28 +50,31 @@ class SongInfoPanel extends StatelessWidget {
           ),
         ],
         ValueListenableBuilder<Duration>(
-  valueListenable: playerProvider.position,
-  builder: (context, position, child) {return 
-        AnimatedTrackHeightSlider(
-          value: tempSliderValue >= 0
-              ? tempSliderValue
-              : position.inSeconds.toDouble(),
-          max: playerProvider.duration.inSeconds.toDouble(),
-          min: 0,
-          activeColor: Colors.white,
-          inactiveColor: Colors.white30,
-          onChanged: onSliderChanged,
-          onChangeEnd: onSliderChangeEnd,
-        );}),
-        
+            valueListenable: playerProvider.position,
+            builder: (context, position, child) {
+              return AnimatedTrackHeightSlider(
+                value: tempSliderValue >= 0
+                    ? tempSliderValue
+                    : position.inSeconds.toDouble(),
+                max: playerProvider.duration.inSeconds.toDouble(),
+                min: 0,
+                activeColor: Colors.white,
+                inactiveColor: Colors.white30,
+                onChanged: onSliderChanged,
+                onChangeEnd: onSliderChangeEnd,
+              );
+            }),
         Row(
           children: [
             ValueListenableBuilder<Duration>(
               valueListenable: playerProvider.position,
               builder: (context, position, child) {
-                return Text(
-                  formatDuration(position),
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                return SizedBox(
+                  width: 60,
+                  child: Text(
+                    formatDuration(position),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
                 );
               },
             ),
@@ -86,21 +89,35 @@ class SongInfoPanel extends StatelessWidget {
                     color: Colors.white.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(
-                    "${playerProvider.currentSong?.bitrate != null ? (playerProvider.currentSong!.bitrate! / 1000).toStringAsFixed(0) : '未知'} kbps",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    child: Text(
+                      "${playerProvider.currentSong?.bitrate != null ? (playerProvider.currentSong!.bitrate! / 1000).toStringAsFixed(0) : '未知'} kbps",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-            Text(
-              formatDuration(playerProvider.duration),
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
-            ),
+            SizedBox(
+              width: 60,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatDuration(playerProvider.duration),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              ),
+            )
           ],
         ),
       ],
@@ -150,8 +167,7 @@ class MusicControlButtons extends StatelessWidget {
                 children: [
                   IconButton(
                     iconSize: 48,
-                    color:
-                        (playerProvider.hasPrevious ||
+                    color: (playerProvider.hasPrevious ||
                             playerProvider.playMode == PlayMode.loop)
                         ? Colors.white
                         : Colors.white70,
@@ -172,8 +188,7 @@ class MusicControlButtons extends StatelessWidget {
                   SizedBox(width: compactLayout ? 8 : 16),
                   IconButton(
                     iconSize: 48,
-                    color:
-                        (playerProvider.hasNext ||
+                    color: (playerProvider.hasNext ||
                             playerProvider.playMode == PlayMode.loop)
                         ? Colors.white
                         : Colors.white70,
@@ -190,8 +205,7 @@ class MusicControlButtons extends StatelessWidget {
                 playerProvider.playMode == PlayMode.singleLoop
                     ? Icons.repeat_one_rounded
                     : Icons.repeat_rounded,
-                color:
-                    playerProvider.playMode == PlayMode.loop ||
+                color: playerProvider.playMode == PlayMode.loop ||
                         playerProvider.playMode == PlayMode.singleLoop
                     ? Colors.white
                     : null,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lzf_music/model/song_list_item.dart';
+import 'package:lzf_music/widgets/lzf_toast.dart';
 import '../database/database.dart';
 import 'lzf_dialog.dart';
 
@@ -60,9 +61,13 @@ class SongActionMenu extends StatelessWidget {
       onSelected: (value) {
         switch (value) {
           case 'import_album':
-          onImportAlbum?.call();
+          LZFToast.show(context, '该功能暂时关闭测试');
+          // onImportAlbum?.call();
+            break;
           case 'import_lyrics':
-          onImportLyrics?.call();
+          LZFToast.show(context, '该功能暂时关闭测试');
+          // onImportLyrics?.call();
+            break;
           case 'favorite':
             onFavoriteToggle?.call();
             break;

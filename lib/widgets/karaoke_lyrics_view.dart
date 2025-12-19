@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import './lyric/lyrics_models.dart';
 
 class KaraokeLyricsView extends StatefulWidget {
@@ -18,20 +19,22 @@ class KaraokeLyricsView extends StatefulWidget {
   State<KaraokeLyricsView> createState() => _KaraokeLyricsViewState();
 }
 
-class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
-  // 缓存行数据引用
+class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
+    with TickerProviderStateMixin {
   List<LyricLine> _lyricLines = [];
   int _currentLineIndex = 0;
 
-  late ScrollController _scrollController;
+  double _targetScrollY = 0.0;
   final Map<int, double> _lineHeights = {};
-  bool _isHoveringLyrics = false;
+
+  bool _isDragging = false;
+  double _dragOffset = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
     _updateLyricsData();
+    // 只需要监听行变化的大概逻辑，具体的微秒级更新交给 ValueListenableBuilder
     widget.currentPosition.addListener(_onPositionChanged);
   }
 
@@ -51,126 +54,171 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
     setState(() {
       _lyricLines = widget.lyricsData?.lines ?? [];
       _currentLineIndex = 0;
+      _targetScrollY = 0.0;
       _lineHeights.clear();
-      // if (_scrollController.hasClients) _scrollController.jumpTo(0);
-      Future.microtask(() {
-        if (_scrollController.hasClients) _scrollController.jumpTo(0);
-      });
+      _dragOffset = 0.0;
     });
-    // 立即计算一次当前位置
   }
 
   void _onPositionChanged() {
+    if (_lyricLines.isEmpty || _isDragging) return;
     final pos = widget.currentPosition.value;
-    _updateCurrentLine(pos);
+
+    // 提前 400ms 滚动
+    final newIndex = _lyricLines.lastIndexWhere(
+      (line) => (pos + const Duration(milliseconds: 400)) >= line.startTime,
+    );
+
+    if (newIndex != -1 && newIndex != _currentLineIndex) {
+      setState(() {
+        _currentLineIndex = newIndex;
+        _recalculateScrollTarget(selectTopPadding());
+      });
+    }
+  }
+
+  // PlatformUtils.isMobileWidth(context) ? 80 : 160
+  double selectTopPadding() {
+    return PlatformUtils.isMobileWidth(context) ? 80 : 160;
+  }
+
+  void _recalculateScrollTarget(double topPadding) {
+    if (_lineHeights.isEmpty) return;
+
+    double offset = 0.0;
+    for (int i = 0; i < _currentLineIndex; i++) {
+      // 使用缓存的高度
+      offset += (_lineHeights[i] ?? 80.0);
+    }
+    offset += topPadding; // Top Padding
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    final currentLineHeight = _lineHeights[_currentLineIndex] ?? 80.0;
+
+    // 目标位置：屏幕 30% 处
+    double target = 0;
+    if (topPadding == 160.0) {
+      target = offset + (currentLineHeight / 2) - (screenHeight * 0.30);
+    }else{
+      target = offset + (currentLineHeight / 2) - (screenHeight * 0.2);
+    }
+
+    if (target < 0) target = 0;
+
+    double totalHeight = topPadding + screenHeight;
+    for (var h in _lineHeights.values) totalHeight += h;
+    if (totalHeight > screenHeight && target > totalHeight - screenHeight) {
+      target = totalHeight - screenHeight;
+    }
+
+    setState(() {
+      _targetScrollY = target;
+    });
   }
 
   @override
   void dispose() {
     widget.currentPosition.removeListener(_onPositionChanged);
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _updateCurrentLine(Duration position) {
-    if (_lyricLines.isEmpty) return;
-
-    // 查找逻辑：找到开始时间 <= 当前时间 的最后一行
-    final newIndex = _lyricLines.lastIndexWhere(
-      (line) =>
-          (position + const Duration(milliseconds: 200)) >= line.startTime,
-    );
-
-    if (newIndex != -1 && newIndex != _currentLineIndex) {
-      setState(() => _currentLineIndex = newIndex);
-      _scrollToCurrentLine();
-    }
-  }
-
-  Future<void> _scrollToCurrentLine({bool force = false}) async {
-    if (!_scrollController.hasClients) return;
-    if (_isHoveringLyrics && !force) return;
-
-    double offsetUpToCurrent = 0;
-    for (int i = 0; i < _currentLineIndex; i++) {
-      offsetUpToCurrent += _lineHeights[i] ?? 100.0;
-    }
-
-    double maxScroll = _scrollController.position.maxScrollExtent;
-    double targetOffset = offsetUpToCurrent.clamp(0.0, maxScroll);
-
-    _scrollController.animateTo(
-      targetOffset,
-      duration: const Duration(milliseconds: 800),
-      curve: const Cubic(0.46, 1.2, 0.43, 1.04),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final contentHeight = MediaQuery.of(context).size.height;
-
     if (_lyricLines.isEmpty) {
       return const Center(
-        child:
-            Text("暂无歌词", style: TextStyle(color: Colors.white70, fontSize: 24)),
-      );
+          child: Text("暂无歌词",
+              style: TextStyle(color: Colors.white54, fontSize: 24)));
     }
 
-    return MouseRegion(
-      onExit: (_) {
-        _scrollToCurrentLine(force: true);
+    final double activeScrollY = _targetScrollY - _dragOffset;
+    final double topPadding = selectTopPadding();
+
+    return GestureDetector(
+      onVerticalDragStart: (_) {
+        _isDragging = true;
+        _dragOffset = 0.0;
       },
-      child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      onVerticalDragUpdate: (details) {
+        setState(() {
+          _targetScrollY -= details.delta.dy;
+          if (_targetScrollY < 0) _targetScrollY = 0;
+        });
+      },
+      onVerticalDragEnd: (details) {
+        _isDragging = false;
+        _recalculateScrollTarget(topPadding);
+      },
+      child: Container(
+        color: Colors.transparent,
+        width: double.infinity,
+        height: double.infinity,
         child: SingleChildScrollView(
-          controller: _scrollController,
+          physics: const NeverScrollableScrollPhysics(),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 160),
+              SizedBox(height: topPadding),
               ..._lyricLines.asMap().entries.map((entry) {
                 final index = entry.key;
                 final line = entry.value;
                 final isCurrent = index == _currentLineIndex;
 
-                return ValueListenableBuilder<Duration>(
-                  valueListenable: widget.currentPosition,
-                  builder: (context, position, child) {
-                    return HoverableLyricLine(
-                      isCurrent: isCurrent,
-                      onSizeChange: (size) => _lineHeights[index] = size.height,
-                      onHoverChanged: (hover) => _isHoveringLyrics = hover,
-                      onTap: () {
-                        widget.onTapLine(line.startTime);
-                        setState(() => _currentLineIndex = index);
-                        _scrollToCurrentLine(force: true);
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildKaraokeText(line, position, isCurrent),
-                          if (line.translations != null &&
-                              line.translations!.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
+                return MeasureSize(
+                  onChange: (size) {
+                    // 只有当高度发生实质性变化时才更新
+                    if (_lineHeights[index] != size.height) {
+                      _lineHeights[index] = size.height;
+                      if (isCurrent)
+                        Future.microtask(
+                            () => _recalculateScrollTarget(topPadding));
+                    }
+                  },
+                  child: IndependentLyricLine(
+                    index: index,
+                    currentIndex: _currentLineIndex,
+                    targetScrollY: activeScrollY,
+                    isUserDragging: _isDragging,
+                    onTap: () {
+                      widget.onTapLine(line.startTime);
+                      setState(() {
+                        _currentLineIndex = index;
+                        _recalculateScrollTarget(topPadding);
+                      });
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 让歌词内部的 ShaderMask 能够监听到每一帧的进度变化
+                        ValueListenableBuilder<Duration>(
+                          valueListenable: widget.currentPosition,
+                          builder: (context, position, _) {
+                            return _buildKaraokeText(line, position, isCurrent);
+                          },
+                        ),
+
+                        if (line.translations != null &&
+                            line.translations!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 500),
+                              opacity: isCurrent ? 0.8 : 0.4,
                               child: Text(
-                                line.translations![line.translations!.keys.first]!,
+                                line.translations![
+                                    line.translations!.keys.first]!,
                                 style: TextStyle(
-                                  color: isCurrent
-                                      ? Colors.white.withOpacity(0.8)
-                                      : Colors.white54,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.normal,
-                                ),
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w400),
                               ),
                             ),
-                        ],
-                      ),
-                    );
-                  },
+                          ),
+                      ],
+                    ),
+                  ),
                 );
               }),
-              SizedBox(height: contentHeight - 320),
+              SizedBox(height: MediaQuery.of(context).size.height / 2),
             ],
           ),
         ),
@@ -180,18 +228,15 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
 
   Widget _buildKaraokeText(LyricLine line, Duration position, bool isCurrent) {
     final textStyle = TextStyle(
-      fontSize: 32,
-      fontWeight: FontWeight.bold,
+      fontSize: 34,
+      fontWeight: FontWeight.w800,
       height: 1.4,
-      shadows: isCurrent
-          ? [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)]
-          : null,
+      shadows: isCurrent?[Shadow(color: Colors.black.withOpacity(0.5))]:null,
     );
 
+    // 优化：不在播放范围内的，直接返回静态文本，节省 Shader 计算资源
     if (position < line.startTime || position > line.endTime) {
-      final color = (position > line.endTime)
-          ? Colors.white.withAlpha(230)
-          : Colors.white70.withAlpha(200);
+      final color = (position > line.endTime) ? Colors.white : Colors.white54;
       return Wrap(
         children: line.spans
             .map((span) =>
@@ -200,7 +245,6 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       );
     }
 
-    // 2. 预计算每个 Span 的宽度
     final List<double> spanWidths = [];
     final List<double> spanOffsets = [];
     double currentOffset = 0.0;
@@ -214,8 +258,9 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       spanOffsets.add(currentOffset);
       currentOffset += painter.width;
     }
-    double progressInPixels = 0.0;
 
+    double progressInPixels = 0.0;
+    // 找到当前时间对应的 Span
     final currentSpanIndex =
         line.spans.lastIndexWhere((s) => position >= s.start);
 
@@ -223,7 +268,6 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       final span = line.spans[currentSpanIndex];
       final offset = spanOffsets[currentSpanIndex];
       final width = spanWidths[currentSpanIndex];
-
       double spanProgress = 0.0;
       final durationMs = (span.end - span.start).inMilliseconds;
       if (durationMs > 0) {
@@ -233,11 +277,10 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       } else if (position >= span.end) {
         spanProgress = 1.0;
       }
-
       progressInPixels = offset + (width * spanProgress);
     }
 
-    final transitionWidthPixels = 20.0;
+    final transitionWidthPixels = 30.0; // 渐变宽一点更柔和
     final gradientStart = progressInPixels;
     final gradientEnd = progressInPixels + transitionWidthPixels;
 
@@ -248,22 +291,27 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
 
       final shaderWidget = ShaderMask(
         shaderCallback: (rect) {
-          // 完全已唱过
+          // 这里的 rect.width 是当前这个字(Span)的宽度
+
+          // 1. 完全已唱过
           if (spanEnd <= gradientStart) {
             return const LinearGradient(colors: [Colors.white, Colors.white])
                 .createShader(rect);
           }
-          // 完全未唱
+          // 2. 完全未唱
           if (spanStart >= gradientEnd) {
+            // 只有当前行未唱部分是半透明，其他行由外层 Opacity 控制
             return const LinearGradient(
-                colors: [Colors.white70, Colors.white70]).createShader(rect);
+                colors: [Colors.white54, Colors.white54]).createShader(rect);
           }
-          // 交界处渐变
+
+          // 3. 交界处：计算渐变条在当前这个 Span 内部的相对位置
+          // 相对位置 = (全局位置 - 本Span起始位置) / 本Span宽度
           final localStart = (gradientStart - spanStart) / rect.width;
           final localEnd = (gradientEnd - spanStart) / rect.width;
 
           return LinearGradient(
-            colors: const [Colors.white, Colors.white70],
+            colors: const [Colors.white, Colors.white54],
             stops: [localStart.clamp(0.0, 1.0), localEnd.clamp(0.0, 1.0)],
           ).createShader(rect);
         },
@@ -272,89 +320,174 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
       );
       widgets.add(shaderWidget);
     }
-
     return Wrap(alignment: WrapAlignment.start, children: widgets);
   }
 }
 
-class HoverableLyricLine extends StatefulWidget {
+class IndependentLyricLine extends StatefulWidget {
+  final int index;
+  final int currentIndex;
+  final double targetScrollY;
+  final bool isUserDragging;
   final Widget child;
-  final bool isCurrent;
-  final Function(Size) onSizeChange;
-  final VoidCallback? onTap;
-  final ValueChanged<bool>? onHoverChanged;
+  final VoidCallback onTap;
 
-  const HoverableLyricLine({
-    super.key,
+  const IndependentLyricLine({
+    Key? key,
+    required this.index,
+    required this.currentIndex,
+    required this.targetScrollY,
+    required this.isUserDragging,
     required this.child,
-    required this.isCurrent,
-    required this.onSizeChange,
-    this.onTap,
-    this.onHoverChanged,
-  });
+    required this.onTap,
+  }) : super(key: key);
 
   @override
-  State<HoverableLyricLine> createState() => _HoverableLyricLineState();
+  State<IndependentLyricLine> createState() => _IndependentLyricLineState();
 }
 
-class _HoverableLyricLineState extends State<HoverableLyricLine> {
+class _IndependentLyricLineState extends State<IndependentLyricLine>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _yAnimation;
+  double _currentTranslateY = 0.0;
   bool _isHovered = false;
 
-  void _updateHover(bool hover) {
-    if (_isHovered != hover) {
-      setState(() => _isHovered = hover);
-      widget.onHoverChanged?.call(hover);
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..addListener(() {
+        setState(() {
+          _currentTranslateY = _yAnimation.value;
+        });
+      });
+
+    _currentTranslateY = widget.targetScrollY;
+    _yAnimation = AlwaysStoppedAnimation(widget.targetScrollY);
+  }
+
+  @override
+  void didUpdateWidget(IndependentLyricLine oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.isUserDragging) {
+      if (_animController.isAnimating) _animController.stop();
+      _currentTranslateY = widget.targetScrollY;
+      return;
     }
+
+    if (widget.targetScrollY != oldWidget.targetScrollY) {
+      // 只有当目标位置真的发生实质性变化时才启动动画
+      if ((widget.targetScrollY - oldWidget.targetScrollY).abs() > 0.5) {
+        _startSpringAnimation(
+            from: _currentTranslateY, to: widget.targetScrollY);
+      }
+    }
+  }
+
+  void _startSpringAnimation({required double from, required double to}) {
+    int distance = (widget.index - widget.currentIndex) + 1;
+    // 默认时长 (用于当前行和下方行)
+    Duration animDuration = const Duration(milliseconds: 900);
+
+    // 这里控制上方歌词的速度
+    if (distance < 0) {
+      // distance < 0 表示是当前行上方的歌词
+      animDuration = const Duration(milliseconds: 800);
+    }
+
+    // 动态更新控制器的时长
+    _animController.duration = animDuration;
+
+    int delayMs = 0;
+    // 只有下方的行滞后
+    if (distance >= 0 && distance <= 8) {
+      delayMs = (distance * 80).clamp(0, 1600);
+    }
+    // 大于12行，无延迟
+    if (distance > 12) {
+      delayMs = 0;
+    }
+
+    _yAnimation = Tween<double>(begin: from, end: to).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeOutQuart,
+      ),
+    );
+
+    _animController.reset();
+    Future.delayed(Duration(milliseconds: delayMs), () {
+      if (mounted) _animController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return MeasureSize(
-      onChange: widget.onSizeChange,
+    final bool isCurrent = widget.index == widget.currentIndex;
+    final int dist = (widget.index - widget.currentIndex).abs();
+
+    // 状态计算
+    double targetScale = 1.0;
+    double targetOpacity = 1.0;
+    double targetBlur = 0.0;
+
+    if (isCurrent) {
+      targetScale = 1.0;
+      targetOpacity = 1.0;
+      targetBlur = 0.0;
+    } else {
+      targetScale = 0.96;
+      targetOpacity = (1.0 - (dist * 0.15)).clamp(0.2, 0.6);
+      targetBlur = (dist * 0.8).clamp(0.0, 4.0);
+    }
+
+    return Transform.translate(
+      offset: Offset(0, -_currentTranslateY),
       child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => _updateHover(true),
-        onExit: (_) => _updateHover(false),
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
         child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
           onTap: widget.onTap,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(
-              end: (widget.isCurrent || _isHovered) ? 0 : 2.5,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            decoration: BoxDecoration(
+              color: _isHovered
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
             ),
-            duration: const Duration(milliseconds: 250),
-            builder: (context, blurValue, child) {
-              return Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 20,
-                  horizontal: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: _isHovered
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(
-                    sigmaX: blurValue,
-                    sigmaY: blurValue,
-                  ),
-                  child: child,
-                ),
-              );
-            },
             child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(end: widget.isCurrent ? 1.05 : 1.0),
-              duration: const Duration(milliseconds: 400),
-              curve: const Cubic(0.46, 1.2, 0.43, 1.04),
-              builder: (context, scale, child) => Transform.scale(
-                scale: scale,
-                alignment: Alignment.centerLeft,
-                child: child,
+              tween: Tween<double>(end: targetScale),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutCubic,
+              builder: (context, scaleValue, child) {
+                return Transform.scale(
+                  scale: scaleValue,
+                  alignment: Alignment.centerLeft,
+                  child: child,
+                );
+              },
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 800),
+                opacity: targetOpacity,
+                child: ImageFiltered(
+                  imageFilter:
+                      ImageFilter.blur(sigmaX: targetBlur, sigmaY: targetBlur),
+                  child: widget.child,
+                ),
               ),
-              child: widget.child,
             ),
           ),
         ),
@@ -379,7 +512,8 @@ class _MeasureSizeState extends State<MeasureSize> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final size = context.size;
-      if (size != null && _oldSize != size) {
+      if (size != null &&
+          (_oldSize == null || (_oldSize!.height - size.height).abs() > 0.5)) {
         _oldSize = size;
         widget.onChange(size);
       }

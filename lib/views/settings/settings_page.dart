@@ -639,7 +639,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('版本: 0.0.1'),
+            Text('版本: 0.3.1'),
             SizedBox(height: 8),
             Text('基于 Flutter 开发'),
             Text('开源软件，采用 Apache 2.0 许可证'),

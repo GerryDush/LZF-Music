@@ -286,11 +286,10 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                                                       File(currentSong
                                                           .albumArtPath!),
                                                       width: double.infinity,
-                                                      height: 300,
                                                       fit: BoxFit.cover)
                                                   : Container(
                                                       width: double.infinity,
-                                                      height: 260,
+                                                      height: 300,
                                                       color: Colors.grey[800],
                                                       child: const Icon(
                                                           Icons

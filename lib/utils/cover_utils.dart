@@ -29,13 +29,15 @@ class PaletteUtils {
         palette.dominantColor,
         palette.lightMutedColor,
         palette.mutedColor,
+        palette.darkMutedColor,
+        palette.darkVibrantColor
       ];
 
       for (var pc in candidates) {
         if (pc == null) continue;
 
         final okl = OKLCHColor.fromColor(pc.color);
-        okl.lightness = okl.lightness.clamp(0.0, 66);
+        okl.lightness = okl.lightness.clamp(0.0, 88);
         combinedColors.add(okl.color);
       }
     } catch (e) {
