@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import './lyric/lyrics_models.dart';
 
@@ -99,7 +100,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
     double target = 0;
     if (topPadding == 160.0) {
       target = offset + (currentLineHeight / 2) - (screenHeight * 0.30);
-    }else{
+    } else {
       target = offset + (currentLineHeight / 2) - (screenHeight * 0.2);
     }
 
@@ -189,9 +190,9 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // 让歌词内部的 ShaderMask 能够监听到每一帧的进度变化
-                        ValueListenableBuilder<Duration>(
-                          valueListenable: widget.currentPosition,
-                          builder: (context, position, _) {
+                        _InterpolatedPosition(
+                          sourcePosition: widget.currentPosition,
+                          builder: (position) {
                             return _buildKaraokeText(line, position, isCurrent);
                           },
                         ),
@@ -231,7 +232,8 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       fontSize: 34,
       fontWeight: FontWeight.w800,
       height: 1.4,
-      shadows: isCurrent?[Shadow(color: Colors.black.withOpacity(0.5))]:null,
+      shadows:
+          isCurrent ? [Shadow(color: Colors.black.withOpacity(0.5))] : null,
     );
 
     // 优化：不在播放范围内的，直接返回静态文本，节省 Shader 计算资源
@@ -260,9 +262,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
     }
 
     double progressInPixels = 0.0;
-    // 找到当前时间对应的 Span
-    final currentSpanIndex =
-        line.spans.lastIndexWhere((s) => position >= s.start);
+    final currentSpanIndex = line.spans.lastIndexWhere((s) => position >= s.start);
 
     if (currentSpanIndex != -1) {
       final span = line.spans[currentSpanIndex];
@@ -280,7 +280,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       progressInPixels = offset + (width * spanProgress);
     }
 
-    final transitionWidthPixels = 30.0; // 渐变宽一点更柔和
+    final transitionWidthPixels = 12.0;
     final gradientStart = progressInPixels;
     final gradientEnd = progressInPixels + transitionWidthPixels;
 
@@ -321,6 +321,71 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       widgets.add(shaderWidget);
     }
     return Wrap(alignment: WrapAlignment.start, children: widgets);
+  }
+}
+
+class _InterpolatedPosition extends StatefulWidget {
+  final ValueNotifier<Duration> sourcePosition;
+  final Widget Function(Duration position) builder;
+
+  const _InterpolatedPosition({
+    required this.sourcePosition,
+    required this.builder,
+  });
+
+  @override
+  State<_InterpolatedPosition> createState() => _InterpolatedPositionState();
+}
+
+class _InterpolatedPositionState extends State<_InterpolatedPosition>
+    with SingleTickerProviderStateMixin {
+  late Ticker _ticker;
+  Duration _currentPosition = Duration.zero;
+  Duration _lastKnownPosition = Duration.zero;
+  DateTime _lastUpdateTime = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 监听真实音频位置
+    widget.sourcePosition.addListener(_onPositionChanged);
+    _lastKnownPosition = widget.sourcePosition.value;
+    _lastUpdateTime = DateTime.now();
+
+    // 60fps 插值
+    _ticker = createTicker((elapsed) {
+      final now = DateTime.now();
+      final timeSinceUpdate = now.difference(_lastUpdateTime);
+
+      // 如果超过 500ms 没更新，停止插值（可能暂停了）
+      if (timeSinceUpdate.inMilliseconds > 500) {
+        _currentPosition = _lastKnownPosition;
+      } else {
+        // 线性插值
+        _currentPosition = _lastKnownPosition + timeSinceUpdate;
+      }
+
+      setState(() {});
+    });
+    _ticker.start();
+  }
+
+  void _onPositionChanged() {
+    _lastKnownPosition = widget.sourcePosition.value;
+    _lastUpdateTime = DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    widget.sourcePosition.removeListener(_onPositionChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.builder(_currentPosition);
   }
 }
 
@@ -381,7 +446,7 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
 
     if (widget.targetScrollY != oldWidget.targetScrollY) {
       // 只有当目标位置真的发生实质性变化时才启动动画
-      if ((widget.targetScrollY - oldWidget.targetScrollY).abs() > 0.5) {
+      if (widget.targetScrollY != oldWidget.targetScrollY) {
         _startSpringAnimation(
             from: _currentTranslateY, to: widget.targetScrollY);
       }
