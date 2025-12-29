@@ -382,8 +382,8 @@ extension AppDelegate {
             
             switch call.method {
             case "showAirPlayPicker":
-                AudioRouteHandler.showAirPlayPicker()
-                result(nil)
+                // TODO: 实现 AirPlay 选择器
+                result(FlutterMethodNotImplemented)
             default:
                 result(FlutterMethodNotImplemented)
             }
