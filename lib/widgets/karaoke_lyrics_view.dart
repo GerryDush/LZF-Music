@@ -538,20 +538,32 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
     
     // 用户手动拖动时，禁用延迟
     if (!widget.isUserDragging) {
-      // 基于实际位置计算延迟，不区分是否可见
-      // 计算当前行在屏幕上的实际位置（考虑滚动）
+      // 判断滚动方向
+      final bool isScrollingDown = to > from; // 向下滚动（内容向上移动）
+      
+      // 基于实际位置计算延迟
       final double lineScreenY = widget.lineYPosition - widget.targetScrollY;
       
-      // 屏幕上方的歌词延迟为0，屏幕内的歌词按位置递增延迟
-      if (lineScreenY < 0) {
-        delayMs = 0;
+      if (isScrollingDown) {
+        // 向下滚动：顶部的歌词先动（拉着下面的走）
+        if (lineScreenY < 0) {
+          delayMs = 0;
+        } else {
+          final double lineIndex = (lineScreenY / widget.lineHeight).clamp(0.0, double.infinity);
+          const int delayPerLine = 40;
+          delayMs = (lineIndex * delayPerLine).round();
+        }
       } else {
-        // 计算从屏幕顶部开始是第几行
-        final double lineIndex = (lineScreenY / widget.lineHeight).clamp(0.0, double.infinity);
-        
-        // 每行延迟递增，顶部第0行延迟为0
-        const int delayPerLine = 60;
-        delayMs = (lineIndex * delayPerLine).round();
+        // 向上滚动：底部的歌词先动（拉着上面的走）
+        if (lineScreenY > widget.screenHeight) {
+          delayMs = 0;
+        } else {
+          // 计算从屏幕底部往上是第几行
+          final double distanceFromBottom = widget.screenHeight - lineScreenY;
+          final double lineIndexFromBottom = (distanceFromBottom / widget.lineHeight).clamp(0.0, double.infinity);
+          const int delayPerLine = 20;
+          delayMs = (lineIndexFromBottom * delayPerLine).round();
+        }
       }
     }
 
