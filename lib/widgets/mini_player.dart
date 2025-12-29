@@ -9,9 +9,6 @@ import '../services/player_provider.dart';
 import './slider_custom.dart';
 import '../contants/app_contants.dart' show PlayMode;
 import '../utils/common_utils.dart' show CommonUtils;
-import 'album_cover.dart';
-import 'song_info_text.dart';
-import 'playback_controls.dart';
 
 class MiniPlayer extends StatefulWidget {
   final double containerWidth;
@@ -66,10 +63,29 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   onTap: () {
                     pushToNowPlayingScreen(context, currentSong);
                   },
-                  child: RoundAlbumCover(
-                    coverPath: currentSong?.albumArtPath,
-                    size: CommonUtils.select(showProgressControl, t: 54, f: 40),
-                    iconSize: 24,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: CommonUtils.select(showProgressControl,
+                            t: 54, f: 40),
+                        height: CommonUtils.select(showProgressControl,
+                            t: 52, f: 40),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(40),
+                          image: currentSong?.albumArtPath != null
+                              ? DecorationImage(
+                                  image: FileImage(
+                                    File(currentSong!.albumArtPath!),
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: currentSong?.albumArtPath == null
+                            ? const Icon(Icons.music_note_rounded, size: 24)
+                            : null,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -77,21 +93,51 @@ class _MiniPlayerState extends State<MiniPlayer> {
               // 歌曲信息
               SizedBox(
                 width: progressLength, // 固定宽度
-                child: SongTitleAndArtist(
-                  title: currentSong?.title ?? '未播放',
-                  artist: currentSong?.artist ?? '选择歌曲开始播放',
-                  scrollable: true,
-                  onTap: () => pushToNowPlayingScreen(context, currentSong),
-                  titleStyle: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                  artistStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // if(!PlatformUtils.isMobileWidth(context)) SizedBox(height: 4,),
+                    MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                            onTap: () {
+                              pushToNowPlayingScreen(context, currentSong);
+                            },
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Text(
+                                currentSong?.title ?? '未播放',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ))),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                  onTap: () {
+                                    pushToNowPlayingScreen(
+                                        context, currentSong);
+                                  },
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Text(
+                                      currentSong?.artist ?? '选择歌曲开始播放',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ))),
+                        ),
                         if (showProgressControl)
                           SizedBox(
                             width: 101,
@@ -181,28 +227,83 @@ class _MiniPlayerState extends State<MiniPlayer> {
               Spacer(), // 右侧弹性空白
               // 音量控制
               if (showVolumeControl) ...[
-                VolumeControl(
-                  playerProvider: playerProvider,
-                  iconSize: 20,
-                  sliderWidth: 100,
-                  trackHeight: 4,
-                  sliderBuilder: (value, onChanged) => AnimatedTrackHeightSlider(
-                    trackHeight: 4,
-                    value: value,
-                    min: 0.0,
-                    max: 1.0,
-                    onChanged: currentSong != null ? (v) => onChanged(v) : null,
-                  ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        playerProvider.volume <= 0
+                            ? Icons.volume_off_rounded
+                            : Icons.volume_up_rounded,
+                        size: 20,
+                      ),
+                      onPressed: currentSong != null
+                          ? () {
+                              if (playerProvider.volume > 0) {
+                                playerProvider.setVolume(0);
+                              } else {
+                                playerProvider.setVolume(1);
+                              }
+                            }
+                          : null,
+                    ),
+                    SizedBox(
+                      width: 100,
+                      child: AnimatedTrackHeightSlider(
+                        trackHeight: 4,
+                        value: playerProvider.volume,
+                        min: 0.0,
+                        max: 1.0,
+                        onChanged: currentSong != null
+                            ? (value) {
+                                playerProvider.setVolume(value);
+                              }
+                            : null,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 20),
               ],
               // 播放模式按钮 - 只在显示进度条时显示
               if (showProgressControl) ...[
-                PlayModeButton(
-                  playerProvider: playerProvider,
+                IconButton(
                   iconSize: 20,
-                  activeColor: activeColor,
-                  inactiveColor: inactiveColor,
+                  icon: Icon(
+                    Icons.shuffle_rounded,
+                    color: playerProvider.playMode == PlayMode.shuffle
+                        ? activeColor
+                        : inactiveColor,
+                  ),
+                  onPressed: () {
+                    if (playerProvider.playMode == PlayMode.shuffle) {
+                      playerProvider.setPlayMode(PlayMode.sequence);
+                      return;
+                    }
+                    playerProvider.setPlayMode(PlayMode.shuffle);
+                  },
+                ),
+                IconButton(
+                  iconSize: 20,
+                  icon: Icon(
+                    playerProvider.playMode == PlayMode.singleLoop
+                        ? Icons.repeat_one_rounded
+                        : Icons.repeat_rounded,
+                    color: playerProvider.playMode == PlayMode.loop ||
+                            playerProvider.playMode == PlayMode.singleLoop
+                        ? activeColor
+                        : inactiveColor,
+                  ),
+                  onPressed: () {
+                    if (playerProvider.playMode == PlayMode.singleLoop) {
+                      playerProvider.setPlayMode(PlayMode.sequence);
+                      return;
+                    }
+                    playerProvider.setPlayMode(
+                      playerProvider.playMode == PlayMode.loop
+                          ? PlayMode.singleLoop
+                          : PlayMode.loop,
+                    );
+                  },
                 ),
                 const SizedBox(width: 8),
               ],
