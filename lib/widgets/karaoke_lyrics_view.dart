@@ -40,6 +40,27 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
     _updateLyricsData();
     // 只需要监听行变化的大概逻辑，具体的微秒级更新交给 ValueListenableBuilder
     widget.currentPosition.addListener(_onPositionChanged);
+    
+    // 初始化后根据当前位置定位到正确的歌词行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCurrentPosition();
+    });
+  }
+  
+  void _scrollToCurrentPosition() {
+    if (_lyricLines.isEmpty) return;
+    
+    final pos = widget.currentPosition.value;
+    final newIndex = _lyricLines.lastIndexWhere(
+      (line) => (pos + const Duration(milliseconds: 400)) >= line.startTime,
+    );
+    
+    if (newIndex != -1) {
+      setState(() {
+        _currentLineIndex = newIndex;
+        _recalculateScrollTarget(selectTopPadding());
+      });
+    }
   }
 
   @override
