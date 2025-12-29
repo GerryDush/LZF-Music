@@ -30,6 +30,9 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
 
   bool _isDragging = false;
   double _dragOffset = 0.0;
+  bool _isAnyLineHovered = false;
+  DateTime? _lastUserScrollTime;
+  bool _disableBlurDueToUserScroll = false;
 
   @override
   void initState() {
@@ -63,6 +66,25 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
 
   void _onPositionChanged() {
     if (_lyricLines.isEmpty || _isDragging) return;
+    
+    // 如果用户在3秒内滚动过，不自动滚动
+    if (_lastUserScrollTime != null) {
+      final timeSinceScroll = DateTime.now().difference(_lastUserScrollTime!);
+      if (timeSinceScroll.inSeconds < 3) {
+        // 仍然更新当前行索引（用于高亮），但不触发滚动
+        final pos = widget.currentPosition.value;
+        final newIndex = _lyricLines.lastIndexWhere(
+          (line) => (pos + const Duration(milliseconds: 400)) >= line.startTime,
+        );
+        if (newIndex != -1 && newIndex != _currentLineIndex) {
+          setState(() {
+            _currentLineIndex = newIndex;
+          });
+        }
+        return;
+      }
+    }
+    
     final pos = widget.currentPosition.value;
 
     // 提前 400ms 滚动
@@ -74,6 +96,8 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       setState(() {
         _currentLineIndex = newIndex;
         _recalculateScrollTarget(selectTopPadding());
+        // 自动滚动时恢复模糊效果
+        _disableBlurDueToUserScroll = false;
       });
     }
   }
@@ -140,6 +164,10 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
         _dragOffset = 0.0;
       },
       onVerticalDragUpdate: (details) {
+        _lastUserScrollTime = DateTime.now();
+        if (!_disableBlurDueToUserScroll) {
+          setState(() => _disableBlurDueToUserScroll = true);
+        }
         setState(() {
           _targetScrollY -= details.delta.dy;
           if (_targetScrollY < 0) _targetScrollY = 0;
@@ -147,7 +175,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       },
       onVerticalDragEnd: (details) {
         _isDragging = false;
-        _recalculateScrollTarget(topPadding);
+        // 不再强制滚动回当前行，让用户自由浏览
       },
       child: Container(
         color: Colors.transparent,
@@ -179,6 +207,11 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
                     currentIndex: _currentLineIndex,
                     targetScrollY: activeScrollY,
                     isUserDragging: _isDragging,
+                    isAnyLineHovered: _isAnyLineHovered,
+                    disableBlurDueToUserScroll: _disableBlurDueToUserScroll,
+                    onHoverChanged: (isHovered) {
+                      setState(() => _isAnyLineHovered = isHovered);
+                    },
                     onTap: () {
                       widget.onTapLine(line.startTime);
                       setState(() {
@@ -394,6 +427,9 @@ class IndependentLyricLine extends StatefulWidget {
   final int currentIndex;
   final double targetScrollY;
   final bool isUserDragging;
+  final bool isAnyLineHovered;
+  final bool disableBlurDueToUserScroll;
+  final ValueChanged<bool> onHoverChanged;
   final Widget child;
   final VoidCallback onTap;
 
@@ -403,6 +439,9 @@ class IndependentLyricLine extends StatefulWidget {
     required this.currentIndex,
     required this.targetScrollY,
     required this.isUserDragging,
+    required this.isAnyLineHovered,
+    required this.disableBlurDueToUserScroll,
+    required this.onHoverChanged,
     required this.child,
     required this.onTap,
   }) : super(key: key);
@@ -470,7 +509,7 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
     int delayMs = 0;
     // 只有下方的行滞后
     if (distance >= 0 && distance <= 8) {
-      delayMs = (distance * 80).clamp(0, 1600);
+      delayMs = (distance * 60).clamp(0, 1600);
     }
     // 大于12行，无延迟
     if (distance > 12) {
@@ -512,20 +551,32 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
       targetBlur = 0.0;
     } else {
       targetScale = 0.96;
-      targetOpacity = (1.0 - (dist * 0.15)).clamp(0.2, 0.6);
-      targetBlur = (dist * 0.8).clamp(0.0, 4.0);
+      targetOpacity = (1.0 - (dist * 0.15)).clamp(0.4, 0.8);
+      targetBlur = (dist * 0.8).clamp(0.0, 2.6);
+    }
+
+    // 如果用户正在拖动、悬浮在任意歌词上，或用户刚滚动过，去除所有模糊效果
+    if (widget.isUserDragging || widget.isAnyLineHovered || widget.disableBlurDueToUserScroll) {
+      targetBlur = 0.0;
+      targetOpacity = isCurrent ? 1.0 : 0.7;
     }
 
     return Transform.translate(
       offset: Offset(0, -_currentTranslateY),
       child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
+        onEnter: (_) {
+          setState(() => _isHovered = true);
+          widget.onHoverChanged(true);
+        },
+        onExit: (_) {
+          setState(() => _isHovered = false);
+          widget.onHoverChanged(false);
+        },
         child: GestureDetector(
           onTap: widget.onTap,
           behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             decoration: BoxDecoration(
               color: _isHovered

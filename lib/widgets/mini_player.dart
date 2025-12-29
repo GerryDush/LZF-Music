@@ -30,7 +30,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
   @override
   Widget build(BuildContext context) {
     // 根据容器宽度决定显示哪些控件
-    final showVolumeControl = widget.containerWidth > 765;
+    final showVolumeControl = widget.containerWidth > 778;
     final showProgressControl = widget.containerWidth > 660;
     double progressLength = (widget.containerWidth - 520).clamp(260, 330);
     if (!showProgressControl) {
@@ -305,7 +305,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     );
                   },
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
               ],
 
               // 控制按钮

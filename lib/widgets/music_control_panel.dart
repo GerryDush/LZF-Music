@@ -225,9 +225,9 @@ class MusicControlButtons extends StatelessWidget {
           ],
         ),
         if (compactLayout) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
         ] else ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
         ],
         Row(
           children: [
