@@ -192,6 +192,12 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
                 final line = entry.value;
                 final isCurrent = index == _currentLineIndex;
 
+                // 计算当前行的累积Y位置
+                double cumulativeY = topPadding;
+                for (int i = 0; i < index; i++) {
+                  cumulativeY += (_lineHeights[i] ?? 80.0);
+                }
+
                 return MeasureSize(
                   onChange: (size) {
                     // 只有当高度发生实质性变化时才更新
@@ -206,6 +212,9 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
                     index: index,
                     currentIndex: _currentLineIndex,
                     targetScrollY: activeScrollY,
+                    lineYPosition: cumulativeY,
+                    screenHeight: MediaQuery.of(context).size.height,
+                    lineHeight: _lineHeights[index] ?? 80.0,
                     isUserDragging: _isDragging,
                     isAnyLineHovered: _isAnyLineHovered,
                     disableBlurDueToUserScroll: _disableBlurDueToUserScroll,
@@ -426,6 +435,9 @@ class IndependentLyricLine extends StatefulWidget {
   final int index;
   final int currentIndex;
   final double targetScrollY;
+  final double lineYPosition;
+  final double screenHeight;
+  final double lineHeight;
   final bool isUserDragging;
   final bool isAnyLineHovered;
   final bool disableBlurDueToUserScroll;
@@ -438,6 +450,9 @@ class IndependentLyricLine extends StatefulWidget {
     required this.index,
     required this.currentIndex,
     required this.targetScrollY,
+    required this.lineYPosition,
+    required this.screenHeight,
+    required this.lineHeight,
     required this.isUserDragging,
     required this.isAnyLineHovered,
     required this.disableBlurDueToUserScroll,
@@ -456,6 +471,7 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
   late Animation<double> _yAnimation;
   double _currentTranslateY = 0.0;
   bool _isHovered = false;
+  bool _wasJustDragging = false;
 
   @override
   void initState() {
@@ -477,15 +493,28 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
   void didUpdateWidget(IndependentLyricLine oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.isUserDragging) {
-      if (_animController.isAnimating) _animController.stop();
-      _currentTranslateY = widget.targetScrollY;
-      return;
+    // 检测拖动状态变化
+    if (oldWidget.isUserDragging && !widget.isUserDragging) {
+      // 刚结束拖动，标记状态并延迟恢复
+      _wasJustDragging = true;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _wasJustDragging = false;
+          });
+        }
+      });
     }
 
     if (widget.targetScrollY != oldWidget.targetScrollY) {
-      // 只有当目标位置真的发生实质性变化时才启动动画
-      if (widget.targetScrollY != oldWidget.targetScrollY) {
+      if (widget.isUserDragging || _wasJustDragging) {
+        // 用户手动拖动时或刚结束拖动时，禁用所有动画和延迟，立即跟随
+        if (_animController.isAnimating) _animController.stop();
+        setState(() {
+          _currentTranslateY = widget.targetScrollY;
+        });
+      } else {
+        // 自动滚动时，使用弹簧动画和延迟
         _startSpringAnimation(
             from: _currentTranslateY, to: widget.targetScrollY);
       }
@@ -493,13 +522,12 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
   }
 
   void _startSpringAnimation({required double from, required double to}) {
-    int distance = (widget.index - widget.currentIndex) + 1;
-    // 默认时长 (用于当前行和下方行)
+    int distance = widget.index - widget.currentIndex;
+    // 默认时长
     Duration animDuration = const Duration(milliseconds: 900);
 
-    // 这里控制上方歌词的速度
+    // 上方歌词稍快一点
     if (distance < 0) {
-      // distance < 0 表示是当前行上方的歌词
       animDuration = const Duration(milliseconds: 800);
     }
 
@@ -507,13 +535,24 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
     _animController.duration = animDuration;
 
     int delayMs = 0;
-    // 只有下方的行滞后
-    if (distance >= 0 && distance <= 8) {
-      delayMs = (distance * 60).clamp(0, 1600);
-    }
-    // 大于12行，无延迟
-    if (distance > 12) {
-      delayMs = 0;
+    
+    // 用户手动拖动时，禁用延迟
+    if (!widget.isUserDragging) {
+      // 基于实际位置计算延迟，不区分是否可见
+      // 计算当前行在屏幕上的实际位置（考虑滚动）
+      final double lineScreenY = widget.lineYPosition - widget.targetScrollY;
+      
+      // 屏幕上方的歌词延迟为0，屏幕内的歌词按位置递增延迟
+      if (lineScreenY < 0) {
+        delayMs = 0;
+      } else {
+        // 计算从屏幕顶部开始是第几行
+        final double lineIndex = (lineScreenY / widget.lineHeight).clamp(0.0, double.infinity);
+        
+        // 每行延迟递增，顶部第0行延迟为0
+        const int delayPerLine = 60;
+        delayMs = (lineIndex * delayPerLine).round();
+      }
     }
 
     _yAnimation = Tween<double>(begin: from, end: to).animate(
