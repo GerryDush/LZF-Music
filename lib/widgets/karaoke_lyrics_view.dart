@@ -30,6 +30,9 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
 
   bool _isDragging = false;
   double _dragOffset = 0.0;
+  bool _isAnyLineHovered = false;
+  DateTime? _lastUserScrollTime;
+  bool _disableBlurDueToUserScroll = false;
 
   @override
   void initState() {
@@ -37,6 +40,27 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
     _updateLyricsData();
     // 只需要监听行变化的大概逻辑，具体的微秒级更新交给 ValueListenableBuilder
     widget.currentPosition.addListener(_onPositionChanged);
+    
+    // 初始化后根据当前位置定位到正确的歌词行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCurrentPosition();
+    });
+  }
+  
+  void _scrollToCurrentPosition() {
+    if (_lyricLines.isEmpty) return;
+    
+    final pos = widget.currentPosition.value;
+    final newIndex = _lyricLines.lastIndexWhere(
+      (line) => (pos + const Duration(milliseconds: 400)) >= line.startTime,
+    );
+    
+    if (newIndex != -1) {
+      setState(() {
+        _currentLineIndex = newIndex;
+        _recalculateScrollTarget(selectTopPadding());
+      });
+    }
   }
 
   @override
@@ -63,6 +87,25 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
 
   void _onPositionChanged() {
     if (_lyricLines.isEmpty || _isDragging) return;
+    
+    // 如果用户在3秒内滚动过，不自动滚动
+    if (_lastUserScrollTime != null) {
+      final timeSinceScroll = DateTime.now().difference(_lastUserScrollTime!);
+      if (timeSinceScroll.inSeconds < 3) {
+        // 仍然更新当前行索引（用于高亮），但不触发滚动
+        final pos = widget.currentPosition.value;
+        final newIndex = _lyricLines.lastIndexWhere(
+          (line) => (pos + const Duration(milliseconds: 400)) >= line.startTime,
+        );
+        if (newIndex != -1 && newIndex != _currentLineIndex) {
+          setState(() {
+            _currentLineIndex = newIndex;
+          });
+        }
+        return;
+      }
+    }
+    
     final pos = widget.currentPosition.value;
 
     // 提前 400ms 滚动
@@ -74,6 +117,8 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       setState(() {
         _currentLineIndex = newIndex;
         _recalculateScrollTarget(selectTopPadding());
+        // 自动滚动时恢复模糊效果
+        _disableBlurDueToUserScroll = false;
       });
     }
   }
@@ -140,6 +185,10 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
         _dragOffset = 0.0;
       },
       onVerticalDragUpdate: (details) {
+        _lastUserScrollTime = DateTime.now();
+        if (!_disableBlurDueToUserScroll) {
+          setState(() => _disableBlurDueToUserScroll = true);
+        }
         setState(() {
           _targetScrollY -= details.delta.dy;
           if (_targetScrollY < 0) _targetScrollY = 0;
@@ -147,7 +196,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       },
       onVerticalDragEnd: (details) {
         _isDragging = false;
-        _recalculateScrollTarget(topPadding);
+        // 不再强制滚动回当前行，让用户自由浏览
       },
       child: Container(
         color: Colors.transparent,
@@ -164,6 +213,12 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
                 final line = entry.value;
                 final isCurrent = index == _currentLineIndex;
 
+                // 计算当前行的累积Y位置
+                double cumulativeY = topPadding;
+                for (int i = 0; i < index; i++) {
+                  cumulativeY += (_lineHeights[i] ?? 80.0);
+                }
+
                 return MeasureSize(
                   onChange: (size) {
                     // 只有当高度发生实质性变化时才更新
@@ -178,7 +233,15 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
                     index: index,
                     currentIndex: _currentLineIndex,
                     targetScrollY: activeScrollY,
+                    lineYPosition: cumulativeY,
+                    screenHeight: MediaQuery.of(context).size.height,
+                    lineHeight: _lineHeights[index] ?? 80.0,
                     isUserDragging: _isDragging,
+                    isAnyLineHovered: _isAnyLineHovered,
+                    disableBlurDueToUserScroll: _disableBlurDueToUserScroll,
+                    onHoverChanged: (isHovered) {
+                      setState(() => _isAnyLineHovered = isHovered);
+                    },
                     onTap: () {
                       widget.onTapLine(line.startTime);
                       setState(() {
@@ -393,7 +456,13 @@ class IndependentLyricLine extends StatefulWidget {
   final int index;
   final int currentIndex;
   final double targetScrollY;
+  final double lineYPosition;
+  final double screenHeight;
+  final double lineHeight;
   final bool isUserDragging;
+  final bool isAnyLineHovered;
+  final bool disableBlurDueToUserScroll;
+  final ValueChanged<bool> onHoverChanged;
   final Widget child;
   final VoidCallback onTap;
 
@@ -402,7 +471,13 @@ class IndependentLyricLine extends StatefulWidget {
     required this.index,
     required this.currentIndex,
     required this.targetScrollY,
+    required this.lineYPosition,
+    required this.screenHeight,
+    required this.lineHeight,
     required this.isUserDragging,
+    required this.isAnyLineHovered,
+    required this.disableBlurDueToUserScroll,
+    required this.onHoverChanged,
     required this.child,
     required this.onTap,
   }) : super(key: key);
@@ -417,6 +492,7 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
   late Animation<double> _yAnimation;
   double _currentTranslateY = 0.0;
   bool _isHovered = false;
+  bool _wasJustDragging = false;
 
   @override
   void initState() {
@@ -438,15 +514,28 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
   void didUpdateWidget(IndependentLyricLine oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.isUserDragging) {
-      if (_animController.isAnimating) _animController.stop();
-      _currentTranslateY = widget.targetScrollY;
-      return;
+    // 检测拖动状态变化
+    if (oldWidget.isUserDragging && !widget.isUserDragging) {
+      // 刚结束拖动，标记状态并延迟恢复
+      _wasJustDragging = true;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            _wasJustDragging = false;
+          });
+        }
+      });
     }
 
     if (widget.targetScrollY != oldWidget.targetScrollY) {
-      // 只有当目标位置真的发生实质性变化时才启动动画
-      if (widget.targetScrollY != oldWidget.targetScrollY) {
+      if (widget.isUserDragging || _wasJustDragging) {
+        // 用户手动拖动时或刚结束拖动时，禁用所有动画和延迟，立即跟随
+        if (_animController.isAnimating) _animController.stop();
+        setState(() {
+          _currentTranslateY = widget.targetScrollY;
+        });
+      } else {
+        // 自动滚动时，使用弹簧动画和延迟
         _startSpringAnimation(
             from: _currentTranslateY, to: widget.targetScrollY);
       }
@@ -454,13 +543,12 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
   }
 
   void _startSpringAnimation({required double from, required double to}) {
-    int distance = (widget.index - widget.currentIndex) + 1;
-    // 默认时长 (用于当前行和下方行)
+    int distance = widget.index - widget.currentIndex;
+    // 默认时长
     Duration animDuration = const Duration(milliseconds: 900);
 
-    // 这里控制上方歌词的速度
+    // 上方歌词稍快一点
     if (distance < 0) {
-      // distance < 0 表示是当前行上方的歌词
       animDuration = const Duration(milliseconds: 800);
     }
 
@@ -468,13 +556,36 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
     _animController.duration = animDuration;
 
     int delayMs = 0;
-    // 只有下方的行滞后
-    if (distance >= 0 && distance <= 8) {
-      delayMs = (distance * 80).clamp(0, 1600);
-    }
-    // 大于12行，无延迟
-    if (distance > 12) {
-      delayMs = 0;
+    
+    // 用户手动拖动时，禁用延迟
+    if (!widget.isUserDragging) {
+      // 判断滚动方向
+      final bool isScrollingDown = to > from; // 向下滚动（内容向上移动）
+      
+      // 基于实际位置计算延迟
+      final double lineScreenY = widget.lineYPosition - widget.targetScrollY;
+      
+      if (isScrollingDown) {
+        // 向下滚动：顶部的歌词先动（拉着下面的走）
+        if (lineScreenY < 0) {
+          delayMs = 0;
+        } else {
+          final double lineIndex = (lineScreenY / widget.lineHeight).clamp(0.0, double.infinity);
+          const int delayPerLine = 40;
+          delayMs = (lineIndex * delayPerLine).round();
+        }
+      } else {
+        // 向上滚动：底部的歌词先动（拉着上面的走）
+        if (lineScreenY > widget.screenHeight) {
+          delayMs = 0;
+        } else {
+          // 计算从屏幕底部往上是第几行
+          final double distanceFromBottom = widget.screenHeight - lineScreenY;
+          final double lineIndexFromBottom = (distanceFromBottom / widget.lineHeight).clamp(0.0, double.infinity);
+          const int delayPerLine = 20;
+          delayMs = (lineIndexFromBottom * delayPerLine).round();
+        }
+      }
     }
 
     _yAnimation = Tween<double>(begin: from, end: to).animate(
@@ -512,20 +623,32 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
       targetBlur = 0.0;
     } else {
       targetScale = 0.96;
-      targetOpacity = (1.0 - (dist * 0.15)).clamp(0.2, 0.6);
-      targetBlur = (dist * 0.8).clamp(0.0, 4.0);
+      targetOpacity = (1.0 - (dist * 0.15)).clamp(0.4, 0.8);
+      targetBlur = (dist * 0.8).clamp(0.0, 2.6);
+    }
+
+    // 如果用户正在拖动、悬浮在任意歌词上，或用户刚滚动过，去除所有模糊效果
+    if (widget.isUserDragging || widget.isAnyLineHovered || widget.disableBlurDueToUserScroll) {
+      targetBlur = 0.0;
+      targetOpacity = isCurrent ? 1.0 : 0.7;
     }
 
     return Transform.translate(
       offset: Offset(0, -_currentTranslateY),
       child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
+        onEnter: (_) {
+          setState(() => _isHovered = true);
+          widget.onHoverChanged(true);
+        },
+        onExit: (_) {
+          setState(() => _isHovered = false);
+          widget.onHoverChanged(false);
+        },
         child: GestureDetector(
           onTap: widget.onTap,
           behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             decoration: BoxDecoration(
               color: _isHovered

@@ -9,6 +9,7 @@ class SongInfoPanel extends StatelessWidget {
   final Function(double) onSliderChangeEnd;
   final PlayerProvider playerProvider;
   final bool compactLayout;
+  final double animationProgress; // 0.0 = 完整显示, 1.0 = 紧凑模式
 
   const SongInfoPanel({
     super.key,
@@ -17,6 +18,7 @@ class SongInfoPanel extends StatelessWidget {
     required this.onSliderChangeEnd,
     required this.playerProvider,
     this.compactLayout = false,
+    this.animationProgress = 0.0,
   });
 
   String formatDuration(Duration d) {
@@ -28,27 +30,45 @@ class SongInfoPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 只做透明度变化，高度保持固定，避免上下浮动
+    final titleOpacity = (1.0 - animationProgress).clamp(0.0, 1.0);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!compactLayout) ...[
-          Text(
-            playerProvider.currentSong?.title ?? "未知歌曲",
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+        ClipRect(
+          child: SizedBox(
+            height: 66,
+            child: Opacity(
+              opacity: titleOpacity,
+              child: Padding(
+                padding: EdgeInsets.only(top: 6 * animationProgress), // 歌词模式时下移，大封面模式时在顶部
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      playerProvider.currentSong?.title ?? "未知歌曲",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      playerProvider.currentSong?.artist ?? "未知歌手",
+                      style: const TextStyle(color: Colors.white70, fontSize: 18),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          Text(
-            playerProvider.currentSong?.artist ?? "未知歌手",
-            style: const TextStyle(color: Colors.white70, fontSize: 18),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        ),
         ValueListenableBuilder<Duration>(
             valueListenable: playerProvider.position,
             builder: (context, position, child) {
@@ -64,6 +84,7 @@ class SongInfoPanel extends StatelessWidget {
                 onChangeEnd: onSliderChangeEnd,
               );
             }),
+        SizedBox(height: 4), // 增加底部间距
         Row(
           children: [
             ValueListenableBuilder<Duration>(
@@ -145,6 +166,8 @@ class MusicControlButtons extends StatelessWidget {
           children: [
             IconButton(
               iconSize: 20,
+              padding: compactLayout ? const EdgeInsets.all(4) : null,
+              constraints: compactLayout ? const BoxConstraints() : null,
               color: Colors.white70,
               icon: Icon(
                 Icons.shuffle_rounded,
@@ -167,6 +190,8 @@ class MusicControlButtons extends StatelessWidget {
                 children: [
                   IconButton(
                     iconSize: 48,
+                    padding: compactLayout ? const EdgeInsets.all(4) : null,
+                    constraints: compactLayout ? const BoxConstraints() : null,
                     color: (playerProvider.hasPrevious ||
                             playerProvider.playMode == PlayMode.loop)
                         ? Colors.white
@@ -177,6 +202,8 @@ class MusicControlButtons extends StatelessWidget {
                   SizedBox(width: compactLayout ? 8 : 16),
                   IconButton(
                     iconSize: 64,
+                    padding: compactLayout ? const EdgeInsets.all(4) : null,
+                    constraints: compactLayout ? const BoxConstraints() : null,
                     color: Colors.white,
                     icon: Icon(
                       isPlaying
@@ -188,6 +215,8 @@ class MusicControlButtons extends StatelessWidget {
                   SizedBox(width: compactLayout ? 8 : 16),
                   IconButton(
                     iconSize: 48,
+                    padding: compactLayout ? const EdgeInsets.all(4) : null,
+                    constraints: compactLayout ? const BoxConstraints() : null,
                     color: (playerProvider.hasNext ||
                             playerProvider.playMode == PlayMode.loop)
                         ? Colors.white
@@ -200,6 +229,8 @@ class MusicControlButtons extends StatelessWidget {
             ),
             IconButton(
               iconSize: 20,
+              padding: compactLayout ? const EdgeInsets.all(4) : null,
+              constraints: compactLayout ? const BoxConstraints() : null,
               color: Colors.white70,
               icon: Icon(
                 playerProvider.playMode == PlayMode.singleLoop
@@ -225,13 +256,14 @@ class MusicControlButtons extends StatelessWidget {
           ],
         ),
         if (compactLayout) ...[
-          const SizedBox(height: 4),
         ] else ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
         ],
         Row(
           children: [
             IconButton(
+              padding: compactLayout ? const EdgeInsets.all(4) : null,
+              constraints: compactLayout ? const BoxConstraints() : null,
               icon: const Icon(
                 Icons.volume_down_rounded,
                 color: Colors.white70,
@@ -254,6 +286,8 @@ class MusicControlButtons extends StatelessWidget {
               ),
             ),
             IconButton(
+              padding: compactLayout ? const EdgeInsets.all(4) : null,
+              constraints: compactLayout ? const BoxConstraints() : null,
               icon: const Icon(Icons.volume_up_rounded, color: Colors.white70),
               onPressed: () {
                 playerProvider.setVolume(playerProvider.volume + 0.1);

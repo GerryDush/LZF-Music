@@ -6,6 +6,7 @@ import UniformTypeIdentifiers // 必须引入，用于 UTType
 struct Channels {
     static let secureBookmarks = "com.lzf_music/secure_bookmarks"
     static let nativeTabBar = "native_tab_bar"
+    static let audioRoute = "com.lzf.music/audio_route"
 }
 
 struct Methods {
@@ -51,6 +52,7 @@ struct Methods {
         setupNativeTabBar(on: flutterVC)
         setupBookmarkChannel(messenger: flutterVC.binaryMessenger)
         setupTabBarControlChannel(messenger: flutterVC.binaryMessenger)
+        setupAudioRouteChannel(messenger: flutterVC.binaryMessenger)
         
         GeneratedPluginRegistrant.register(with: self)
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -363,6 +365,28 @@ extension AppDelegate {
         if let url = authorizedURLs[bookmarkBase64] {
             url.stopAccessingSecurityScopedResource()
             authorizedURLs.removeValue(forKey: bookmarkBase64)
+        }
+    }
+}
+
+// MARK: - Audio Route Channel
+extension AppDelegate {
+    private func setupAudioRouteChannel(messenger: FlutterBinaryMessenger) {
+        let channel = FlutterMethodChannel(name: Channels.audioRoute, binaryMessenger: messenger)
+        
+        channel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
+            guard self != nil else {
+                result(FlutterError(code: "UNAVAILABLE", message: "AppDelegate unavailable", details: nil))
+                return
+            }
+            
+            switch call.method {
+            case "showAirPlayPicker":
+                AudioRouteHandler.showAirPlayPicker()
+                result(nil)
+            default:
+                result(FlutterMethodNotImplemented)
+            }
         }
     }
 }
