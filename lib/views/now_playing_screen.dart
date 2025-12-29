@@ -11,10 +11,6 @@ import '../services/audio_route_service.dart';
 import 'package:flutter/services.dart';
 import 'package:lzf_music/widgets/karaoke_lyrics_view.dart';
 import 'package:lzf_music/widgets/music_control_panel.dart';
-import 'package:lzf_music/widgets/album_cover.dart';
-import 'package:lzf_music/widgets/song_info_text.dart';
-import 'package:lzf_music/widgets/lyrics_decorator.dart';
-import 'package:lzf_music/widgets/corner_icon_button.dart';
 
 class ImprovedNowPlayingScreen extends StatefulWidget {
   const ImprovedNowPlayingScreen({Key? key}) : super(key: key);
@@ -133,7 +129,38 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
 
 // 移动端顶部歌曲信息栏
 
-// 注意：LyricsViewWithGradient 已被 LyricsDecorator 替代
+// 带渐变遮罩的歌词视图
+class LyricsViewWithGradient extends StatelessWidget {
+  final Widget lyricsView;
+  final EdgeInsets padding;
+
+  const LyricsViewWithGradient({
+    Key? key,
+    required this.lyricsView,
+    this.padding = const EdgeInsets.only(top: 100.0, bottom: 210.0),
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: padding,
+        child: ShaderMask(
+          shaderCallback: (rect) {
+            return const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+              stops: [0.0, 0.1, 0.9, 1.0],
+            ).createShader(rect);
+          },
+          blendMode: BlendMode.dstIn,
+          child: lyricsView,
+        ),
+      ),
+    );
+  }
+}
 
 // 移动端无歌词布局（类似桌面端左侧样式）
 
@@ -282,15 +309,35 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
                   final t = Curves.easeInOutSine.transform(_transitionController.value);
                   final blurAmount = 5.0 * (1.0 - t); // 从5到0的模糊
                   
-                  return AnimatedLyricsDecorator(
-                    visible: _showLyrics,
-                    padding: EdgeInsets.only(
-                      top: 88,
-                      bottom: _showControlPanel ? 184.0 : 8.0,
-                    ),
-                    blurAmount: blurAmount,
-                    child: lyricsView,
-                  );
+                  return _showLyrics
+                      ? Positioned.fill(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: 88,
+                              bottom: _showControlPanel ? 184.0 : 8.0,
+                            ),
+                            child: ImageFiltered(
+                              imageFilter: ImageFilter.blur(
+                                sigmaX: blurAmount,
+                                sigmaY: blurAmount,
+                                tileMode: TileMode.decal,
+                              ),
+                              child: ShaderMask(
+                                shaderCallback: (rect) {
+                                  return const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+                                    stops: [0.0, 0.1, 0.9, 1.0],
+                                  ).createShader(rect);
+                                },
+                                blendMode: BlendMode.dstIn,
+                                child: lyricsView,
+                              ),
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink();
                 },
               ),
               
@@ -298,10 +345,15 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
               Positioned(
                 left: 0,
                 bottom: 0,
-                child: CornerIconButton(
-                  onPressed: () => AudioRouteService.showAudioRoutePicker(),
-                  icon: Icons.cast,
-                  tooltip: '隔空播放',
+                child: IconButton(
+                  onPressed: () {
+                    AudioRouteService.showAudioRoutePicker();
+                  },
+                  icon: Icon(
+                    Icons.cast,
+                    color: Colors.white.withOpacity(0.9),
+                    size: 28,
+                  ),
                 ),
               ),
               
@@ -309,10 +361,13 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: CornerIconButton(
+                child: IconButton(
                   onPressed: _toggleLyrics,
-                  icon: _showLyrics ? Icons.album_outlined : Icons.lyrics_outlined,
-                  tooltip: _showLyrics ? '显示封面' : '显示歌词',
+                  icon: Icon(
+                    _showLyrics ? Icons.album_outlined : Icons.lyrics_outlined,
+                    color: Colors.white.withOpacity(0.9),
+                    size: 28,
+                  ),
                 ),
               ),
               
@@ -399,16 +454,37 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
                                           scale: baseScale,
                                           alignment: Alignment.center,
                                           child: Center(
-                                            child: AlbumCover(
-                                              coverPath: widget.currentSong.albumArtPath,
-                                              size: largeCoverSize,
-                                              borderRadius: _largeCoverBorderRadius + (_smallCoverBorderRadius - _largeCoverBorderRadius) * t,
-                                              isPlaying: widget.isPlaying,
-                                              playingScale: 1.0,
-                                              pausedScale: 0.85,
-                                              playingOpacity: 1.0,
-                                              pausedOpacity: 0.8,
-                                              iconSize: 80,
+                                            child: AnimatedScale(
+                                              scale: widget.isPlaying ? 1.0 : 0.85,
+                                              duration: const Duration(milliseconds: 300),
+                                              curve: Curves.easeInOut,
+                                              child: AnimatedOpacity(
+                                                opacity: opacity,
+                                                duration: const Duration(milliseconds: 300),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(
+                                                    _largeCoverBorderRadius + (_smallCoverBorderRadius - _largeCoverBorderRadius) * t,
+                                                  ),
+                                                  child: widget.currentSong.albumArtPath != null &&
+                                                          File(widget.currentSong.albumArtPath!).existsSync()
+                                                      ? Image.file(
+                                                          File(widget.currentSong.albumArtPath!),
+                                                          width: largeCoverSize,
+                                                          height: largeCoverSize,
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                      : Container(
+                                                          width: largeCoverSize,
+                                                          height: largeCoverSize,
+                                                          color: Colors.grey[800],
+                                                          child: const Icon(
+                                                            Icons.music_note_rounded,
+                                                            color: Colors.white,
+                                                            size: 80,
+                                                          ),
+                                                        ),
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -423,19 +499,36 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
                                         return const SizedBox.shrink();
                                       }
                                       
-                                      return AnimatedSongInfo(
-                                        title: widget.currentSong.title,
-                                        artist: widget.currentSong.artist ?? '未知艺术家',
+                                      return Opacity(
                                         opacity: ((t - 0.3) / 0.7).clamp(0.0, 1.0),
-                                        padding: EdgeInsets.only(left: 16 + _smallCoverSize + 12, top: 2),
-                                        titleStyle: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        artistStyle: TextStyle(
-                                          color: Colors.white.withOpacity(0.7),
-                                          fontSize: 14,
+                                        child: Container(
+                                          width: double.infinity,
+                                          padding: EdgeInsets.only(left: 16 + _smallCoverSize + 12, top: 2),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                widget.currentSong.title,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                widget.currentSong.artist ?? '未知艺术家',
+                                                style: TextStyle(
+                                                  color: Colors.white.withOpacity(0.7),
+                                                  fontSize: 14,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       );
                                     },
@@ -539,16 +632,30 @@ class DesktopLayout extends StatelessWidget {
                       Column(
                         children: [
                           HoverIconButton(onPressed: () => Navigator.pop(context)),
-                          AlbumCover(
-                            coverPath: currentSong.albumArtPath,
-                            size: double.infinity,
-                            borderRadius: 20,
-                            isPlaying: isPlaying,
-                            playingScale: 1.0,
-                            pausedScale: 0.85,
-                            playingOpacity: 1.0,
-                            pausedOpacity: 0.8,
-                            iconSize: 48,
+                          AnimatedScale(
+                            scale: isPlaying ? 1.0 : 0.85,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            child: AnimatedOpacity(
+                              opacity: isPlaying ? 1.0 : 0.8,
+                              duration: const Duration(milliseconds: 300),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: currentSong.albumArtPath != null &&
+                                        File(currentSong.albumArtPath!).existsSync()
+                                    ? Image.file(
+                                        File(currentSong.albumArtPath!),
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        width: double.infinity,
+                                        height: 300,
+                                        color: Colors.grey[800],
+                                        child: const Icon(Icons.music_note_rounded, color: Colors.white, size: 48),
+                                      ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -584,9 +691,9 @@ class DesktopLayout extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 60.0),
                 child: SizedBox(
                   width: 480,
-                  child: LyricsDecorator(
+                  child: LyricsViewWithGradient(
+                    lyricsView: lyricsView,
                     padding: EdgeInsets.zero,
-                    child: lyricsView,
                   ),
                 ),
               ),
