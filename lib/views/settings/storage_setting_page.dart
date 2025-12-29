@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import '../../services/web_dav_manager.dart'; 
 import '../../widgets/lzf_toast.dart';
@@ -124,6 +125,7 @@ class StorageSettingPageState extends State<StorageSettingPage> with RouteAware 
     final list = _storageList;
 
     return Scaffold(
+      backgroundColor: PlatformUtils.isMobile?ThemeUtils.backgroundColor(context):null,
       appBar: AppBar(
         title: const Text('存储设置'),
         leading: IconButton(
@@ -171,7 +173,7 @@ class StorageSettingPageState extends State<StorageSettingPage> with RouteAware 
               ),
               child: Row(
                 children: [
-                  Icon(Icons.folder, size: 40, color: Theme.of(context).colorScheme.primary),
+                  Icon(Icons.cloud_done, size: 40, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

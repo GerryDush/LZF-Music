@@ -439,7 +439,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                     context,
                   ).primaryColor.withOpacity(0.1),
                   child: Icon(
-                    themeProvider.getThemeIcon(),
+                    Icons.storage,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
@@ -451,6 +451,26 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   NestedNavigationHelper.push(context, "/settings/storage");
+                },
+              ),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(
+                    context,
+                  ).primaryColor.withOpacity(0.1),
+                  child: Icon(
+                    Icons.folder,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                title: const Text(
+                  '音乐源',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                subtitle: const Text('添加的音乐源'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  NestedNavigationHelper.push(context, "/webdav/browser");
                 },
               ),
             ],

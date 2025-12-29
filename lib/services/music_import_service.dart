@@ -486,7 +486,7 @@ class MusicImportService {
 
       final coverResult = await _processCover(picture.bytes);
       if (coverResult != null) {
-        coverResult.palette = await PaletteUtils.fromBytes(picture.bytes);
+        coverResult.palette = await PaletteUtils.fromBytes(coverResult.thumbBytes);
       }
 
       if (coverResult != null) {
