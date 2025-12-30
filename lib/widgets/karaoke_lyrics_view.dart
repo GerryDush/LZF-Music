@@ -649,7 +649,7 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
           behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             decoration: BoxDecoration(
               color: _isHovered
                   ? Colors.white.withOpacity(0.1)
