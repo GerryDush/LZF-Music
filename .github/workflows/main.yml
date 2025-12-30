@@ -3,12 +3,13 @@ name: Build and Release Flutter App
 on:
   push:
     tags:
-      - 'v*' 
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
+  # --- 桌面端: macOS ---
   build-macos:
     runs-on: macos-26
     strategy:
@@ -21,8 +22,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
-      # 切换 EXCLUDED_ARCHS
       - name: Switch EXCLUDED_ARCHS
         run: |
           PBXPROJ="macos/Runner.xcodeproj/project.pbxproj"
@@ -35,22 +36,17 @@ jobs:
             sed -i '' 's/EXCLUDED_ARCHS = .*;/EXCLUDED_ARCHS = "x86_64";/g' "$PBXPROJ"
           fi
 
-      # 安装打包工具
       - run: dart pub global activate fastforge
       - run: npm install -g appdmg
 
-      # 打包 DMG
       - run: fastforge package --platform macos --targets dmg
 
-      # 获取 Flutter 版本号
       - name: Get Flutter version
         id: get_version
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
-          echo "Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # 重命名 DMG 文件，加入架构
       - name: Rename DMG with architecture
         run: |
           ARCH=${{ matrix.arch }}
@@ -59,7 +55,6 @@ jobs:
           DST="dist/$VERSION/LZF-Music-$VERSION-macos-$ARCH.dmg"
           mv "$SRC" "$DST"
 
-      # 上传 macOS 制品
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -67,6 +62,7 @@ jobs:
           path: dist/${{ steps.get_version.outputs.version }}/LZF-Music-${{ steps.get_version.outputs.version }}-macos-${{ matrix.arch }}.dmg
           retention-days: 1
 
+  # --- 桌面端: Windows ---
   build-windows:
     runs-on: windows-latest
     steps:
@@ -75,20 +71,14 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
-      # 安装 Inno Setup 6（fastforge 的依赖）
       - name: Install Inno Setup 6
         run: |
           $url = "https://jrsoftware.org/download.php/is.exe"
           $output = "${{ runner.temp }}\innosetup.exe"
-          
-          Write-Host "Downloading Inno Setup 6..."
           Invoke-WebRequest -Uri $url -OutFile $output
-          
-          Write-Host "Installing Inno Setup 6..."
           Start-Process -FilePath $output -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
-          
-          # 添加到PATH
           $innoPath = "C:\Program Files (x86)\Inno Setup 6"
           echo "$innoPath" >> $env:GITHUB_PATH
 
@@ -97,48 +87,29 @@ jobs:
           $sourceFile = "windows\packaging\exe\ChineseSimplified.isl"
           $targetDir = "C:\Program Files (x86)\Inno Setup 6\Languages"
           $targetFile = "$targetDir\ChineseSimplified.isl"
-          
-          if (Test-Path $sourceFile) {
-            Copy-Item $sourceFile $targetFile -Force
-            Write-Host "Chinese language pack copied successfully"
-          } else {
-            Write-Host "Chinese language pack not found in project"
-          }
+          if (Test-Path $sourceFile) { Copy-Item $sourceFile $targetFile -Force }
 
-      # 安装 fastforge
       - name: Install fastforge
         run: dart pub global activate fastforge
 
-      # 获取 Flutter 版本号
       - name: Get Flutter version
         id: get_version
         run: |
           $VERSION = (Get-Content pubspec.yaml | Select-String "version:" | ForEach-Object { $_ -replace "version:\s*", "" } | ForEach-Object { $_ -replace "\+.*", "" })
-          echo "Version: $VERSION"
           echo "version=$VERSION" >> $env:GITHUB_OUTPUT
 
-      # 使用 fastforge 打包 Windows exe
       - name: Package Windows exe
         run: fastforge package --platform windows --targets exe
 
-      # 重命名生成的安装程序
       - name: Rename Windows installer
         run: |
           $VERSION = "${{ steps.get_version.outputs.version }}"
-          
-          # fastforge 生成的文件通常在 dist 目录中
           $DIST_DIR = "dist\$VERSION"
           $INSTALLER_NAME = "LZF-Music-$VERSION-windows-x64-setup.exe"
-          
-          # 查找生成的 exe 文件
           Get-ChildItem "$DIST_DIR" -Filter "*.exe" | ForEach-Object {
-            $SRC = $_.FullName
-            Write-Host "Found installer: $SRC"
-            Copy-Item $SRC $INSTALLER_NAME -Force
-            Write-Host "Renamed to: $INSTALLER_NAME"
+            Copy-Item $_.FullName $INSTALLER_NAME -Force
           }
 
-      # 上传 Windows 制品
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -146,28 +117,116 @@ jobs:
           path: LZF-Music-${{ steps.get_version.outputs.version }}-windows-x64-setup.exe
           retention-days: 1
 
-  # 统一发布 Release
-  create-release:
-    needs: [build-macos, build-windows]
-    runs-on: ubuntu-latest
+  build-mobile:
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
 
-      # 获取 Flutter 版本号
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
       - name: Get Flutter version
         id: get_version
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
-          echo "Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - run: flutter pub get
 
-      # 下载所有制品
+      # ==========================================
+      # 1. 构建 Android
+      # ==========================================
+      - name: Build Android APKs
+        run: |
+          # 1. 构建 Universal 包
+          flutter build apk --release
+          # 2. 构建分架构包
+          flutter build apk --release --split-per-abi
+
+      - name: Rename Android APKs
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          mkdir -p dist_android
+          
+          BASE_DIR="build/app/outputs/flutter-apk"
+          
+          # 移动并重命名
+          mv "$BASE_DIR/app-release.apk" "dist_android/LZF-Music-$VERSION-android-universal.apk"
+          mv "$BASE_DIR/app-arm64-v8a-release.apk" "dist_android/LZF-Music-$VERSION-android-arm64-v8a.apk"
+          mv "$BASE_DIR/app-armeabi-v7a-release.apk" "dist_android/LZF-Music-$VERSION-android-armeabi-v7a.apk"
+          mv "$BASE_DIR/app-x86_64-release.apk" "dist_android/LZF-Music-$VERSION-android-x86_64.apk"
+
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apks
+          path: dist_android/*.apk
+          retention-days: 1
+
+      # ==========================================
+      # 2. 构建 iOS
+      # ==========================================
+      - name: Build iOS (No Codesign)
+        run: |
+          # --no-codesign 允许在没有证书的情况下构建 release 包
+          flutter build ios --release --no-codesign
+
+      - name: Package iOS IPA
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          mkdir -p dist_ios
+          mkdir -p Payload
+          
+          # 复制 Runner.app 到 Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          
+          # 压缩生成 IPA
+          zip -r "dist_ios/LZF-Music-$VERSION-ios.ipa" Payload
+
+      - name: Upload iOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: dist_ios/*.ipa
+          retention-days: 1
+
+  # --- 统一发布 ---
+  create-release:
+    needs: [build-macos, build-windows, build-mobile]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
-      # 创建统一的 Release
+      # 整理文件
+      - name: Prepare Release Files
+        run: |
+          mkdir -p release_files
+          
+          # 查找并移动所有相关文件
+          find artifacts -name "*.dmg" -exec cp {} release_files/ \;
+          find artifacts -name "*.exe" -exec cp {} release_files/ \;
+          find artifacts -name "*.apk" -exec cp {} release_files/ \;
+          find artifacts -name "*.ipa" -exec cp {} release_files/ \;
+          
+          echo "Listing release files:"
+          ls -R release_files/
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
@@ -286,8 +345,4 @@ jobs:
             • Theme switching support
 
             <img src="https://github.com/user-attachments/assets/8d5b9065-8cd8-4b1e-bb6e-32b9ae5f0f25" height="500">
-          files: |
-            macos-x86_64-dmg/*.dmg
-            macos-arm64-dmg/*.dmg
-            macos-universal-dmg/*.dmg
-            windows-installer/*.exe
+          files: release_files/*
