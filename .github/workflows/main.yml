@@ -227,9 +227,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
           body: |
             🎉 发布版本 ${{ github.ref_name }}
             
