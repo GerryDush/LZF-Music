@@ -9,13 +9,9 @@ permissions:
   contents: write
 
 jobs:
-  # --- 桌面端: macOS ---
+   # --- macOS 构建
   build-macos:
     runs-on: macos-26
-    strategy:
-      matrix:
-        arch: [x86_64, arm64, universal]
-
     steps:
       - uses: actions/checkout@v4
 
@@ -24,22 +20,10 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Switch EXCLUDED_ARCHS
+      - name: Install Tools
         run: |
-          PBXPROJ="macos/Runner.xcodeproj/project.pbxproj"
-          ARCH=${{ matrix.arch }}
-          if [[ "$ARCH" == "universal" ]]; then
-            sed -i '' 's/EXCLUDED_ARCHS = .*;/EXCLUDED_ARCHS = "";/g' "$PBXPROJ"
-          elif [[ "$ARCH" == "x86_64" ]]; then
-            sed -i '' 's/EXCLUDED_ARCHS = .*;/EXCLUDED_ARCHS = "arm64";/g' "$PBXPROJ"
-          elif [[ "$ARCH" == "arm64" ]]; then
-            sed -i '' 's/EXCLUDED_ARCHS = .*;/EXCLUDED_ARCHS = "x86_64";/g' "$PBXPROJ"
-          fi
-
-      - run: dart pub global activate fastforge
-      - run: npm install -g appdmg
-
-      - run: fastforge package --platform macos --targets dmg
+          dart pub global activate fastforge
+          npm install -g appdmg
 
       - name: Get Flutter version
         id: get_version
@@ -47,19 +31,56 @@ jobs:
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Rename DMG with architecture
+      # 使用循环按顺序构建3个架构
+      - name: Build macOS DMGs (Sequential)
         run: |
-          ARCH=${{ matrix.arch }}
           VERSION=${{ steps.get_version.outputs.version }}
-          SRC="dist/$VERSION/lzf_music-$VERSION-macos.dmg"
-          DST="dist/$VERSION/LZF-Music-$VERSION-macos-$ARCH.dmg"
-          mv "$SRC" "$DST"
+          PBXPROJ="macos/Runner.xcodeproj/project.pbxproj"
+          mkdir -p macos_artifacts
+          
+          # 定义要构建的架构列表
+          ARCHS=("x86_64" "arm64" "universal")
+          
+          for ARCH in "${ARCHS[@]}"; do
+            echo "----------------------------------------"
+            echo "🏗️ Starting build for: $ARCH"
+            echo "----------------------------------------"
+            
+            # 1. 清理旧构建 (切换架构前必须清理，否则会混淆)
+            flutter clean
+            flutter pub get
+            
+            # 2. 修改 project.pbxproj 的 EXCLUDED_ARCHS
+            if [[ "$ARCH" == "universal" ]]; then
+              sed -i '' 's/EXCLUDED_ARCHS = .*;/EXCLUDED_ARCHS = "";/g' "$PBXPROJ"
+            elif [[ "$ARCH" == "x86_64" ]]; then
+              sed -i '' 's/EXCLUDED_ARCHS = .*;/EXCLUDED_ARCHS = "arm64";/g' "$PBXPROJ"
+            elif [[ "$ARCH" == "arm64" ]]; then
+              sed -i '' 's/EXCLUDED_ARCHS = .*;/EXCLUDED_ARCHS = "x86_64";/g' "$PBXPROJ"
+            fi
+            
+            # 3. 执行打包
+            fastforge package --platform macos --targets dmg
+            
+            # 4. 重命名并移动产物
+            # fastforge 默认生成在 dist/版本号/lzf_music-版本号-macos.dmg
+            SRC="dist/$VERSION/lzf_music-$VERSION-macos.dmg"
+            DST="macos_artifacts/LZF-Music-$VERSION-macos-$ARCH.dmg"
+            
+            if [[ -f "$SRC" ]]; then
+              mv "$SRC" "$DST"
+              echo "✅ Build success: $DST"
+            else
+              echo "❌ Build failed for $ARCH"
+              exit 1
+            fi
+          done
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.arch }}-dmg
-          path: dist/${{ steps.get_version.outputs.version }}/LZF-Music-${{ steps.get_version.outputs.version }}-macos-${{ matrix.arch }}.dmg
+          name: macos-dmgs
+          path: macos_artifacts/*.dmg
           retention-days: 1
 
   # --- 桌面端: Windows ---
