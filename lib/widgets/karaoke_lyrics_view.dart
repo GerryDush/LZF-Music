@@ -488,6 +488,11 @@ class IndependentLyricLine extends StatefulWidget {
 
 class _IndependentLyricLineState extends State<IndependentLyricLine>
     with SingleTickerProviderStateMixin {
+  // Padding 变量
+  double get _horizontalPadding =>
+      PlatformUtils.isMobileWidth(context) ? 0.0 : 12.0;
+  static const double _verticalPadding = 12.0;
+
   late AnimationController _animController;
   late Animation<double> _yAnimation;
   double _currentTranslateY = 0.0;
@@ -649,7 +654,8 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
           behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            padding: EdgeInsets.symmetric(
+                vertical: _verticalPadding, horizontal: _horizontalPadding),
             decoration: BoxDecoration(
               color: _isHovered
                   ? Colors.white.withOpacity(0.1)
