@@ -28,6 +28,13 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
   double get placeholderHeight => 80;
 
   double _tempSliderValue = -1;
+  bool _showLyrics = false;
+
+  void _toggleLyrics() {
+    setState(() {
+      _showLyrics = !_showLyrics;
+    });
+  }
 
   @override
   void initState() {
@@ -81,6 +88,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                       ],
                     ),
                   ),
+                  //_buildSafeAreaMask(context),
                   SafeArea(
                     child: LayoutBuilder(builder: (context, constraints) {
                       final isNarrow = PlatformUtils.isMobileWidth(context);
@@ -96,6 +104,8 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                             setState(() => _tempSliderValue = -1);
                             playerProvider.seekTo(Duration(seconds: value.toInt()));
                           },
+                          showLyrics: _showLyrics,
+                          onToggleLyrics: _toggleLyrics,
                         );
                       }
 
@@ -112,11 +122,95 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                       );
                     }),
                   ),
+                  // 底部按钮 - 安全区外
+                  if (PlatformUtils.isMobileWidth(context))
+                    Positioned(
+                      left: 20,
+                      bottom: 20,
+                      child: IconButton(
+                        onPressed: () {
+                          AudioRouteService.showAudioRoutePicker();
+                        },
+                        icon: Icon(
+                          Icons.cast,
+                          color: Colors.white.withOpacity(0.9),
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  // 歌词切换按钮 - 安全区外
+                  if (PlatformUtils.isMobileWidth(context))
+                    Positioned(
+                      right: 20,
+                      bottom: 20,
+                      child: IconButton(
+                        onPressed: _toggleLyrics,
+                        icon: Icon(
+                          _showLyrics ? Icons.album_outlined : Icons.lyrics_outlined,
+                          color: Colors.white.withOpacity(0.9),
+                          size: 32,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             );
           },
         ));
+  }
+
+  Widget _buildSafeAreaMask(BuildContext context) {
+    final padding = MediaQuery.of(context).padding;
+    final size = MediaQuery.of(context).size;
+    
+    return Stack(
+      children: [
+        // 顶部遮罩
+        if (padding.top > 0)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: padding.top,
+            child: Container(
+              color: Colors.black.withOpacity(0.8),
+            ),
+          ),
+        // 底部遮罩
+        if (padding.bottom > 0)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: padding.bottom,
+            child: Container(
+              color: Colors.black.withOpacity(0.8),
+            ),
+          ),
+        // 左侧遮罩
+        if (padding.left > 0)
+          Positioned(
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: padding.left,
+            child: Container(
+              color: Colors.black.withOpacity(0.8),
+            ),
+          ),
+        // 右侧遮罩
+        if (padding.right > 0)
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: padding.right,
+            child: Container(
+              color: Colors.black.withOpacity(0.8),
+            ),
+          ),
+      ],
+    );
   }
 
   String formatDuration(Duration d) {
@@ -172,6 +266,8 @@ class MobileLayout extends StatefulWidget {
   final double tempSliderValue;
   final ValueChanged<double> onSliderChanged;
   final ValueChanged<double> onSliderChangeEnd;
+  final bool showLyrics;
+  final VoidCallback onToggleLyrics;
 
   const MobileLayout({
     Key? key,
@@ -181,6 +277,8 @@ class MobileLayout extends StatefulWidget {
     required this.tempSliderValue,
     required this.onSliderChanged,
     required this.onSliderChangeEnd,
+    required this.showLyrics,
+    required this.onToggleLyrics,
   }) : super(key: key);
 
   @override
@@ -189,7 +287,7 @@ class MobileLayout extends StatefulWidget {
 
 class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderStateMixin {
   bool _showControlPanel = true;
-  bool _showLyrics = false;
+  bool get _showLyrics => widget.showLyrics;
   Timer? _hideTimer;
   late AnimationController _transitionController;
   late Animation<double> _scaleAnimation;
@@ -228,6 +326,27 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
   }
 
   @override
+  void didUpdateWidget(MobileLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当 showLyrics 状态变化时触发动画
+    if (widget.showLyrics != oldWidget.showLyrics) {
+      if (widget.showLyrics) {
+        _transitionController.forward();
+        // 切换到歌词模式时，显示控件并启动3秒隐藏计时器
+        setState(() => _showControlPanel = true);
+        _hideTimer?.cancel();
+        _hideTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted && _showLyrics) {
+            setState(() => _showControlPanel = false);
+          }
+        });
+      } else {
+        _transitionController.reverse();
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _hideTimer?.cancel();
     _transitionController.dispose();
@@ -235,23 +354,7 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
   }
   
   void _toggleLyrics() {
-    setState(() {
-      _showLyrics = !_showLyrics;
-    });
-    
-    if (_showLyrics) {
-      _transitionController.forward();
-      // 切换到歌词模式时，显示控件并启动3秒隐藏计时器
-      setState(() => _showControlPanel = true);
-      _hideTimer?.cancel();
-      _hideTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted && _showLyrics) {
-          setState(() => _showControlPanel = false);
-        }
-      });
-    } else {
-      _transitionController.reverse();
-    }
+    widget.onToggleLyrics();
   }
 
   void _startHideTimer() {
@@ -293,83 +396,56 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
       } : null,
       onTap: _showLyrics ? () => _showControls() : null,
       child: DraggableCloseContainer(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: MediaQuery.of(context).padding.top + 20,
-            bottom: 12 + MediaQuery.of(context).padding.bottom,
-          ),
-          child: Stack(
-            children: [
-              // 歌词层（在显示歌词时可见）
-              AnimatedBuilder(
-                animation: _transitionController,
-                builder: (context, child) {
-                  final t = Curves.easeInOutSine.transform(_transitionController.value);
-                  final blurAmount = 5.0 * (1.0 - t); // 从5到0的模糊
-                  
-                  return _showLyrics
-                      ? Positioned.fill(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              top: 88,
-                              bottom: _showControlPanel ? 184.0 : 8.0,
-                            ),
-                            child: ImageFiltered(
-                              imageFilter: ImageFilter.blur(
-                                sigmaX: blurAmount,
-                                sigmaY: blurAmount,
-                                tileMode: TileMode.decal,
+        child: Stack(
+          children: [
+            // 主内容区域（带安全区 padding）
+            Padding(
+              padding: EdgeInsets.only(
+                left: MediaQuery.of(context).padding.left + 24,
+                right: MediaQuery.of(context).padding.right + 24,
+                top: MediaQuery.of(context).padding.top + 4,
+                bottom: MediaQuery.of(context).padding.bottom + 20,
+              ),
+              child: Stack(
+                children: [
+                  // 歌词层（在显示歌词时可见）
+                  AnimatedBuilder(
+                    animation: _transitionController,
+                    builder: (context, child) {
+                      final t = Curves.easeInOutSine.transform(_transitionController.value);
+                      final blurAmount = 5.0 * (1.0 - t); // 从5到0的模糊
+                      
+                      return _showLyrics
+                          ? Positioned.fill(
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  top: 88,
+                                  bottom: _showControlPanel ? 184.0 : 8.0,
+                                ),
+                                child: ImageFiltered(
+                                  imageFilter: ImageFilter.blur(
+                                    sigmaX: blurAmount,
+                                    sigmaY: blurAmount,
+                                    tileMode: TileMode.decal,
+                                  ),
+                                  child: ShaderMask(
+                                    shaderCallback: (rect) {
+                                      return const LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+                                        stops: [0.0, 0.1, 0.9, 1.0],
+                                      ).createShader(rect);
+                                    },
+                                    blendMode: BlendMode.dstIn,
+                                    child: lyricsView,
+                                  ),
+                                ),
                               ),
-                              child: ShaderMask(
-                                shaderCallback: (rect) {
-                                  return const LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
-                                    stops: [0.0, 0.1, 0.9, 1.0],
-                                  ).createShader(rect);
-                                },
-                                blendMode: BlendMode.dstIn,
-                                child: lyricsView,
-                              ),
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink();
-                },
-              ),
-              
-              // 隔空播放按钮 - 左下角
-              Positioned(
-                left: 0,
-                bottom: 0,
-                child: IconButton(
-                  onPressed: () {
-                    AudioRouteService.showAudioRoutePicker();
-                  },
-                  icon: Icon(
-                    Icons.cast,
-                    color: Colors.white.withOpacity(0.9),
-                    size: 28,
+                            )
+                          : const SizedBox.shrink();
+                    },
                   ),
-                ),
-              ),
-              
-              // 切换按钮 - 右下角
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: IconButton(
-                  onPressed: _toggleLyrics,
-                  icon: Icon(
-                    _showLyrics ? Icons.album_outlined : Icons.lyrics_outlined,
-                    color: Colors.white.withOpacity(0.9),
-                    size: 28,
-                  ),
-                ),
-              ),
               
               // 主内容层
               AnimatedBuilder(
@@ -412,21 +488,21 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
                       // 封面/歌曲信息
                       Column(
                         children: [
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 8),
                           
                           // 封面和歌曲信息（带平移缩放动画）
                           LayoutBuilder(
                             builder: (context, constraints) {
-                              final screenWidth = MediaQuery.of(context).size.width;
-                              final largeCoverSize = screenWidth * 0.75;
+                              final screenWidth = constraints.maxWidth;
+                              final largeCoverSize = screenWidth;
                               
                               // 计算大封面的中心位置
                               final largeCoverCenterX = screenWidth / 2;
                               final largeCoverCenterY = largeCoverSize / 2;
                               
                               // 小封面的目标位置（左上角）
-                              final smallCoverLeft = 40.0; // padding
-                              final smallCoverTop = 0.0;
+                              final smallCoverLeft = 2.0; // padding - 向左移动
+                              final smallCoverTop = 2.0;
                               final smallCoverCenterX = smallCoverLeft + _smallCoverSize / 2;
                               final smallCoverCenterY = smallCoverTop + _smallCoverSize / 2;
                               
@@ -503,7 +579,7 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
                                         opacity: ((t - 0.3) / 0.7).clamp(0.0, 1.0),
                                         child: Container(
                                           width: double.infinity,
-                                          padding: EdgeInsets.only(left: 16 + _smallCoverSize + 12, top: 2),
+                                          padding: EdgeInsets.only(left: 0 + _smallCoverSize + 12, top: 2),
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
@@ -547,36 +623,41 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
                       ),
                       
                       // 底部：控制面板 + 切换按钮
-                      AnimatedOpacity(
-                        opacity: _showLyrics ? (_showControlPanel ? 1.0 : 0.0) : 1.0,
-                        duration: const Duration(milliseconds: 300),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SongInfoPanel(
-                              tempSliderValue: widget.tempSliderValue,
-                              onSliderChanged: widget.onSliderChanged,
-                              onSliderChangeEnd: widget.onSliderChangeEnd,
-                              playerProvider: widget.playerProvider,
-                              compactLayout: t > 0.5,
-                              animationProgress: t, // 传递动画进度，实现同步
-                            ),
-                            
-                            MusicControlButtons(
-                              playerProvider: widget.playerProvider,
-                              isPlaying: widget.isPlaying,
-                              compactLayout:true,
-                            ),
-                            const SizedBox(height: 48),
-                          ],
+                      IgnorePointer(
+                        ignoring: _showLyrics && !_showControlPanel,
+                        child: AnimatedOpacity(
+                          opacity: _showLyrics ? (_showControlPanel ? 1.0 : 0.0) : 1.0,
+                          duration: const Duration(milliseconds: 300),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SongInfoPanel(
+                                tempSliderValue: widget.tempSliderValue,
+                                onSliderChanged: widget.onSliderChanged,
+                                onSliderChangeEnd: widget.onSliderChangeEnd,
+                                playerProvider: widget.playerProvider,
+                                compactLayout: t > 0.5,
+                                animationProgress: t, // 传递动画进度，实现同步
+                              ),
+                              
+                              MusicControlButtons(
+                                playerProvider: widget.playerProvider,
+                                isPlaying: widget.isPlaying,
+                                compactLayout:true,
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   );
                 },
               ),
+                ],
+              ),
+            ),
             ],
-          ),
         ),
       ),
     );

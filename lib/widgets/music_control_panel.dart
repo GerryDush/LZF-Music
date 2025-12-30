@@ -38,11 +38,11 @@ class SongInfoPanel extends StatelessWidget {
       children: [
         ClipRect(
           child: SizedBox(
-            height: 66,
+            height: 80,
             child: Opacity(
               opacity: titleOpacity,
               child: Padding(
-                padding: EdgeInsets.only(top: 6 * animationProgress), // 歌词模式时下移，大封面模式时在顶部
+                padding: EdgeInsets.zero,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
