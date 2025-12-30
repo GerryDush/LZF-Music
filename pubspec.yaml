@@ -38,6 +38,7 @@ dependencies:
   xml: ^6.6.1
   palette_generator: ^0.3.3+7
   oklch: ^0.0.3
+  flutter_svg: ^2.0.0
 
 dev_dependencies:
   flutter_test:

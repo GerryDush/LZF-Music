@@ -7,6 +7,7 @@ import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/widgets/liquid_gradient_painter.dart';
 import 'package:lzf_music/widgets/animated_album_cover.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../services/player_provider.dart';
 import '../services/audio_route_service.dart';
@@ -813,29 +814,37 @@ class MobileBottomButtons extends StatelessWidget {
       children: [
         // AirPlay 按钮 - 左下角
         Positioned(
-          left: 20,
-          bottom: 20,
-          child: IconButton(
-            onPressed: () {
+          left: 28,
+          bottom: 28,
+          child: GestureDetector(
+            onTap: () {
               AudioRouteService.showAudioRoutePicker();
             },
-            icon: Icon(
-              Icons.cast,
-              color: Colors.white.withOpacity(0.9),
-              size: 32,
+            child: SvgPicture.asset(
+              'assets/icons/airplay.audio.svg',
+              width: 24,
+              height: 24,
+              colorFilter: ColorFilter.mode(
+                Colors.white.withOpacity(0.9),
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ),
         // 歌词切换按钮 - 右下角
         Positioned(
-          right: 20,
-          bottom: 20,
-          child: IconButton(
-            onPressed: onToggleLyrics,
-            icon: Icon(
-              showLyrics ? Icons.album_outlined : Icons.lyrics_outlined,
-              color: Colors.white.withOpacity(0.9),
-              size: 32,
+          right: 28,
+          bottom: 28,
+          child: GestureDetector(
+            onTap: onToggleLyrics,
+            child: SvgPicture.asset(
+              showLyrics ? 'assets/icons/quote.bubble.fill.svg' : 'assets/icons/quote.bubble.svg',
+              width: 24,
+              height: 24,
+              colorFilter: ColorFilter.mode(
+                Colors.white.withOpacity(0.9),
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ),
