@@ -58,7 +58,7 @@ class DesktopManager {
       if (PlatformUtils.isWindows) {
         doWhenWindowReady(() {
           final win = appWindow;
-          win.minSize = const Size(1080, 720);
+          win.minSize = const Size(360, 660);
           win.size = const Size(1080, 720);
           win.alignment = Alignment.center;
           win.show();

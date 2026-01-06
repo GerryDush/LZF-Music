@@ -102,10 +102,12 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                           playerProvider: playerProvider,
                           isPlaying: isPlaying,
                           tempSliderValue: _tempSliderValue,
-                          onSliderChanged: (value) => setState(() => _tempSliderValue = value),
+                          onSliderChanged: (value) =>
+                              setState(() => _tempSliderValue = value),
                           onSliderChangeEnd: (value) {
                             setState(() => _tempSliderValue = -1);
-                            playerProvider.seekTo(Duration(seconds: value.toInt()));
+                            playerProvider
+                                .seekTo(Duration(seconds: value.toInt()));
                           },
                           showLyrics: _showLyrics,
                           onToggleLyrics: _toggleLyrics,
@@ -117,10 +119,12 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                         playerProvider: playerProvider,
                         isPlaying: isPlaying,
                         tempSliderValue: _tempSliderValue,
-                        onSliderChanged: (value) => setState(() => _tempSliderValue = value),
+                        onSliderChanged: (value) =>
+                            setState(() => _tempSliderValue = value),
                         onSliderChangeEnd: (value) {
                           setState(() => _tempSliderValue = -1);
-                          playerProvider.seekTo(Duration(seconds: value.toInt()));
+                          playerProvider
+                              .seekTo(Duration(seconds: value.toInt()));
                         },
                       );
                     }),
@@ -141,7 +145,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
   Widget _buildSafeAreaMask(BuildContext context) {
     final padding = MediaQuery.of(context).padding;
     final size = MediaQuery.of(context).size;
-    
+
     return Stack(
       children: [
         // 顶部遮罩
@@ -223,7 +227,12 @@ class LyricsViewWithGradient extends StatelessWidget {
             return const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+              colors: [
+                Colors.transparent,
+                Colors.black,
+                Colors.black,
+                Colors.transparent
+              ],
               stops: [0.0, 0.1, 0.9, 1.0],
             ).createShader(rect);
           },
@@ -264,14 +273,15 @@ class MobileLayout extends StatefulWidget {
   State<MobileLayout> createState() => _MobileLayoutState();
 }
 
-class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderStateMixin {
+class _MobileLayoutState extends State<MobileLayout>
+    with SingleTickerProviderStateMixin {
   // Padding 常量配置
   static const double _horizontalPadding = 24.0; // 左右边距增加值
   static const double _topPaddingBase = 4.0; // 顶部基础增加值
   static const double _topPaddingMacOS = 20.0; // macOS 顶部额外增加值
   static const double _bottomPaddingBase = 20.0; // 底部基础增加值
   static const double _bottomPaddingMacOS = 32.0; // macOS 底部额外增加值
-  
+
   bool _showControlPanel = true;
   bool get _showLyrics => widget.showLyrics;
   Timer? _hideTimer;
@@ -279,32 +289,32 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
   late Animation<double> _scaleAnimation;
   late Animation<Offset> _positionAnimation;
   late Animation<double> _borderRadiusAnimation;
-  
+
   // 缩小后的封面尺寸
   static const double _smallCoverSize = 56.0;
-  static const double _smallCoverBorderRadius = 20.0;
+  static const double _smallCoverBorderRadius = 10.0;
   static const double _largeCoverBorderRadius = 20.0;
 
   @override
   void initState() {
     super.initState();
     _startHideTimer();
-    
+
     _transitionController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 0.16, // 60/375 ≈ 0.16 (从75%屏幕宽度缩小到60px)
     ).animate(_transitionController);
-    
+
     _positionAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: const Offset(-1.0, -1.0), // 将根据实际尺寸计算
     ).animate(_transitionController);
-    
+
     _borderRadiusAnimation = Tween<double>(
       begin: 20.0,
       end: 12.0,
@@ -338,7 +348,7 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
     _transitionController.dispose();
     super.dispose();
   }
-  
+
   void _toggleLyrics() {
     widget.onToggleLyrics();
   }
@@ -361,185 +371,212 @@ class _MobileLayoutState extends State<MobileLayout> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    
     // 计算 Padding 值（安全区）
-    final paddingLeft = MediaQuery.of(context).padding.left + _horizontalPadding;
-    final paddingRight = MediaQuery.of(context).padding.right + _horizontalPadding;
-    final paddingTop = MediaQuery.of(context).padding.top + _topPaddingBase + ((defaultTargetPlatform == TargetPlatform.macOS) ? _topPaddingMacOS : 0);
-    final paddingBottom = MediaQuery.of(context).padding.bottom + _bottomPaddingBase + ((defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.windows) ? _bottomPaddingMacOS : 0);
-    
-    final lyricsView = KaraokeLyricsView(
-      key: ValueKey('mobile_${widget.currentSong.id}'),
-      lyricsData: widget.currentSong.lyricsBlob,
-      currentPosition: widget.playerProvider.position,
-      onTapLine: (time) {
-        widget.playerProvider.seekTo(time);
-        _showControls();
-      },
-    );
+    final paddingLeft = 20.0;
+    final paddingRight = 20.0;
+    final paddingTop = MediaQuery.of(context).padding.top +
+        _topPaddingBase +
+        ((defaultTargetPlatform == TargetPlatform.macOS)
+            ? _topPaddingMacOS
+            : 0);
+    final paddingBottom = MediaQuery.of(context).padding.bottom +
+        _bottomPaddingBase +
+        ((defaultTargetPlatform == TargetPlatform.macOS ||
+                defaultTargetPlatform == TargetPlatform.windows)
+            ? _bottomPaddingMacOS
+            : 0);
+
+    final lyricsView = Padding(
+        padding: EdgeInsets.only(
+          left: 6,
+          right: 6,
+        ),
+        child: KaraokeLyricsView(
+          key: ValueKey('mobile_${widget.currentSong.id}'),
+          lyricsData: widget.currentSong.lyricsBlob,
+          currentPosition: widget.playerProvider.position,
+          onTapLine: (time) {
+            widget.playerProvider.seekTo(time);
+            _showControls();
+          },
+        ));
 
     return GestureDetector(
-      onVerticalDragUpdate: _showLyrics ? (details) {
-        if (details.delta.dy > 0) {
-          _showControls();
-        }
-      } : null,
+      onVerticalDragUpdate: _showLyrics
+          ? (details) {
+              if (details.delta.dy > 0) {
+                _showControls();
+              }
+            }
+          : null,
       onTap: _showLyrics ? () => _showControls() : null,
       child: DraggableCloseContainer(
         child: Stack(
           children: [
             // 主内容区域（带安全区 padding）
-            Padding(
-              padding: EdgeInsets.only(
-                left: paddingLeft,
-                right: paddingRight,
-                top: paddingTop,
-                bottom: paddingBottom,
-              ),
-              child: Stack(
-                children: [
-                  // 歌词层（在显示歌词时可见）
-                  AnimatedBuilder(
-                    animation: _transitionController,
-                    builder: (context, child) {
-                      final t = Curves.easeInOutSine.transform(_transitionController.value);
-                      final blurAmount = 5.0 * (1.0 - t); // 从5到0的模糊
-                      
-                      return _showLyrics
-                          ? Positioned.fill(
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                  top: 88,
-                                  bottom: _showControlPanel ? 184.0 : 8.0,
+            Stack(
+              children: [
+                // 歌词层（在显示歌词时可见）
+                AnimatedBuilder(
+                  animation: _transitionController,
+                  builder: (context, child) {
+                    final t = Curves.easeInOutSine
+                        .transform(_transitionController.value);
+                    final blurAmount = 5.0 * (1.0 - t); // 从5到0的模糊
+
+                    return _showLyrics
+                        ? Positioned.fill(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                top: 88,
+                                bottom: _showControlPanel ? 184.0 : 8.0,
+                              ),
+                              child: ImageFiltered(
+                                imageFilter: ImageFilter.blur(
+                                  sigmaX: blurAmount,
+                                  sigmaY: blurAmount,
+                                  tileMode: TileMode.decal,
                                 ),
-                                child: ImageFiltered(
-                                  imageFilter: ImageFilter.blur(
-                                    sigmaX: blurAmount,
-                                    sigmaY: blurAmount,
-                                    tileMode: TileMode.decal,
-                                  ),
-                                  child: ShaderMask(
-                                    shaderCallback: (rect) {
-                                      return const LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
-                                        stops: [0.0, 0.1, 0.9, 1.0],
-                                      ).createShader(rect);
-                                    },
-                                    blendMode: BlendMode.dstIn,
-                                    child: lyricsView,
-                                  ),
+                                child: ShaderMask(
+                                  shaderCallback: (rect) {
+                                    return const LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black,
+                                        Colors.black,
+                                        Colors.transparent
+                                      ],
+                                      stops: [0.0, 0.1, 0.9, 1.0],
+                                    ).createShader(rect);
+                                  },
+                                  blendMode: BlendMode.dstIn,
+                                  child: lyricsView,
                                 ),
                               ),
-                            )
-                          : const SizedBox.shrink();
-                    },
-                  ),
-              
-              // 主内容层
-              AnimatedBuilder(
-                animation: _transitionController,
-                builder: (context, child) {
-                  final t = Curves.easeInOutSine.transform(_transitionController.value);
-                  // 上部 flex: 从 2 过渡到 0
-                  final topFlex = ((1 - t) * 2).clamp(0.01, 2.0);
-                  // 下部 flex: 从 3 过渡到 1
-                  final bottomFlex = 3 - t * 2;
-                  
-                  return Column(
-                    children: [
-                      // 顶部：把手
-                      SizedBox(
-                        width: 100,
-                        height: 6,
-                        child: InkWell(
-                          onTap: () => Navigator.pop(context),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Center(
-                            child: Container(
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(2),
+                            ),
+                          )
+                        : const SizedBox.shrink();
+                  },
+                ),
+
+                // 主内容层
+                AnimatedBuilder(
+                  animation: _transitionController,
+                  builder: (context, child) {
+                    final t = Curves.easeInOutSine
+                        .transform(_transitionController.value);
+                    // 上部 flex: 从 2 过渡到 0
+                    final topFlex = ((1 - t) * 2).clamp(0.01, 2.0);
+                    // 下部 flex: 从 3 过渡到 1
+                    final bottomFlex = 3 - t * 2;
+
+                    return Column(
+                      children: [
+                        // 顶部：把手
+                        SizedBox(
+                          width: 100,
+                          height: 6,
+                          child: InkWell(
+                            onTap: () => Navigator.pop(context),
+                            borderRadius: BorderRadius.circular(4),
+                            child: Center(
+                              child: Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      
-                      // 上部空间 - 动画过渡 flex 值
-                      Flexible(
-                        flex: (topFlex * 100).round(),
-                        child: const SizedBox.expand(),
-                      ),
-                  
-                      // 封面/歌曲信息
-                      Column(
-                        children: [
-                          const SizedBox(height: 8),
-                          
-                          // 封面和歌曲信息（带平移缩放动画）
-                          AnimatedAlbumCover(
-                            albumArtPath: widget.currentSong.albumArtPath,
-                            title: widget.currentSong.title,
-                            artist: widget.currentSong.artist,
-                            isPlaying: widget.isPlaying,
-                            animationProgress: t,
-                            smallCoverSize: _smallCoverSize,
-                            largeCoverBorderRadius: _largeCoverBorderRadius,
-                            smallCoverBorderRadius: _smallCoverBorderRadius,
-                            smallCoverLeft: 2.0,
-                            smallCoverTop: 2.0,
-                          ),
-                        ],
-                      ),
-                  
-                      // 下部空间 - 动画过渡 flex 值
-                      Flexible(
-                        flex: (bottomFlex * 100).round(),
-                        child: const SizedBox.expand(),
-                      ),
-                      
-                      // 底部：控制面板 + 切换按钮
-                      IgnorePointer(
-                        ignoring: _showLyrics && !_showControlPanel,
-                        child: AnimatedOpacity(
-                          opacity: _showLyrics ? (_showControlPanel ? 1.0 : 0.0) : 1.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SongInfoPanel(
-                                tempSliderValue: widget.tempSliderValue,
-                                onSliderChanged: widget.onSliderChanged,
-                                onSliderChangeEnd: widget.onSliderChangeEnd,
-                                playerProvider: widget.playerProvider,
-                                compactLayout: t > 0.5,
-                                animationProgress: t, // 传递动画进度，实现同步
+
+                        // 上部空间 - 动画过渡 flex 值
+                        Flexible(
+                          flex: (topFlex * 100).round(),
+                          child: const SizedBox.expand(),
+                        ),
+
+                        // 封面/歌曲信息
+
+                        Column(
+                          children: [
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: EdgeInsets.only(
+                                left: paddingLeft+10,
+                                right: paddingRight+10,
+                                top: paddingTop,
+                                bottom: paddingBottom,
                               ),
-                              
-                              MusicControlButtons(
-                                playerProvider: widget.playerProvider,
+                              child: AnimatedAlbumCover(
+                                albumArtPath: widget.currentSong.albumArtPath,
+                                title: widget.currentSong.title,
+                                artist: widget.currentSong.artist,
                                 isPlaying: widget.isPlaying,
-                                compactLayout:true,
+                                animationProgress: t,
+                                smallCoverSize: _smallCoverSize,
+                                largeCoverBorderRadius: _largeCoverBorderRadius,
+                                smallCoverBorderRadius: _smallCoverBorderRadius,
+                                smallCoverLeft: -10.0,
+                                smallCoverTop: 2.0,
                               ),
-                              const SizedBox(height: 8),
-                            ],
+                            )
+                          ],
+                        ),
+
+                        // 下部空间 - 动画过渡 flex 值
+                        Flexible(
+                          flex: (bottomFlex * 100).round(),
+                          child: const SizedBox.expand(),
+                        ),
+
+                        Padding(
+                          padding: EdgeInsets.only(
+                            left: paddingLeft,
+                            right: paddingRight,
+                            top: paddingTop,
+                            bottom: paddingBottom,
+                          ),
+                          child: IgnorePointer(
+                            ignoring: _showLyrics && !_showControlPanel,
+                            child: AnimatedOpacity(
+                              opacity: _showLyrics
+                                  ? (_showControlPanel ? 1.0 : 0.0)
+                                  : 1.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SongInfoPanel(
+                                    tempSliderValue: widget.tempSliderValue,
+                                    onSliderChanged: widget.onSliderChanged,
+                                    onSliderChangeEnd: widget.onSliderChangeEnd,
+                                    playerProvider: widget.playerProvider,
+                                    compactLayout: t > 0.5,
+                                    animationProgress: t, // 传递动画进度，实现同步
+                                  ),
+                                  MusicControlButtons(
+                                    playerProvider: widget.playerProvider,
+                                    isPlaying: widget.isPlaying,
+                                    compactLayout: true,
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-                ],
-              ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-            ],
+          ],
         ),
       ),
     );
@@ -594,7 +631,8 @@ class DesktopLayout extends StatelessWidget {
                     children: [
                       Column(
                         children: [
-                          HoverIconButton(onPressed: () => Navigator.pop(context)),
+                          HoverIconButton(
+                              onPressed: () => Navigator.pop(context)),
                           AnimatedScale(
                             scale: isPlaying ? 1.0 : 0.85,
                             duration: const Duration(milliseconds: 300),
@@ -605,7 +643,8 @@ class DesktopLayout extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(20),
                                 child: currentSong.albumArtPath != null &&
-                                        File(currentSong.albumArtPath!).existsSync()
+                                        File(currentSong.albumArtPath!)
+                                            .existsSync()
                                     ? Image.file(
                                         File(currentSong.albumArtPath!),
                                         width: double.infinity,
@@ -615,7 +654,10 @@ class DesktopLayout extends StatelessWidget {
                                         width: double.infinity,
                                         height: 300,
                                         color: Colors.grey[800],
-                                        child: const Icon(Icons.music_note_rounded, color: Colors.white, size: 48),
+                                        child: const Icon(
+                                            Icons.music_note_rounded,
+                                            color: Colors.white,
+                                            size: 48),
                                       ),
                               ),
                             ),
@@ -838,7 +880,9 @@ class MobileBottomButtons extends StatelessWidget {
           child: GestureDetector(
             onTap: onToggleLyrics,
             child: SvgPicture.asset(
-              showLyrics ? 'assets/icons/quote.bubble.fill.svg' : 'assets/icons/quote.bubble.svg',
+              showLyrics
+                  ? 'assets/icons/quote.bubble.fill.svg'
+                  : 'assets/icons/quote.bubble.svg',
               width: 24,
               height: 24,
               colorFilter: ColorFilter.mode(

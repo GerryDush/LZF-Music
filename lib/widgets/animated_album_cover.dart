@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class AnimatedAlbumCover extends StatelessWidget {
   final String? albumArtPath;
@@ -74,6 +75,7 @@ class AnimatedAlbumCover extends StatelessWidget {
   }) {
     final targetScale = smallCoverSize / largeCoverSize;
     
+        
     // 基础缩放（歌词模式切换）
     final baseScale = 1.0 + (targetScale - 1.0) * t;
     
@@ -81,9 +83,12 @@ class AnimatedAlbumCover extends StatelessWidget {
     final offsetX = deltaX * t;
     final offsetY = deltaY * t;
     
+final currentVisualRadius = lerpDouble(largeCoverBorderRadius, smallCoverBorderRadius, t) ?? largeCoverBorderRadius;
+    final effectiveRadius = currentVisualRadius / baseScale;
+
     // 阴影强度：播放时更强，暂停时变浅
-    final shadowOpacity = isPlaying ? 0.5 : 0.2;
-    final shadowBlur = isPlaying ? 30.0 : 15.0;
+    final shadowOpacity = isPlaying ? 0.1 : 0.05;
+    final shadowBlur = isPlaying ? 10.0 : 5.0;
     
     return Transform.translate(
       offset: Offset(offsetX, offsetY),
@@ -106,16 +111,14 @@ class AnimatedAlbumCover extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(shadowOpacity),
-                      blurRadius: shadowBlur,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 8),
+                      blurRadius: shadowBlur / baseScale, // 阴影模糊半径也建议除以 scale，防止缩小后阴影消失
+                      spreadRadius: 2 / baseScale,       // 扩散半径同理
+                      offset: Offset(0, 8 / baseScale),
                     ),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    largeCoverBorderRadius + (smallCoverBorderRadius - largeCoverBorderRadius) * t,
-                  ),
+                   borderRadius: BorderRadius.circular(effectiveRadius),
                   child: albumArtPath != null && File(albumArtPath!).existsSync()
                       ? Image.file(
                           File(albumArtPath!),
@@ -151,7 +154,7 @@ class AnimatedAlbumCover extends StatelessWidget {
       opacity: ((t - 0.3) / 0.7).clamp(0.0, 1.0),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.only(left: 0 + smallCoverSize + 12, top: 2),
+        padding: EdgeInsets.only(left: smallCoverSize, top: 2),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
