@@ -76,6 +76,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
             }
 
             return Scaffold(
+              resizeToAvoidBottomInset: false,
               backgroundColor: Colors.transparent,
               body: Stack(
                 fit: StackFit.expand,

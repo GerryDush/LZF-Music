@@ -7,6 +7,7 @@ import 'package:lzf_music/widgets/themed_background.dart';
 import '../widgets/mini_player.dart';
 import '../contants/app_contants.dart' show PlayerPage;
 import '../router/router.dart';
+import '../utils/native_tab_bar_utils.dart';
 
 class HomePageDesktop extends StatefulWidget {
   const HomePageDesktop({super.key});
@@ -34,7 +35,12 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
   ) {
     return ThemedBackground(
       builder: (context, theme) {
+        NativeTabBarController.setEventHandler(onTabSelected: (index) {
+          _onTabChanged(index);
+        });
+
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           body: Row(
             children: [
               AnimatedContainer(

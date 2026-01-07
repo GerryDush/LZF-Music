@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lzf_music/model/song_list_item.dart';
 import 'package:lzf_music/widgets/page_header.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import 'dart:async';
 import '../database/database.dart';
 import '../services/music_import_service.dart';
@@ -93,7 +94,14 @@ class PlaylistsViewState extends State<PlaylistsView> with ShowAwarePage {
     return Consumer<PlayerProvider>(
       builder: (context, playerProvider, child) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0), // 左上右16，底部0
+          padding: EdgeInsets.fromLTRB(
+            16.0,
+            PlatformUtils.isDesktop
+                ? 16.0
+                : MediaQuery.of(context).padding.top + 4.0,
+            16.0,
+            0,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

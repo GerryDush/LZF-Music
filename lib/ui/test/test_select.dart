@@ -74,6 +74,7 @@ class _RadixSelectDemoState extends State<RadixSelectDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Radix Style Select'),
         actions: [

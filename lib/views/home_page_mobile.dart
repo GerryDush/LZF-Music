@@ -51,6 +51,7 @@ class _HomePageMobileState extends State<HomePageMobile> {
         });
 
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           body: Column(
             children: [
               // 主内容区域
@@ -107,7 +108,7 @@ class _HomePageMobileState extends State<HomePageMobile> {
                                   borderRadius: BorderRadius.circular(66),
                                   child: BackdropFilter(
                                     filter: ImageFilter.blur(
-                                        sigmaX: 10, sigmaY: 10),
+                                        sigmaX: 15, sigmaY: 15),
                                     child: Container(
                                       decoration: BoxDecoration(
                                         color:

@@ -127,7 +127,9 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
                         16.0,
-                        PlatformUtils.select(desktop: 20.0, mobile: 66.0),
+                        PlatformUtils.isDesktop
+                            ? 20.0
+                            : MediaQuery.of(context).padding.top + 4.0,
                         16.0,
                         0,
                       ),

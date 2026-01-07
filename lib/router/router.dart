@@ -168,6 +168,7 @@ class MenuManager {
             return WebDavBrowserPage(arguments: args);
           }
           return const Scaffold(
+              resizeToAvoidBottomInset: false,
               body: Center(child: Text('参数错误: 缺少 WebDavBrowserArguments')));
         },
       ),
@@ -285,7 +286,9 @@ class NestedNavigatorWrapperState extends State<NestedNavigatorWrapper>
 
           page = subItem.buildPage(settings.arguments);
         } catch (e) {
-          page = Scaffold(body: Center(child: Text('未知路由: ${settings.name}')));
+          page = Scaffold(
+              resizeToAvoidBottomInset: false,
+              body: Center(child: Text('未知路由: ${settings.name}')));
         }
 
         return CupertinoPageRoute(
