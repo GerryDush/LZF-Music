@@ -142,7 +142,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(
                           16.0,
-                          0,
+                          PlatformUtils.isMacOS ? 24 : 0,
                           16.0,
                           0,
                         ),

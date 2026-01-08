@@ -472,13 +472,6 @@ class _MobileLayoutState extends State<MobileLayout>
                     // 下部 flex: 从 3 过渡到 1
                     final bottomFlex = 3 - t * 2;
 
-                    // 计算可用高度
-                    final screenHeight = MediaQuery.of(context).size.height;
-                    final topBarHeight = 6.0; // 把手高度
-                    final controlPanelHeight = 180.0; // 控制面板高度（估算）
-                    final availableHeight = screenHeight - topBarHeight - controlPanelHeight - paddingTop - paddingBottom;
-                    final maxCoverHeight = (availableHeight * 0.6).clamp(200.0, double.infinity); // 封面最多占中间区域的60%
-
                     return Column(
                       children: [
                         // 顶部：把手
@@ -511,36 +504,25 @@ class _MobileLayoutState extends State<MobileLayout>
                                 child: const SizedBox.expand(),
                               ),
 
-                              // 封面/歌曲信息 - 动态限制高度
-                              ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxHeight: maxCoverHeight,
+                              // 封面/歌曲信息
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  left: paddingLeft+10,
+                                  right: paddingRight+10,
+                                  top: paddingTop + 8,
+                                  bottom: paddingBottom,
                                 ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const SizedBox(height: 8),
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        left: paddingLeft+10,
-                                        right: paddingRight+10,
-                                        top: paddingTop,
-                                        bottom: paddingBottom,
-                                      ),
-                                      child: AnimatedAlbumCover(
-                                        albumArtPath: widget.currentSong.albumArtPath,
-                                        title: widget.currentSong.title,
-                                        artist: widget.currentSong.artist,
-                                        isPlaying: widget.isPlaying,
-                                        animationProgress: t,
-                                        smallCoverSize: _smallCoverSize,
-                                        largeCoverBorderRadius: _largeCoverBorderRadius,
-                                        smallCoverBorderRadius: _smallCoverBorderRadius,
-                                        smallCoverLeft: -10.0,
-                                        smallCoverTop: 2.0,
-                                      ),
-                                    )
-                                  ],
+                                child: AnimatedAlbumCover(
+                                  albumArtPath: widget.currentSong.albumArtPath,
+                                  title: widget.currentSong.title,
+                                  artist: widget.currentSong.artist,
+                                  isPlaying: widget.isPlaying,
+                                  animationProgress: t,
+                                  smallCoverSize: _smallCoverSize,
+                                  largeCoverBorderRadius: _largeCoverBorderRadius,
+                                  smallCoverBorderRadius: _smallCoverBorderRadius,
+                                  smallCoverLeft: -10.0,
+                                  smallCoverTop: 2.0,
                                 ),
                               ),
 
