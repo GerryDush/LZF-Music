@@ -149,7 +149,6 @@ class _PageHeaderState extends State<PageHeader> {
           ],
         ),
         if (widget.children != null) ...widget.children!,
-        SizedBox(height: 10),
       ],
     );
   }

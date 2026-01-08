@@ -91,7 +91,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     4,
-                    CommonUtils.select(theme.isFloat, t: 20, f: 136),
+                    CommonUtils.select(theme.isFloat, t: 20, f: 110),
                     4,
                     CommonUtils.select(theme.isFloat, t: 0, f: 90),
                   ),
@@ -137,16 +137,16 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                   right: 0,
                   child: FrostedContainer(
                     enabled: theme.isFloat,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        16.0,
-                        PlatformUtils.isDesktop
-                            ? 20.0
-                            : MediaQuery.of(context).padding.top + 4.0,
-                        16.0,
-                        0,
-                      ),
-                      child: PageHeader(
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          16.0,
+                          0,
+                          16.0,
+                          0,
+                        ),
+                        child: PageHeader(
                         title: '音乐库',
                         songs: songs,
                         onSearch: (keyword) async {
@@ -170,7 +170,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                           );
                         },
                         children: [
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 4),
                           MusicListHeader(
                             songs: songs,
                             orderField: orderField,
@@ -264,8 +264,7 @@ class LibraryViewState extends State<LibraryView> with ShowAwarePage {
                         ],
                       ),
                     ),
-                  ),
-                ),
+                  ),                ),                ),
               ],
             );
           },

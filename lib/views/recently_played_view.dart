@@ -90,7 +90,7 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     4,
-                    CommonUtils.select(theme.isFloat, t: 20, f: 136),
+                    CommonUtils.select(theme.isFloat, t: 20, f: 110),
                     4,
                     CommonUtils.select(theme.isFloat, t: 0, f: 90),
                   ),
@@ -124,16 +124,16 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
                   right: 0,
                   child: FrostedContainer(
                     enabled: theme.isFloat,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        16.0,
-                        PlatformUtils.isDesktop
-                            ? 20.0
-                            : MediaQuery.of(context).padding.top + 4.0,
-                        16.0,
-                        0,
-                      ),
-                      child: PageHeader(
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          16.0,
+                          0,
+                          16.0,
+                          0,
+                        ),
+                        child: PageHeader(
                         showImport: false,
                         title: '最近播放',
                         songs: songs,
@@ -142,7 +142,7 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
                           await _loadSongs();
                         },
                         children: [
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 4),
                           MusicListHeader(
                             songs: songs,
                             orderField: orderField,
@@ -174,8 +174,7 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
                         ],
                       ),
                     ),
-                  ),
-                ),
+                  ),                ),                ),
               ],
             );
           },
