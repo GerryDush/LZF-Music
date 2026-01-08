@@ -92,9 +92,13 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                     ),
                   ),
                   //_buildSafeAreaMask(context),
-                  SafeArea(
-                    child: LayoutBuilder(builder: (context, constraints) {
-                      final isNarrow = PlatformUtils.isMobileWidth(context);
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: PlatformUtils.isMacOS ? 24 : 0,
+                    ),
+                    child: SafeArea(
+                      child: LayoutBuilder(builder: (context, constraints) {
+                        final isNarrow = PlatformUtils.isMobileWidth(context);
 
                       if (isNarrow) {
                         return MobileLayout(
@@ -128,6 +132,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                         },
                       );
                     }),
+                    ),
                   ),
                   // 底部按钮 - 安全区外
                   if (PlatformUtils.isMobileWidth(context))
@@ -372,8 +377,8 @@ class _MobileLayoutState extends State<MobileLayout>
   @override
   Widget build(BuildContext context) {
     // 计算 Padding 值（安全区）
-    final paddingLeft = 20.0;
-    final paddingRight = 20.0;
+    final paddingLeft = 24.0;
+    final paddingRight = 24.0;
     final paddingTop = MediaQuery.of(context).padding.top +
         _topPaddingBase +
         ((defaultTargetPlatform == TargetPlatform.macOS)
@@ -499,18 +504,18 @@ class _MobileLayoutState extends State<MobileLayout>
                           child: Column(
                             children: [
                               // 上部空间 - 动画过渡 flex 值
-                              Flexible(
-                                flex: (topFlex * 100).round(),
-                                child: const SizedBox.expand(),
-                              ),
+                              // Flexible(
+                              //   flex: (topFlex * 100).round(),
+                              //   child: const SizedBox.expand(),
+                              // ),
 
                               // 封面/歌曲信息
                               Padding(
                                 padding: EdgeInsets.only(
-                                  left: paddingLeft+10,
-                                  right: paddingRight+10,
-                                  top: paddingTop + 8,
-                                  bottom: paddingBottom,
+                                  left: paddingLeft,
+                                  right: paddingRight,
+                                  top: 12,
+                                  bottom: 0,
                                 ),
                                 child: AnimatedAlbumCover(
                                   albumArtPath: widget.currentSong.albumArtPath,
@@ -527,10 +532,10 @@ class _MobileLayoutState extends State<MobileLayout>
                               ),
 
                               // 下部空间 - 动画过渡 flex 值
-                              Flexible(
-                                flex: (bottomFlex * 100).round(),
-                                child: const SizedBox.expand(),
-                              ),
+                              // Flexible(
+                              //   flex: (bottomFlex * 100).round(),
+                              //   child: const SizedBox.expand(),
+                              // ),
                             ],
                           ),
                         ),
