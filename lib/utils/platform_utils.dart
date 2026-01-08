@@ -20,6 +20,14 @@ class PlatformUtils {
   static bool get isLinux => Platform.isLinux;
   static bool get isAndroid => Platform.isAndroid;
   static bool get isIOS => Platform.isIOS;
+  
+  // 通过屏幕尺寸判断是否为iPad
+  // iPad最小宽度是768pt（iPad mini），iPhone最大是430pt
+  static bool isIPad(BuildContext context) {
+    if (!Platform.isIOS) return false;
+    final shortestSide = MediaQuery.of(context).size.shortestSide;
+    return shortestSide >= 600; // iPad的最短边通常>=768，这里用600作为安全阈值
+  }
 
   static String getFontFamily() {
     if (Platform.isWindows) {

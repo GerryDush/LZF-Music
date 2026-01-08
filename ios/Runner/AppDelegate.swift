@@ -69,13 +69,12 @@ extension AppDelegate {
         // 1. 容器背景透明
         tabBarController.view.backgroundColor = .clear
         
-        // 2. 配置子控制器 (对齐 Flutter 端 PlayerPage 枚举顺序)
+        // 2. 配置子控制器
         tabBarController.viewControllers = [
-            createDummyVC(title: "库", icon: "music.note.list", tag: 0),     // library
-            createDummyVC(title: "喜欢", icon: "heart", tag: 1),              // favorite
-            createDummyVC(title: "播放列表", icon: "music.note", tag: 2),     // playlist
-            createDummyVC(title: "最近播放", icon: "clock", tag: 3),          // recently
-            createDummyVC(title: "系统设置", icon: "gear", tag: 4)            // settings
+            createDummyVC(title: "库", icon: "music.note.list", tag: 0),
+            createDummyVC(title: "喜欢", icon: "heart", tag: 1),
+            createDummyVC(title: "最近播放", icon: "clock", tag: 2),
+            createDummyVC(title: "系统设置", icon: "gear", tag: 3)
         ]
         
         tabBarController.delegate = self
@@ -117,58 +116,21 @@ extension AppDelegate {
         tabBarController.view.translatesAutoresizingMaskIntoConstraints = false
         
         let guide = flutterVC.view.safeAreaLayoutGuide
-        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+        let isIPad = UIDevice.current.userInterfaceIdiom == .pad
         
-        if isPad {
-            // iPad: 置顶居中悬挂样式
-            // 再次增加高度到 96pt，彻底解决复杂图标/长文字的截断问题
-            tabBarBottomConstraint = tabBarController.view.topAnchor.constraint(equalTo: flutterVC.view.topAnchor, constant: 12)
+        if isIPad {
+            // iPad: 标签栏在顶部
+            tabBarBottomConstraint = tabBarController.view.topAnchor.constraint(equalTo: flutterVC.view.topAnchor)
             NSLayoutConstraint.activate([
-                tabBarController.view.centerXAnchor.constraint(equalTo: flutterVC.view.centerXAnchor),
-                tabBarController.view.widthAnchor.constraint(equalToConstant: 700),
+                tabBarController.view.leadingAnchor.constraint(equalTo: flutterVC.view.leadingAnchor),
+                tabBarController.view.trailingAnchor.constraint(equalTo: flutterVC.view.trailingAnchor),
                 tabBarBottomConstraint!,
-                tabBarController.view.heightAnchor.constraint(equalToConstant: 96)
+                // 底部对齐 Safe Area 顶部，向下偏移 49pt (TabBar高度)
+                tabBarController.view.bottomAnchor.constraint(equalTo: guide.topAnchor, constant: 49)
             ])
-            
-            // 样式优化：保持 48pt 的大圆角
-            tabBarController.view.layer.cornerRadius = 48
-            tabBarController.view.layer.masksToBounds = true
-            tabBarController.view.layer.borderWidth = 0.5
-            tabBarController.view.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
-            
-            // 确保 TabBar 覆盖容器高度
-            tabBarController.tabBar.autoresizingMask = [.flexibleHeight, .flexibleWidth]
-            
-            let appearance = UITabBarAppearance()
-            appearance.configureWithDefaultBackground()
-            appearance.backgroundEffect = UIBlurEffect(style: .systemChromeMaterial)
-            appearance.backgroundColor = UIColor(white: 1.0, alpha: 0.15)
-            
-            // 解决截断：在 96pt 高度中让内容居中分布
-            let itemAppearance = UITabBarItemAppearance()
-            // 微调分布，使在大胶囊中视觉平衡
-            itemAppearance.normal.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: 0)
-            appearance.stackedLayoutAppearance = itemAppearance
-            
-            appearance.shadowColor = .clear
-            appearance.shadowImage = UIImage()
-            
-            tabBarController.tabBar.standardAppearance = appearance
-            tabBarController.tabBar.scrollEdgeAppearance = appearance
-            
-            // 修复跳转问题：确保交互正常，并设置点击时的颜色反馈
-            tabBarController.tabBar.tintColor = .systemBlue
-            tabBarController.tabBar.unselectedItemTintColor = .systemGray
-            tabBarController.view.isUserInteractionEnabled = true
-            
-            if #available(iOS 18.0, *) {
-                tabBarController.tabBar.traitOverrides.horizontalSizeClass = .compact
-            }
-            tabBarController.view.isUserInteractionEnabled = true
         } else {
-            // iPhone/其他: 底部固定
+            // iPhone: 标签栏在底部
             tabBarBottomConstraint = tabBarController.view.bottomAnchor.constraint(equalTo: flutterVC.view.bottomAnchor)
-            
             NSLayoutConstraint.activate([
                 tabBarController.view.leadingAnchor.constraint(equalTo: flutterVC.view.leadingAnchor),
                 tabBarController.view.trailingAnchor.constraint(equalTo: flutterVC.view.trailingAnchor),
@@ -187,31 +149,19 @@ extension AppDelegate {
     }
     
     func setTabBar(hidden: Bool, animated: Bool = true) {
-        guard let constraint = tabBarBottomConstraint, let view = tabBarVC?.view else { return }
+        guard let tabBar = tabBarVC?.view else { return }
         
-        let isPad = UIDevice.current.userInterfaceIdiom == .pad
-        let targetConstant: CGFloat
-        
-        if isPad {
-            // iPad 置顶，隐藏时向上移动
-            targetConstant = hidden ? -(view.frame.height + 40) : 12
-        } else {
-            // iPhone 底部，隐藏时向下移动
-            targetConstant = hidden ? view.frame.height : 0
-        }
-        
-        if constraint.constant == targetConstant { return }
-        
-        constraint.constant = targetConstant
-        
-        let animations = {
-            _ = self.window?.layoutIfNeeded()
-        }
+        if tabBar.isHidden == hidden { return }
         
         if animated {
-            UIView.animate(withDuration: 0.25, animations: animations)
+            UIView.animate(withDuration: 0.2) {
+                tabBar.alpha = hidden ? 0 : 1
+            } completion: { _ in
+                tabBar.isHidden = hidden
+            }
         } else {
-            animations()
+            tabBar.alpha = hidden ? 0 : 1
+            tabBar.isHidden = hidden
         }
         
         notifyFlutterTabBarVisibility(isHidden: hidden)

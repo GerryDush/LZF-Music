@@ -22,7 +22,7 @@ class FrostedContainer extends StatelessWidget {
 
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
           decoration: BoxDecoration(
             color: (backgroundColor ?? ThemeUtils.backgroundColor(context))

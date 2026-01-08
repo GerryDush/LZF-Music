@@ -76,7 +76,6 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
             }
 
             return Scaffold(
-              resizeToAvoidBottomInset: false,
               backgroundColor: Colors.transparent,
               body: Stack(
                 fit: StackFit.expand,
@@ -430,7 +429,7 @@ class _MobileLayoutState extends State<MobileLayout>
                             child: Padding(
                               padding: EdgeInsets.only(
                                 top: 88,
-                                bottom: _showControlPanel ? 184.0 : 8.0,
+                                bottom: _showControlPanel ? 184.0 : 28.0,
                               ),
                               child: ImageFiltered(
                                 imageFilter: ImageFilter.blur(
@@ -473,6 +472,13 @@ class _MobileLayoutState extends State<MobileLayout>
                     // 下部 flex: 从 3 过渡到 1
                     final bottomFlex = 3 - t * 2;
 
+                    // 计算可用高度
+                    final screenHeight = MediaQuery.of(context).size.height;
+                    final topBarHeight = 6.0; // 把手高度
+                    final controlPanelHeight = 180.0; // 控制面板高度（估算）
+                    final availableHeight = screenHeight - topBarHeight - controlPanelHeight - paddingTop - paddingBottom;
+                    final maxCoverHeight = (availableHeight * 0.6).clamp(200.0, double.infinity); // 封面最多占中间区域的60%
+
                     return Column(
                       children: [
                         // 顶部：把手
@@ -495,46 +501,59 @@ class _MobileLayoutState extends State<MobileLayout>
                           ),
                         ),
 
-                        // 上部空间 - 动画过渡 flex 值
-                        Flexible(
-                          flex: (topFlex * 100).round(),
-                          child: const SizedBox.expand(),
-                        ),
-
-                        // 封面/歌曲信息
-
-                        Column(
-                          children: [
-                            const SizedBox(height: 8),
-                            Padding(
-                              padding: EdgeInsets.only(
-                                left: paddingLeft+10,
-                                right: paddingRight+10,
-                                top: paddingTop,
-                                bottom: paddingBottom,
+                        // 动态内容区域（封面和空间）- 占据中间可用空间
+                        Expanded(
+                          child: Column(
+                            children: [
+                              // 上部空间 - 动画过渡 flex 值
+                              Flexible(
+                                flex: (topFlex * 100).round(),
+                                child: const SizedBox.expand(),
                               ),
-                              child: AnimatedAlbumCover(
-                                albumArtPath: widget.currentSong.albumArtPath,
-                                title: widget.currentSong.title,
-                                artist: widget.currentSong.artist,
-                                isPlaying: widget.isPlaying,
-                                animationProgress: t,
-                                smallCoverSize: _smallCoverSize,
-                                largeCoverBorderRadius: _largeCoverBorderRadius,
-                                smallCoverBorderRadius: _smallCoverBorderRadius,
-                                smallCoverLeft: -10.0,
-                                smallCoverTop: 2.0,
+
+                              // 封面/歌曲信息 - 动态限制高度
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight: maxCoverHeight,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(height: 8),
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        left: paddingLeft+10,
+                                        right: paddingRight+10,
+                                        top: paddingTop,
+                                        bottom: paddingBottom,
+                                      ),
+                                      child: AnimatedAlbumCover(
+                                        albumArtPath: widget.currentSong.albumArtPath,
+                                        title: widget.currentSong.title,
+                                        artist: widget.currentSong.artist,
+                                        isPlaying: widget.isPlaying,
+                                        animationProgress: t,
+                                        smallCoverSize: _smallCoverSize,
+                                        largeCoverBorderRadius: _largeCoverBorderRadius,
+                                        smallCoverBorderRadius: _smallCoverBorderRadius,
+                                        smallCoverLeft: -10.0,
+                                        smallCoverTop: 2.0,
+                                      ),
+                                    )
+                                  ],
+                                ),
                               ),
-                            )
-                          ],
+
+                              // 下部空间 - 动画过渡 flex 值
+                              Flexible(
+                                flex: (bottomFlex * 100).round(),
+                                child: const SizedBox.expand(),
+                              ),
+                            ],
+                          ),
                         ),
 
-                        // 下部空间 - 动画过渡 flex 值
-                        Flexible(
-                          flex: (bottomFlex * 100).round(),
-                          child: const SizedBox.expand(),
-                        ),
-
+                        // 固定在底部的控制面板 - 不被挤压
                         Padding(
                           padding: EdgeInsets.only(
                             left: paddingLeft,
@@ -857,7 +876,7 @@ class MobileBottomButtons extends StatelessWidget {
       children: [
         // AirPlay 按钮 - 左下角
         Positioned(
-          left: 28,
+          left: 60,
           bottom: 28,
           child: GestureDetector(
             onTap: () {
@@ -876,7 +895,7 @@ class MobileBottomButtons extends StatelessWidget {
         ),
         // 歌词切换按钮 - 右下角
         Positioned(
-          right: 28,
+          right: 60,
           bottom: 28,
           child: GestureDetector(
             onTap: onToggleLyrics,
