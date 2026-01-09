@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class ThemeUtils {
   ThemeUtils._();
 
-  static const Color lightBg = Color(0xffefeff1);
+  static const Color lightBg = Color(0xffffffff);
   static const Color darkBg = Color(0xff151515);
 
   static bool isDark(BuildContext context) {

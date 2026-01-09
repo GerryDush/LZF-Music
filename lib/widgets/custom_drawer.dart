@@ -23,10 +23,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           /// 主内容区
           Scaffold(
+            resizeToAvoidBottomInset: false,
             appBar: AppBar(
               title: const Text("右侧模糊抽屉"),
               actions: [

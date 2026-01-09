@@ -115,16 +115,30 @@ extension AppDelegate {
         // 5. 布局约束
         tabBarController.view.translatesAutoresizingMaskIntoConstraints = false
         
-        tabBarBottomConstraint = tabBarController.view.bottomAnchor.constraint(equalTo: flutterVC.view.bottomAnchor)
         let guide = flutterVC.view.safeAreaLayoutGuide
+        let isIPad = UIDevice.current.userInterfaceIdiom == .pad
         
-        NSLayoutConstraint.activate([
-            tabBarController.view.leadingAnchor.constraint(equalTo: flutterVC.view.leadingAnchor),
-            tabBarController.view.trailingAnchor.constraint(equalTo: flutterVC.view.trailingAnchor),
-            tabBarBottomConstraint!,
-            // 顶部对齐 Safe Area 底部，向上偏移 49pt (TabBar高度)
-            tabBarController.view.topAnchor.constraint(equalTo: guide.bottomAnchor, constant: -49)
-        ])
+        if isIPad {
+            // iPad: 标签栏在顶部
+            tabBarBottomConstraint = tabBarController.view.topAnchor.constraint(equalTo: flutterVC.view.topAnchor)
+            NSLayoutConstraint.activate([
+                tabBarController.view.leadingAnchor.constraint(equalTo: flutterVC.view.leadingAnchor),
+                tabBarController.view.trailingAnchor.constraint(equalTo: flutterVC.view.trailingAnchor),
+                tabBarBottomConstraint!,
+                // 底部对齐 Safe Area 顶部，向下偏移 49pt (TabBar高度)
+                tabBarController.view.bottomAnchor.constraint(equalTo: guide.topAnchor, constant: 49)
+            ])
+        } else {
+            // iPhone: 标签栏在底部
+            tabBarBottomConstraint = tabBarController.view.bottomAnchor.constraint(equalTo: flutterVC.view.bottomAnchor)
+            NSLayoutConstraint.activate([
+                tabBarController.view.leadingAnchor.constraint(equalTo: flutterVC.view.leadingAnchor),
+                tabBarController.view.trailingAnchor.constraint(equalTo: flutterVC.view.trailingAnchor),
+                tabBarBottomConstraint!,
+                // 顶部对齐 Safe Area 底部，向上偏移 49pt (TabBar高度)
+                tabBarController.view.topAnchor.constraint(equalTo: guide.bottomAnchor, constant: -49)
+            ])
+        }
     }
     
     private func createDummyVC(title: String, icon: String, tag: Int) -> UIViewController {
@@ -135,21 +149,19 @@ extension AppDelegate {
     }
     
     func setTabBar(hidden: Bool, animated: Bool = true) {
-        guard let constraint = tabBarBottomConstraint, let view = tabBarVC?.view else { return }
+        guard let tabBar = tabBarVC?.view else { return }
         
-        let targetConstant: CGFloat = hidden ? view.frame.height : 0
-        if constraint.constant == targetConstant { return }
-        
-        constraint.constant = targetConstant
-        
-        let animations = {
-            _ = self.window?.layoutIfNeeded()
-        }
+        if tabBar.isHidden == hidden { return }
         
         if animated {
-            UIView.animate(withDuration: 0.25, animations: animations)
+            UIView.animate(withDuration: 0.2) {
+                tabBar.alpha = hidden ? 0 : 1
+            } completion: { _ in
+                tabBar.isHidden = hidden
+            }
         } else {
-            animations()
+            tabBar.alpha = hidden ? 0 : 1
+            tabBar.isHidden = hidden
         }
         
         notifyFlutterTabBarVisibility(isHidden: hidden)

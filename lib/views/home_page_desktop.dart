@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localization/flutter_localization.dart';
 import 'package:lzf_music/utils/common_utils.dart';
+import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/utils/theme_utils.dart';
 import 'package:lzf_music/widgets/frosted_container.dart';
 import 'package:lzf_music/widgets/themed_background.dart';
 import '../widgets/mini_player.dart';
 import '../contants/app_contants.dart' show PlayerPage;
 import '../router/router.dart';
+import '../utils/native_tab_bar_utils.dart';
 
 class HomePageDesktop extends StatefulWidget {
   const HomePageDesktop({super.key});
@@ -34,9 +36,17 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
   ) {
     return ThemedBackground(
       builder: (context, theme) {
+        // 设置原生标签栏事件处理（用于iPad）
+        NativeTabBarController.setEventHandler(onTabSelected: (index) {
+          _onTabChanged(index);
+        });
+        
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           body: Row(
             children: [
+              // iPad隐藏侧边栏，使用原生标签栏
+              if (!PlatformUtils.isIOS)
               AnimatedContainer(
                 color: theme.sidebarBg,
                 duration: const Duration(milliseconds: 200),

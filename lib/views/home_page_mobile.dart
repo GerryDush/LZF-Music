@@ -51,6 +51,7 @@ class _HomePageMobileState extends State<HomePageMobile> {
         });
 
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           body: Column(
             children: [
               // 主内容区域
@@ -96,7 +97,7 @@ class _HomePageMobileState extends State<HomePageMobile> {
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 0,
+                      bottom: PlatformUtils.isIOS ? 80 : 0, // iOS 平台向上移动，避免和液态玻璃标签栏重合
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           return Column(
@@ -136,9 +137,12 @@ class _HomePageMobileState extends State<HomePageMobile> {
                               SizedBox(
                                 height: 8,
                               ),
+                              // 标签栏处理：
+                              // - iOS (iPhone/iPad): 使用原生液态玻璃标签栏，不显示 Flutter 标签栏
+                              // - 其他平台 (Android等): 使用 Flutter 标签栏，需要80px空间
                               SizedBox(
-                                height: 80,
-                                child: (PlatformUtils.isIOS)
+                                height: PlatformUtils.isIOS ? 0 : 80,
+                                child: PlatformUtils.isIOS
                                     ? SizedBox()
                                     : ValueListenableBuilder<PlayerPage>(
                                         valueListenable:

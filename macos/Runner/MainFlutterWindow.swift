@@ -9,10 +9,15 @@ class MainFlutterWindow: NSWindow {
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 
-    // macos 26 corner
-    let toolbar = NSToolbar(identifier: "MainToolbar")
-    toolbar.showsBaselineSeparator = false
-    self.toolbar = toolbar
+    // 隐藏标题栏，全屏内容
+    self.titlebarAppearsTransparent = true
+    self.titleVisibility = .hidden
+    self.styleMask.insert(.fullSizeContentView)
+    
+    // 移除 toolbar，避免占用顶部空间
+    // let toolbar = NSToolbar(identifier: "MainToolbar")
+    // toolbar.showsBaselineSeparator = false
+    // self.toolbar = toolbar
 
     let bookmarkChannel = FlutterMethodChannel(name: "com.lzf_music/secure_bookmarks",
                                                    binaryMessenger: flutterViewController.engine.binaryMessenger)

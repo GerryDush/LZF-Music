@@ -125,6 +125,7 @@ class StorageSettingPageState extends State<StorageSettingPage> with RouteAware 
     final list = _storageList;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: PlatformUtils.isMobile?ThemeUtils.backgroundColor(context):null,
       appBar: AppBar(
         title: const Text('存储设置'),

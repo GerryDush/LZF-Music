@@ -12,6 +12,7 @@ import '../views/settings/webdav_browser_page.dart';
 import './my_cupertino_route.dart';
 import '../model/storage_config.dart';
 import '../i18n/i18n.dart';
+import '../utils/native_tab_bar_utils.dart';
 
 class WebDavBrowserArguments {
   final StorageConfig config;
@@ -240,6 +241,8 @@ class NestedNavigatorWrapperState extends State<NestedNavigatorWrapper>
   @override
   void onPageShow() {
     print('NestedNavigatorWrapper onPageShow');
+    // 回到主页面时显示标签栏
+    NativeTabBarController.show();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _notifyFirstSubPageShow();
     });
@@ -275,6 +278,7 @@ class NestedNavigatorWrapperState extends State<NestedNavigatorWrapper>
     return Navigator(
       key: widget.navigatorKey,
       initialRoute: widget.initialRoute,
+      observers: [_TabBarVisibilityObserver()],
       onGenerateRoute: (settings) {
         Widget page;
 
@@ -292,6 +296,36 @@ class NestedNavigatorWrapperState extends State<NestedNavigatorWrapper>
             settings: settings, builder: (context) => page);
       },
     );
+  }
+}
+
+// 导航观察器：监听路由变化自动显示/隐藏标签栏
+class _TabBarVisibilityObserver extends NavigatorObserver {
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    print('didPush: ${route.settings.name}');
+    _updateTabBarVisibility(route);
+  }
+
+  @override
+  void didPop(Route route, Route? previousRoute) {
+    print('didPop: ${previousRoute?.settings.name}');
+    if (previousRoute != null) {
+      _updateTabBarVisibility(previousRoute);
+    }
+  }
+
+  void _updateTabBarVisibility(Route route) {
+    // 只在首页（'/'）显示标签栏
+    final isRootRoute = route.settings.name == '/';
+    print('路由: ${route.settings.name}, 是否首页: $isRootRoute');
+    if (isRootRoute) {
+      print('显示标签栏');
+      NativeTabBarController.show();
+    } else {
+      print('隐藏标签栏');
+      NativeTabBarController.hide();
+    }
   }
 }
 

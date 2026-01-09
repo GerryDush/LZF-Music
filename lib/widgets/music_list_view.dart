@@ -146,7 +146,7 @@ class _MusicListViewState extends State<MusicListView> {
                 child: SizedBox(
                   height: CommonUtils.select(
                     theme.isFloat,
-                    t: PlatformUtils.select(desktop: 120, mobile: 180),
+                    t: PlatformUtils.select(desktop: 120, mobile: 144),
                     f: 0,
                   ),
                 ), // 标题栏高度
@@ -481,7 +481,7 @@ class _MusicListViewState extends State<MusicListView> {
                     theme.isFloat,
                     t: CommonUtils.select(
                       PlatformUtils.isMobileWidth(context),
-                      t: 136,
+                      t: 146,
                       f: 80,
                     ),
                     f: 0,
