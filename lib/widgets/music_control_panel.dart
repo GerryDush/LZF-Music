@@ -160,106 +160,112 @@ class MusicControlButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showPlayModeButtons = constraints.maxWidth >= 320;
+        
+        return Column(
           children: [
-            IconButton(
-              iconSize: 20,
-              padding: compactLayout ? const EdgeInsets.all(4) : null,
-              constraints: compactLayout ? const BoxConstraints() : null,
-              color: Colors.white70,
-              icon: Icon(
-                Icons.shuffle_rounded,
-                color: playerProvider.playMode == PlayMode.shuffle
-                    ? Colors.white
-                    : null,
-              ),
-              onPressed: () {
-                if (playerProvider.playMode == PlayMode.shuffle) {
-                  playerProvider.setPlayMode(PlayMode.sequence);
-                  return;
-                }
-                playerProvider.setPlayMode(PlayMode.shuffle);
-              },
-            ),
-            Expanded(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+            Row(
+              children: [
+                if (showPlayModeButtons)
                   IconButton(
-                    iconSize: 48,
+                    iconSize: 20,
                     padding: compactLayout ? const EdgeInsets.all(4) : null,
                     constraints: compactLayout ? const BoxConstraints() : null,
-                    color: (playerProvider.hasPrevious ||
-                            playerProvider.playMode == PlayMode.loop)
-                        ? Colors.white
-                        : Colors.white70,
-                    icon: const Icon(Icons.skip_previous_rounded),
-                    onPressed: () => playerProvider.previous(),
-                  ),
-                  SizedBox(width: compactLayout ? 8 : 16),
-                  IconButton(
-                    iconSize: 64,
-                    padding: compactLayout ? const EdgeInsets.all(4) : null,
-                    constraints: compactLayout ? const BoxConstraints() : null,
-                    color: Colors.white,
+                    color: Colors.white70,
                     icon: Icon(
-                      isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
+                      Icons.shuffle_rounded,
+                      color: playerProvider.playMode == PlayMode.shuffle
+                          ? Colors.white
+                          : null,
                     ),
-                    onPressed: () => playerProvider.togglePlay(),
+                    onPressed: () {
+                      if (playerProvider.playMode == PlayMode.shuffle) {
+                        playerProvider.setPlayMode(PlayMode.sequence);
+                        return;
+                      }
+                      playerProvider.setPlayMode(PlayMode.shuffle);
+                    },
                   ),
-                  SizedBox(width: compactLayout ? 8 : 16),
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        iconSize: 48,
+                        padding: compactLayout ? const EdgeInsets.all(4) : null,
+                        constraints: compactLayout ? const BoxConstraints() : null,
+                        color: (playerProvider.hasPrevious ||
+                                playerProvider.playMode == PlayMode.loop)
+                            ? Colors.white
+                            : Colors.white70,
+                        icon: const Icon(Icons.skip_previous_rounded),
+                        onPressed: () => playerProvider.previous(),
+                      ),
+                      SizedBox(width: compactLayout ? 8 : 16),
+                      IconButton(
+                        iconSize: 64,
+                        padding: compactLayout ? const EdgeInsets.all(4) : null,
+                        constraints: compactLayout ? const BoxConstraints() : null,
+                        color: Colors.white,
+                        icon: Icon(
+                          isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                        ),
+                        onPressed: () => playerProvider.togglePlay(),
+                      ),
+                      SizedBox(width: compactLayout ? 8 : 16),
+                      IconButton(
+                        iconSize: 48,
+                        padding: compactLayout ? const EdgeInsets.all(4) : null,
+                        constraints: compactLayout ? const BoxConstraints() : null,
+                        color: (playerProvider.hasNext ||
+                                playerProvider.playMode == PlayMode.loop)
+                            ? Colors.white
+                            : Colors.white70,
+                        icon: const Icon(Icons.skip_next_rounded),
+                        onPressed: () => playerProvider.next(),
+                      ),
+                    ],
+                  ),
+                ),
+                if (showPlayModeButtons)
                   IconButton(
-                    iconSize: 48,
+                    iconSize: 20,
                     padding: compactLayout ? const EdgeInsets.all(4) : null,
                     constraints: compactLayout ? const BoxConstraints() : null,
-                    color: (playerProvider.hasNext ||
-                            playerProvider.playMode == PlayMode.loop)
-                        ? Colors.white
-                        : Colors.white70,
-                    icon: const Icon(Icons.skip_next_rounded),
-                    onPressed: () => playerProvider.next(),
+                    color: Colors.white70,
+                    icon: Icon(
+                      playerProvider.playMode == PlayMode.singleLoop
+                          ? Icons.repeat_one_rounded
+                          : Icons.repeat_rounded,
+                      color: playerProvider.playMode == PlayMode.loop ||
+                              playerProvider.playMode == PlayMode.singleLoop
+                          ? Colors.white
+                          : null,
+                    ),
+                    onPressed: () {
+                      if (playerProvider.playMode == PlayMode.singleLoop) {
+                        playerProvider.setPlayMode(PlayMode.sequence);
+                        return;
+                      }
+                      playerProvider.setPlayMode(
+                        playerProvider.playMode == PlayMode.loop
+                            ? PlayMode.singleLoop
+                            : PlayMode.loop,
+                      );
+                    },
                   ),
-                ],
-              ),
+              ],
             ),
-            IconButton(
-              iconSize: 20,
-              padding: compactLayout ? const EdgeInsets.all(4) : null,
-              constraints: compactLayout ? const BoxConstraints() : null,
-              color: Colors.white70,
-              icon: Icon(
-                playerProvider.playMode == PlayMode.singleLoop
-                    ? Icons.repeat_one_rounded
-                    : Icons.repeat_rounded,
-                color: playerProvider.playMode == PlayMode.loop ||
-                        playerProvider.playMode == PlayMode.singleLoop
-                    ? Colors.white
-                    : null,
-              ),
-              onPressed: () {
-                if (playerProvider.playMode == PlayMode.singleLoop) {
-                  playerProvider.setPlayMode(PlayMode.sequence);
-                  return;
-                }
-                playerProvider.setPlayMode(
-                  playerProvider.playMode == PlayMode.loop
-                      ? PlayMode.singleLoop
-                      : PlayMode.loop,
-                );
-              },
-            ),
-          ],
-        ),
-        if (compactLayout) ...[
-        ] else ...[
-          const SizedBox(height: 8),
-        ],
-        Row(
+            if (compactLayout) ...[
+            ] else ...[
+              const SizedBox(height: 8),
+            ],
+            Row(
           children: [
             IconButton(
               padding: compactLayout ? const EdgeInsets.all(4) : null,
@@ -292,10 +298,12 @@ class MusicControlButtons extends StatelessWidget {
               onPressed: () {
                 playerProvider.setVolume(playerProvider.volume + 0.1);
               },
-            ),
-          ],
-        ),
-      ],
+              ),
+            ],
+          ),
+        ],
+      );
+    },
     );
   }
 }

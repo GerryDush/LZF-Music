@@ -94,7 +94,7 @@ class _ImprovedNowPlayingScreenState extends State<ImprovedNowPlayingScreen> {
                   //_buildSafeAreaMask(context),
                   Padding(
                     padding: EdgeInsets.only(
-                      top: PlatformUtils.isMacOS ? 24 : 0,
+                      top: PlatformUtils.isMacOS ? 16 : 0,
                     ),
                     child: SafeArea(
                       child: LayoutBuilder(builder: (context, constraints) {
@@ -626,104 +626,19 @@ class DesktopLayout extends StatelessWidget {
             child: Container(),
           ),
           Flexible(
-            flex: 16,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // 可用空间
-                    final maxWidth = constraints.maxWidth;
-                    final maxHeight = constraints.maxHeight;
-                    
-                    // 计算符合长宽比 1.8 <= ratio <= 2.3 的尺寸
-                    double width, height;
-                    
-                    // 根据高度计算宽度范围
-                    final minWidthFromHeight = maxHeight / 2.0; // 最小宽度（长宽比2.3）
-                    final maxWidthFromHeight = maxHeight / 1.8; // 最大宽度（长宽比1.8）
-                    
-                    if (maxWidthFromHeight <= maxWidth) {
-                      // 高度是限制因素，使用长宽比1.8
-                      height = maxHeight;
-                      width = maxWidthFromHeight;
-                    } else if (minWidthFromHeight <= maxWidth) {
-                      // 宽度在范围内，调整长宽比
-                      width = maxWidth;
-                      height = (width * 1.8).clamp(width * 1.8, maxHeight);
-                    } else {
-                      // 宽度是限制因素，使用长宽比2.3
-                      width = maxWidth;
-                      height = (width * 2.0).clamp(width * 1.8, maxHeight);
-                    }
-                    
-                    return SizedBox(
-                      width: width,
-                      height: height,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            children: [
-                              HoverIconButton(
-                                  onPressed: () => Navigator.pop(context)),
-                              AnimatedScale(
-                                scale: isPlaying ? 1.0 : 0.85,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                                child: AnimatedOpacity(
-                                  opacity: isPlaying ? 1.0 : 0.8,
-                                  duration: const Duration(milliseconds: 300),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: currentSong.albumArtPath != null &&
-                                            File(currentSong.albumArtPath!)
-                                                .existsSync()
-                                        ? Image.file(
-                                            File(currentSong.albumArtPath!),
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Container(
-                                            width: double.infinity,
-                                            height: 300,
-                                            color: Colors.grey[800],
-                                            child: const Icon(
-                                                Icons.music_note_rounded,
-                                                color: Colors.white,
-                                                size: 48),
-                                          ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SongInfoPanel(
-                                  tempSliderValue: tempSliderValue,
-                                  onSliderChanged: onSliderChanged,
-                                  onSliderChangeEnd: onSliderChangeEnd,
-                                  playerProvider: playerProvider,
-                                ),
-                                const SizedBox(height: 8),
-                                MusicControlButtons(
-                                  playerProvider: playerProvider,
-                                  isPlaying: isPlaying,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
+            flex: 13,
+            child: DesktopLeftPanel(
+              currentSong: currentSong,
+              isPlaying: isPlaying,
+              tempSliderValue: tempSliderValue,
+              onSliderChanged: onSliderChanged,
+              onSliderChangeEnd: onSliderChangeEnd,
+              playerProvider: playerProvider,
             ),
+          ),
+          Flexible(
+            flex: 1,
+            child: Container(),
           ),
           Flexible(
             flex: 24,
@@ -929,6 +844,129 @@ class MobileBottomButtons extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class DesktopLeftPanel extends StatelessWidget {
+  final dynamic currentSong;
+  final bool isPlaying;
+  final double tempSliderValue;
+  final ValueChanged<double> onSliderChanged;
+  final ValueChanged<double> onSliderChangeEnd;
+  final PlayerProvider playerProvider;
+
+  const DesktopLeftPanel({
+    Key? key,
+    required this.currentSong,
+    required this.isPlaying,
+    required this.tempSliderValue,
+    required this.onSliderChanged,
+    required this.onSliderChangeEnd,
+    required this.playerProvider,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 0),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            final maxHeight = constraints.maxHeight;
+            
+            // 计算实际使用的宽度和高度
+            double width = maxWidth;
+            double height = maxHeight;
+            
+            // 如果长宽比小于2，限制宽度以确保 ratio >= 2
+            final ratio = height / width;
+            if (ratio < 2.0) {
+              width = height / 2.0;
+            }
+
+            return SizedBox(
+              width: width,
+              height: height,
+              child: Stack(
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            HoverIconButton(
+                                onPressed: () => Navigator.pop(context)),
+                            Flexible(
+                              child: AnimatedAlbumCover(
+                                albumArtPath: currentSong.albumArtPath,
+                                title: currentSong.title,
+                                artist: currentSong.artist,
+                                isPlaying: isPlaying,
+                                animationProgress: 0.0, // 桌面端不需要动画
+                                smallCoverSize: 0,
+                                largeCoverBorderRadius: 20.0,
+                                smallCoverBorderRadius: 20.0,
+                                smallCoverLeft: 0,
+                                smallCoverTop: 0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SongInfoPanel(
+                              tempSliderValue: tempSliderValue,
+                              onSliderChanged: onSliderChanged,
+                              onSliderChangeEnd: onSliderChangeEnd,
+                              playerProvider: playerProvider,
+                            ),
+                            const SizedBox(height: 8),
+                            MusicControlButtons(
+                              playerProvider: playerProvider,
+                              isPlaying: isPlaying,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                  // 调试信息：显示尺寸
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${width.toStringAsFixed(1)} × ${height.toStringAsFixed(1)}\nRatio: ${(height / width).toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
