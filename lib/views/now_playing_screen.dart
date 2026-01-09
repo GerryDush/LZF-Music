@@ -622,82 +622,111 @@ class DesktopLayout extends StatelessWidget {
       child: Row(
         children: [
           Flexible(
-            flex: 4,
+            flex: 3,
+            child: Container(),
+          ),
+          Flexible(
+            flex: 16,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
-                child: SizedBox(
-                  width: CommonUtils.select(
-                    MediaQuery.of(context).size.width > 1300,
-                    t: 380,
-                    f: 336,
-                  ),
-                  height: 700,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // 可用空间
+                    final maxWidth = constraints.maxWidth;
+                    final maxHeight = constraints.maxHeight;
+                    
+                    // 计算符合长宽比 1.8 <= ratio <= 2.3 的尺寸
+                    double width, height;
+                    
+                    // 根据高度计算宽度范围
+                    final minWidthFromHeight = maxHeight / 2.0; // 最小宽度（长宽比2.3）
+                    final maxWidthFromHeight = maxHeight / 1.8; // 最大宽度（长宽比1.8）
+                    
+                    if (maxWidthFromHeight <= maxWidth) {
+                      // 高度是限制因素，使用长宽比1.8
+                      height = maxHeight;
+                      width = maxWidthFromHeight;
+                    } else if (minWidthFromHeight <= maxWidth) {
+                      // 宽度在范围内，调整长宽比
+                      width = maxWidth;
+                      height = (width * 1.8).clamp(width * 1.8, maxHeight);
+                    } else {
+                      // 宽度是限制因素，使用长宽比2.3
+                      width = maxWidth;
+                      height = (width * 2.0).clamp(width * 1.8, maxHeight);
+                    }
+                    
+                    return SizedBox(
+                      width: width,
+                      height: height,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          HoverIconButton(
-                              onPressed: () => Navigator.pop(context)),
-                          AnimatedScale(
-                            scale: isPlaying ? 1.0 : 0.85,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                            child: AnimatedOpacity(
-                              opacity: isPlaying ? 1.0 : 0.8,
-                              duration: const Duration(milliseconds: 300),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20),
-                                child: currentSong.albumArtPath != null &&
-                                        File(currentSong.albumArtPath!)
-                                            .existsSync()
-                                    ? Image.file(
-                                        File(currentSong.albumArtPath!),
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(
-                                        width: double.infinity,
-                                        height: 300,
-                                        color: Colors.grey[800],
-                                        child: const Icon(
-                                            Icons.music_note_rounded,
-                                            color: Colors.white,
-                                            size: 48),
-                                      ),
+                          Column(
+                            children: [
+                              HoverIconButton(
+                                  onPressed: () => Navigator.pop(context)),
+                              AnimatedScale(
+                                scale: isPlaying ? 1.0 : 0.85,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                                child: AnimatedOpacity(
+                                  opacity: isPlaying ? 1.0 : 0.8,
+                                  duration: const Duration(milliseconds: 300),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: currentSong.albumArtPath != null &&
+                                            File(currentSong.albumArtPath!)
+                                                .existsSync()
+                                        ? Image.file(
+                                            File(currentSong.albumArtPath!),
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Container(
+                                            width: double.infinity,
+                                            height: 300,
+                                            color: Colors.grey[800],
+                                            child: const Icon(
+                                                Icons.music_note_rounded,
+                                                color: Colors.white,
+                                                size: 48),
+                                          ),
+                                  ),
+                                ),
                               ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SongInfoPanel(
+                                  tempSliderValue: tempSliderValue,
+                                  onSliderChanged: onSliderChanged,
+                                  onSliderChangeEnd: onSliderChangeEnd,
+                                  playerProvider: playerProvider,
+                                ),
+                                const SizedBox(height: 8),
+                                MusicControlButtons(
+                                  playerProvider: playerProvider,
+                                  isPlaying: isPlaying,
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SongInfoPanel(
-                              tempSliderValue: tempSliderValue,
-                              onSliderChanged: onSliderChanged,
-                              onSliderChangeEnd: onSliderChangeEnd,
-                              playerProvider: playerProvider,
-                            ),
-                            const SizedBox(height: 8),
-                            MusicControlButtons(
-                              playerProvider: playerProvider,
-                              isPlaying: isPlaying,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
           ),
           Flexible(
-            flex: 5,
+            flex: 24,
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 60.0),

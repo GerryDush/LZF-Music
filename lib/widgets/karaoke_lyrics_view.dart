@@ -473,7 +473,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       progressInPixels = offset + (width * spanProgress);
     }
 
-    final transitionWidthPixels = 12.0;
+    final transitionWidthPixels = 1.0;
     final gradientStart = progressInPixels;
     final gradientEnd = progressInPixels + transitionWidthPixels;
 
@@ -481,6 +481,41 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
     for (int i = 0; i < line.spans.length; i++) {
       final spanStart = spanOffsets[i];
       final spanEnd = spanStart + spanWidths[i];
+
+      // 计算当前字的状态：-1 未播放，0 正在播放，1 已播放
+      int charState;
+      double animationProgress = 0.0;
+      
+      if (spanEnd <= gradientStart) {
+        charState = 1; // 已播放完
+      } else if (spanStart >= gradientEnd) {
+        charState = -1; // 未播放
+      } else {
+        charState = 0; // 正在播放
+        // 计算正在播放的进度（0-1）
+        final spanWidth = spanEnd - spanStart;
+        if (spanWidth > 0) {
+          final relativeProgress = (gradientStart - spanStart) / spanWidth;
+          animationProgress = relativeProgress.clamp(0.0, 1.0);
+        }
+      }
+
+      // 根据状态设置垂直偏移
+      double verticalOffset;
+      if (charState == 1) {
+        verticalOffset = 0.0; // 已播放：保持原位
+      } else if (charState == -1) {
+        verticalOffset = 0.5; // 未播放：向下偏移
+      } else {
+        // 正在播放：从下沉位置(0.5)平滑上浮到原位(0.0)
+        // 可选曲线：
+        // Curves.easeOutQuart - 更平滑的四次方缓出
+        // Curves.fastOutSlowIn - Material Design 标准曲线
+        // Curves.easeOutBack - 带轻微回弹效果，更生动
+        // Curves.decelerate - 持续减速
+        final curvedProgress = Curves.fastOutSlowIn.transform(animationProgress);
+        verticalOffset = 0.5 - (curvedProgress * 0.5);
+      }
 
       final shaderWidget = ShaderMask(
         shaderCallback: (rect) {
@@ -501,7 +536,10 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
           ).createShader(rect);
         },
         blendMode: BlendMode.srcIn,
-        child: Text(line.spans[i].text, style: textStyle),
+        child: Transform.translate(
+          offset: Offset(0, verticalOffset),
+          child: Text(line.spans[i].text, style: textStyle),
+        ),
       );
       widgets.add(shaderWidget);
     }
@@ -583,8 +621,8 @@ class _IndependentLyricLineState extends State<IndependentLyricLine>
     bool isScrollingBackwards = to < from;
 
     int delayMs = 0;
-    int step = isScrollingBackwards ? 20 : 80;
-    if (distance >= 0 && distance <= 8) {
+    int step = isScrollingBackwards ? 20 : 45; // FCK:20 : 80
+    if (distance >= 0 && distance <= 12) {
       delayMs = (distance * step).clamp(0, 1600);
     }
 
