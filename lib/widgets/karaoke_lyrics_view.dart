@@ -492,12 +492,11 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
         charState = -1; // 未播放
       } else {
         charState = 0; // 正在播放
-        // 计算正在播放的进度（0-1）
-        final spanWidth = spanEnd - spanStart;
-        if (spanWidth > 0) {
-          final relativeProgress = (gradientStart - spanStart) / spanWidth;
-          animationProgress = relativeProgress.clamp(0.0, 1.0);
-        }
+        // 使用固定的200ms动画时长
+        final span = line.spans[i];
+        final timeSinceStart = position.inMilliseconds - span.start.inMilliseconds;
+        const fixedAnimationDuration = 200; // 固定200ms动画时长
+        animationProgress = (timeSinceStart / fixedAnimationDuration).clamp(0.0, 1.0);
       }
 
       // 根据状态设置垂直偏移
@@ -505,16 +504,16 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView>
       if (charState == 1) {
         verticalOffset = 0.0; // 已播放：保持原位
       } else if (charState == -1) {
-        verticalOffset = 0.5; // 未播放：向下偏移
+        verticalOffset = 0.7; // 未播放：向下偏移
       } else {
-        // 正在播放：从下沉位置(0.5)平滑上浮到原位(0.0)
+        // 正在播放：从下沉位置(0.7)平滑上浮到原位(0.0)
         // 可选曲线：
         // Curves.easeOutQuart - 更平滑的四次方缓出
         // Curves.fastOutSlowIn - Material Design 标准曲线
         // Curves.easeOutBack - 带轻微回弹效果，更生动
         // Curves.decelerate - 持续减速
         final curvedProgress = Curves.fastOutSlowIn.transform(animationProgress);
-        verticalOffset = 0.5 - (curvedProgress * 0.5);
+        verticalOffset = 0.7 - (curvedProgress * 0.7);
       }
 
       final shaderWidget = ShaderMask(

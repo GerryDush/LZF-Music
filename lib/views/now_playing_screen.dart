@@ -942,25 +942,25 @@ class DesktopLeftPanel extends StatelessWidget {
                     ],
                   ),
                   // 调试信息：显示尺寸
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${width.toStringAsFixed(1)} × ${height.toStringAsFixed(1)}\nRatio: ${(height / width).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ),
-                  ),
+                  // Positioned(
+                  //   top: 8,
+                  //   left: 8,
+                  //   child: Container(
+                  //     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  //     decoration: BoxDecoration(
+                  //       color: Colors.black.withOpacity(0.6),
+                  //       borderRadius: BorderRadius.circular(4),
+                  //     ),
+                  //     child: Text(
+                  //       '${width.toStringAsFixed(1)} × ${height.toStringAsFixed(1)}\nRatio: ${(height / width).toStringAsFixed(2)}',
+                  //       style: const TextStyle(
+                  //         color: Colors.white,
+                  //         fontSize: 10,
+                  //         fontFamily: 'monospace',
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             );
