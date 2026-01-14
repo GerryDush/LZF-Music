@@ -142,35 +142,36 @@ class LyricLine {
 
   String getLineText() {
     if (spans.isEmpty) return '';
+    String fullText = spans.map((s) => s.text).join().replaceAll(RegExp(r'\s+'), ' ');
 
     final buffer = StringBuffer();
-    String? lastCharType;
-
-    String charType(String char) {
-      final code = char.codeUnitAt(0);
-      if (code <= 127) return 'en';
-      return 'cjk';
-    }
-
-    for (final span in spans) {
-      final text = span.text;
-      for (final char in text.characters) {
-        final type = charType(char);
-
-        if (lastCharType != null) {
-          if ((lastCharType == 'cjk' && type == 'en') ||
-              (lastCharType == 'en' && type == 'cjk')) {
-            buffer.write(' ');
-          }
-        }
-
-        buffer.write(char);
-        lastCharType = type;
+    int lastType = 0; 
+    int getCharType(int code) {
+      if (code == 32) return 0;      
+      if ((code >= 48 && code <= 57) || 
+          (code >= 65 && code <= 90) || 
+          (code >= 97 && code <= 122)) {
+        return 1;
       }
-      if (lastCharType == 'en') buffer.write(' ');
+      if (code <= 127) return 0;      
+      return 2;
     }
+
+    for (final char in fullText.runes) {
+      final currentType = getCharType(char);
+      if (lastType != 0 && currentType != 0) {
+        if ((lastType == 2 && currentType == 1) || // 中 -> 英
+            (lastType == 1 && currentType == 2)) { // 英 -> 中
+          buffer.write(' ');
+        }
+      }
+
+      buffer.write(String.fromCharCode(char));
+      lastType = currentType;
+    }
+
     return buffer.toString().trim();
-  }
+}
 }
 
 class LyricSpan {
