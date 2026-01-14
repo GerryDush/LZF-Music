@@ -5,7 +5,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
-import 'package:lzf_music/model/song_list_item.dart';
 import 'package:lzf_music/services/file_access_manager.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';

@@ -63,7 +63,17 @@ class PlayerProvider with ChangeNotifier {
 
   PlayerProvider() {
     _initializeListeners();
-    _setupAudioServiceCallbacks();
+     _bindExternalControls();
+  }
+
+   void _bindExternalControls() {
+    _audioService.onSkipToNextCallback = () async {
+      await next();
+    };
+
+    _audioService.onSkipToPreviousCallback = () async {
+      await previous();
+    };
   }
 
   void _initializeListeners() {
@@ -114,17 +124,6 @@ class PlayerProvider with ChangeNotifier {
       setVolume(_volume);
       notifyListeners();
     });
-  }
-
-  void _setupAudioServiceCallbacks() {
-    _audioService.setCallbacks(
-      onPlay: () => togglePlay(),
-      onPause: () => togglePlay(),
-      onStop: () => stop(),
-      onNext: () => next(),
-      onPrevious: () => previous(),
-      onSeek: (position) => seekTo(position),
-    );
   }
 
   void _handleSongCompleteWithDebounce() {
@@ -210,9 +209,6 @@ class PlayerProvider with ChangeNotifier {
 
       _currentSong = await MusicDatabase.database.getSongById(songId);
 
-      // 更新 AudioService 媒体项
-      _audioService.updateCurrentMediaItem(_currentSong!);
-
       await _audioService.playSong(_currentSong!, playNow: playNow);
 
 
@@ -238,10 +234,10 @@ class PlayerProvider with ChangeNotifier {
 
     try {
       if (_isPlaying) {
-        await _audioService.pausePlayer();
+        await _audioService.pause();
         // playerState.setIsPlaying(false);
       } else {
-        await _audioService.resume();
+        await _audioService.play();
         // playerState.setIsPlaying(true);
       }
     } catch (e) {
@@ -253,7 +249,7 @@ class PlayerProvider with ChangeNotifier {
   Future<void> stop() async {
     try {
       _isHandlingComplete = true;
-      await _audioService.stopPlayer();
+      await _audioService.stop();
       _currentSong = null;
       _isPlaying = false;
       _position.value = Duration.zero;
@@ -328,7 +324,7 @@ class PlayerProvider with ChangeNotifier {
 
   Future<void> seekTo(Duration position) async {
     try {
-      await _audioService.seekPlayer(position);
+      await _audioService.seek(position);
       // playerState.setPosition(position);
     } catch (e) {
       _errorMessage = '跳转失败: ${e.toString()}';
@@ -501,7 +497,7 @@ class PlayerProvider with ChangeNotifier {
           if (_currentSong != null) {
             Future.microtask(() {
               seekTo(Duration.zero);
-              _audioService.resume();
+              _audioService.play();
             });
           }
           break;

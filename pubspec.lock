@@ -53,10 +53,11 @@ packages:
   audio_service:
     dependency: "direct main"
     description:
-      name: audio_service
-      sha256: cb122c7c2639d2a992421ef96b67948ad88c5221da3365ccef1031393a76e044
-      url: "https://pub.dev"
-    source: hosted
+      path: audio_service
+      ref: "v0.0.1"
+      resolved-ref: "76c7f21f6ec46ac3c32b4f9afb1089d39ee32840"
+      url: "https://github.com/GerryDush/audio_service.git"
+    source: git
     version: "0.18.18"
   audio_service_platform_interface:
     dependency: transitive

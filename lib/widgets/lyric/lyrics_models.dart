@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:characters/characters.dart';
 
 class LyricsData {
   /// 歌词格式版本
@@ -71,8 +72,7 @@ class LyricsData {
   /// 获取当前播放时间对应的行索引
   int getLineIndexByProgress(Duration position) {
     if (lines.isEmpty) return 0;
-    final index =
-        lines.lastIndexWhere((line) => position >= line.startTime);
+    final index = lines.lastIndexWhere((line) => position >= line.startTime);
     return index == -1 ? 0 : index;
   }
 }
@@ -107,9 +107,7 @@ class LyricLine {
 
   factory LyricLine.fromJson(Map<String, dynamic> json) {
     return LyricLine(
-      spans: (json['spans'] as List)
-          .map((e) => LyricSpan.fromJson(e))
-          .toList(),
+      spans: (json['spans'] as List).map((e) => LyricSpan.fromJson(e)).toList(),
       startTime: Duration(milliseconds: json['startTime']),
       endTime: Duration(milliseconds: json['endTime']),
       translations: (json['translations'] as Map?)
@@ -131,17 +129,47 @@ class LyricLine {
 
   /// 获取整行播放进度 (0.0 - 1.0)
   double getLineProgress(Duration position) {
-    final total =
-        endTime.inMilliseconds - startTime.inMilliseconds;
+    final total = endTime.inMilliseconds - startTime.inMilliseconds;
     if (total <= 0) return 0.0;
-    final current =
-        position.inMilliseconds - startTime.inMilliseconds;
+    final current = position.inMilliseconds - startTime.inMilliseconds;
     return (current / total).clamp(0.0, 1.0);
   }
 
   /// 获取指定语言的翻译
   String? getTranslation(String lang) {
     return translations?[lang];
+  }
+
+  String getLineText() {
+    if (spans.isEmpty) return '';
+
+    final buffer = StringBuffer();
+    String? lastCharType;
+
+    String charType(String char) {
+      final code = char.codeUnitAt(0);
+      if (code <= 127) return 'en';
+      return 'cjk';
+    }
+
+    for (final span in spans) {
+      final text = span.text;
+      for (final char in text.characters) {
+        final type = charType(char);
+
+        if (lastCharType != null) {
+          if ((lastCharType == 'cjk' && type == 'en') ||
+              (lastCharType == 'en' && type == 'cjk')) {
+            buffer.write(' ');
+          }
+        }
+
+        buffer.write(char);
+        lastCharType = type;
+      }
+      if (lastCharType == 'en') buffer.write(' ');
+    }
+    return buffer.toString().trim();
   }
 }
 
@@ -172,15 +200,13 @@ class LyricSpan {
 
   /// 当前字/词播放进度（逐字填充）
   double getSpanProgress(Duration position) {
-    final duration =
-        end.inMilliseconds - start.inMilliseconds;
+    final duration = end.inMilliseconds - start.inMilliseconds;
     if (duration <= 0) return 1.0;
 
     if (position < start) return 0.0;
     if (position > end) return 1.0;
 
-    final current =
-        position.inMilliseconds - start.inMilliseconds;
+    final current = position.inMilliseconds - start.inMilliseconds;
     return current / duration;
   }
 }

@@ -1,28 +1,15 @@
+import 'dart:async';
 import 'dart:io';
-
 import 'package:audio_service/audio_service.dart';
-import 'package:lzf_music/services/file_access_manager.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:rxdart/rxdart.dart';
-import 'dart:async';
 import '../database/database.dart';
-import 'package:audio_session/audio_session.dart'; 
+import 'file_access_manager.dart';
+import '../widgets/lyric/lyrics_models.dart';
 
 class AudioPlayerService extends BaseAudioHandler with SeekHandler {
   static final AudioPlayerService _instance = AudioPlayerService._internal();
-  final Player player = Player(
-    configuration: PlayerConfiguration(title: "LZF Music"),
-  );
-
-  Function()? onPlay;
-  Function()? onPause;
-  Function()? onStop;
-  Function()? onNext;
-  Function()? onPrevious;
-  Function(Duration)? onSeek;
-
-  MediaItem? _currentMediaItem;
-  StreamSubscription? _playbackStateSubscription;
 
   factory AudioPlayerService() => _instance;
 
@@ -30,30 +17,83 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
     _setupPlaybackStatePipe();
   }
 
+  Future<void> Function()? onSkipToNextCallback;
+  Future<void> Function()? onSkipToPreviousCallback;
+
+  /* ------------------------- Player ------------------------- */
+
+  final Player player = Player(
+    configuration: const PlayerConfiguration(
+      title: 'LZF Music',
+    ),
+  );
+
+  MediaItem? _currentMediaItem;
+  LyricsData? _currentLyrics;
+  int _currentLyricIndex = -1;
+  // final bool hasLyrics = song.lyricsBlob != null && song.lyricsBlob!.lines.isNotEmpty;
+
+  bool get hasLyrics {
+    return _currentLyrics != null && _currentLyrics!.lines.isNotEmpty;
+  }
+
+  Song? _currentSongData;
+  StreamSubscription? _playbackStateSubscription;
+
+  bool _wasPlayingBeforeInterruption = false;
+
+  /* ---------------- PlaybackState Pipeline ------------------ */
+
   void _setupPlaybackStatePipe() {
-    // 组合多个流，但保存订阅以便控制
-    final stateStream = Rx.combineLatest4<bool, Duration, Duration, bool, PlaybackState>(
+    final triggerStream = Rx.combineLatest3<bool, Duration, bool, void>(
       player.stream.playing,
-      player.stream.position,
       player.stream.duration,
       player.stream.buffering,
-      (playing, position, duration, buffering) {
-        return _createPlaybackState(
-          playing: playing,
-          position: position,
-          buffering: buffering,
-        );
-      },
+      (playing, duration, buffering) => null,
     );
 
-    // 不要直接 pipe，而是监听并手动更新
-    // 这样可以确保状态不会被意外清除
-    _playbackStateSubscription = stateStream.listen((state) {
-      playbackState.add(state);
+    _playbackStateSubscription = triggerStream
+        .debounceTime(const Duration(milliseconds: 20)) // 防抖
+        .listen((_) {
+      _broadcastState();
+    });
+    player.stream.position.listen((position) {
+      _checkAndUpdateLyric(position);
+      _broadcastState();
     });
   }
 
-  PlaybackState _createPlaybackState({
+  void _checkAndUpdateLyric(Duration position) {
+    if (_currentLyrics == null || _currentSongData == null) return;
+
+    // 计算当前行 (包含 400ms 偏移补偿，与 UI 保持一致)
+    final newIndex = _currentLyrics!.lines.lastIndexWhere(
+      (line) =>
+          (position + const Duration(milliseconds: 400)) >= line.startTime,
+    );
+
+    // 只有当行数改变，且有效时才更新
+    if (hasLyrics && newIndex != -1 && newIndex != _currentLyricIndex) {
+      _currentLyricIndex = newIndex;
+      final currentLineText = _currentLyrics!.lines[newIndex].getLineText();
+      updateCurrentMediaItem(_currentSongData!,
+          lyric: currentLineText, hasLyrics: hasLyrics);
+    }
+  }
+
+  void _broadcastState() {
+    final playing = player.state.playing;
+    final position = player.state.position;
+    final buffering = player.state.buffering;
+
+    playbackState.add(createPlaybackState(
+      playing: playing,
+      position: position,
+      buffering: buffering,
+    ));
+  }
+
+  PlaybackState createPlaybackState({
     required bool playing,
     required Duration position,
     required bool buffering,
@@ -65,6 +105,7 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
         MediaControl.skipToNext,
       ],
       systemActions: const {
+        MediaAction.setRating,
         MediaAction.seek,
         MediaAction.seekForward,
         MediaAction.seekBackward,
@@ -77,146 +118,225 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
               : AudioProcessingState.idle),
       playing: playing,
       updatePosition: position,
-      bufferedPosition: position,
+      bufferedPosition: player.state.buffer, 
       speed: playing ? 1.0 : 0.0,
       queueIndex: 0,
-      updateTime: DateTime.now()
+      updateTime: DateTime.now(),
     );
-    
   }
 
+  /* -------------------- AudioService Init ------------------- */
+
   static Future<AudioPlayerService> init() async {
-       final session = await AudioSession.instance;
-    await session.configure(AudioSessionConfiguration(
+    final session = await AudioSession.instance;
+
+    await session.configure(const AudioSessionConfiguration(
       avAudioSessionCategory: AVAudioSessionCategory.playback,
-      avAudioSessionMode: AVAudioSessionMode.moviePlayback,
-      androidAudioAttributes: const AndroidAudioAttributes(
+      avAudioSessionMode: AVAudioSessionMode.defaultMode,
+      avAudioSessionRouteSharingPolicy:
+          AVAudioSessionRouteSharingPolicy.defaultPolicy,
+      avAudioSessionSetActiveOptions:
+          AVAudioSessionSetActiveOptions.notifyOthersOnDeactivation,
+      androidAudioAttributes: AndroidAudioAttributes(
         contentType: AndroidAudioContentType.music,
         usage: AndroidAudioUsage.media,
       ),
       androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+      androidWillPauseWhenDucked: true,
     ));
+
+    final service = _instance;
+
+    session.interruptionEventStream.listen((event) async {
+      if (event.begin) {
+        switch (event.type) {
+          case AudioInterruptionType.duck:
+            service.player.setVolume(0.3);
+            break;
+          case AudioInterruptionType.pause:
+          case AudioInterruptionType.unknown:
+            service._wasPlayingBeforeInterruption =
+                service.player.state.playing;
+            if (service._wasPlayingBeforeInterruption) {
+              await service.player.pause();
+            }
+            break;
+        }
+      } else {
+        switch (event.type) {
+          case AudioInterruptionType.duck:
+            service.player.setVolume(1.0);
+            break;
+          case AudioInterruptionType.pause:
+          case AudioInterruptionType.unknown:
+            if (service._wasPlayingBeforeInterruption) {
+              try {
+                await session.setActive(true);
+                await Future.delayed(const Duration(milliseconds: 100));
+                await service.player.play();
+              } catch (e) {
+                print("Failed to resume playback: $e");
+              }
+            }
+            service._wasPlayingBeforeInterruption = false;
+            break;
+        }
+      }
+    });
+
     await AudioService.init(
-      builder: () => AudioPlayerService(),
+      builder: () => service,
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'org.tttx.lzf_music.channel.audio',
         androidNotificationChannelName: 'LZF Music',
         androidNotificationOngoing: true,
         androidNotificationClickStartsActivity: true,
-        androidShowNotificationBadge: true,
       ),
     );
-    return _instance;
+
+    return service;
   }
 
-  void setCallbacks({
-    Function()? onPlay,
-    Function()? onPause,
-    Function()? onStop,
-    Function()? onNext,
-    Function()? onPrevious,
-    Function(Duration)? onSeek,
-  }) {
-    this.onPlay = onPlay;
-    this.onPause = onPause;
-    this.onStop = onStop;
-    this.onNext = onNext;
-    this.onPrevious = onPrevious;
-    this.onSeek = onSeek;
-  }
-
-  void updateCurrentMediaItem(Song song) {
-    _currentMediaItem = MediaItem(
-      id: song.id.toString(),
-      album: song.album ?? 'Unknown Album',
-      title: song.title,
-      artist: song.artist ?? 'Unknown Artist',
-      duration: song.duration != null
-          ? Duration(milliseconds: song.duration! * 1000)
-          : null,
-      artUri: song.albumArtPath != null 
-          ? Uri.file(song.albumArtPath!) 
-          : null,
-    );
-    
-    mediaItem.add(_currentMediaItem);
-    
-    // 然后立即更新 playbackState，确保控制中心有内容
-    playbackState.add(_createPlaybackState(
-      playing: player.state.playing,
-      position: player.state.position,
-      buffering: player.state.buffering,
-    ));
-    
-    print('MediaItem updated: ${song.title}');
-  }
+  /* -------------------- Media Control ----------------------- */
 
   Future<void> playSong(Song song, {bool playNow = true}) async {
     try {
-      updateCurrentMediaItem(song);
-      if(Platform.isIOS||Platform.isMacOS && !song.filePath.startsWith('/')){
-        // macOS 和 iOS 需要处理书签访问
-        // print('Attempting to access file via bookmark: ${song.filePath}');
-         final resolved = await FileAccessManager.startAccessing(song.filePath!);
-        await player.open(Media(resolved!), play: playNow);
-        return;
+      _currentSongData = song;
+      _currentLyrics = song.lyricsBlob;
+      _currentLyricIndex = -1;
+      String? initialLyric;
+      if (hasLyrics) {
+        initialLyric = song.lyricsBlob!.lines.first.getLineText();
       }
-      await player.open(Media(song.filePath), play: playNow);
+      updateCurrentMediaItem(song, lyric: initialLyric, hasLyrics: hasLyrics);
+
+      if ((Platform.isIOS || Platform.isMacOS) &&
+          !song.filePath.startsWith('/')) {
+        final resolved = await FileAccessManager.startAccessing(song.filePath);
+        if (resolved != null) {
+          await player.open(Media(resolved), play: playNow);
+        }
+      } else {
+        await player.open(Media(song.filePath), play: playNow);
+      }
     } catch (e) {
       print('Error playing song: $e');
     }
   }
 
+  void updateCurrentMediaItem(Song song,
+      {String? lyric, bool hasLyrics = false}) {
+    String displayTitle;
+    String displayArtist;
+
+    final String originalArtist = song.artist ?? 'Unknown Artist';
+
+    if (hasLyrics) {
+      displayArtist = '${song.title} • $originalArtist';
+      if (lyric != null && lyric.isNotEmpty) {
+        displayTitle = lyric;
+      } else {
+        displayTitle = song.title;
+      }
+    } else {
+      displayTitle = song.title;
+      displayArtist = originalArtist;
+    }
+
+    _currentMediaItem = MediaItem(
+      id: song.id.toString(),
+      album: song.album ?? 'Unknown Album',
+      title: displayTitle,
+      artist: displayArtist,
+      duration: song.duration != null
+          ? Duration(milliseconds: song.duration! * 1000)
+          : null,
+      artUri: song.albumArtPath != null ? Uri.file(song.albumArtPath!) : null,
+      rating: Rating.newHeartRating(song.isFavorite),
+      extras: {'isFavorite': song.isFavorite},
+    );
+    mediaItem.add(_currentMediaItem);
+  }
+
+  /* ----------------- AudioHandler Overrides ---------------- */
+
+  Future<void> _toggleFavorite(bool isLiked) async {
+    final item = _currentMediaItem;
+    if (item == null) return;
+    try {
+      final songId = int.tryParse(item.id);
+      if (songId != null) {
+        await MusicDatabase.database.updateSongFavorite(songId, isLiked);
+        final newItem = item.copyWith(
+          rating: Rating.newHeartRating(isLiked),
+          extras: {...?item.extras, 'isFavorite': isLiked},
+        );
+        _currentSongData = _currentSongData!.copyWith(
+          isFavorite: isLiked
+        );
+        _currentMediaItem = newItem;
+        mediaItem.add(newItem);
+        _broadcastState();
+      }
+    } catch (e) {
+      print("Error toggling favorite: $e");
+    }
+  }
+
+  @override
+  Future<void> setRating(Rating rating, [Map<String, dynamic>? extras]) async {
+    if (rating.getRatingStyle() == RatingStyle.heart) {
+      final bool targetStatus = rating.hasHeart();
+      await _toggleFavorite(targetStatus);
+    }
+  }
+
   @override
   Future<void> play() async {
-    onPlay?.call();
+    final session = await AudioSession.instance;
+    await session.setActive(true);
+    await player.play();
   }
 
   @override
   Future<void> pause() async {
-    onPause?.call();
+    await player.pause();
   }
 
   @override
   Future<void> stop() async {
-    onStop?.call();
-  }
-
-  @override
-  Future<void> skipToNext() async {
-    onNext?.call();
-  }
-
-  @override
-  Future<void> skipToPrevious() async {
-    onPrevious?.call();
+    await player.stop();
+    await super.stop();
   }
 
   @override
   Future<void> seek(Duration position) async {
-    onSeek?.call(position);
+    await player.seek(position);
+    _broadcastState();
   }
 
-  Future<void> pausePlayer() async => await player.pause();
-  Future<void> resume() async => await player.play();
-  Future<void> stopPlayer() async {
-    await player.stop();
-    _currentMediaItem = null;
+  @override
+  Future<void> skipToNext() async {
+    if (onSkipToNextCallback != null) {
+      await onSkipToNextCallback!();
+    }
   }
-  Future<void> seekPlayer(Duration position) async => await player.seek(position);
 
-  Stream<Duration> get positionStream => player.stream.position;
-  Stream<Duration> get durationStream => player.stream.duration;
+  @override
+  Future<void> skipToPrevious() async {
+    if (onSkipToPreviousCallback != null) {
+      await onSkipToPreviousCallback!();
+    }
+  }
 
   @override
   Future<void> onTaskRemoved() async {
-    await stopPlayer();
+    await stop();
     await super.onTaskRemoved();
   }
 
   void dispose() {
     _playbackStateSubscription?.cancel();
     player.dispose();
-    super.stop();
   }
 }
