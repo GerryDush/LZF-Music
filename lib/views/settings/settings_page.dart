@@ -81,22 +81,23 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                   right: 0,
                   child: FrostedContainer(
                     enabled: theme.isFloat,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        16.0,
-                        PlatformUtils.select(desktop: 20.0, mobile: 66.0),
-                        16.0,
-                        0,
-                      ),
-                      child: PageHeader(
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          16.0,
+                          0,
+                          16.0,
+                          0,
+                        ),
+                        child: PageHeader(
                         showImport: false,
                         showSearch: false,
                         title: '系统设置',
                         children: [],
                       ),
                     ),
-                  ),
-                ),
+                  ),                ),                ),
               ],
             );
           },

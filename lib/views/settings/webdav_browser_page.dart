@@ -187,6 +187,7 @@ class _WebDavBrowserPageState extends State<WebDavBrowserPage> {
         Navigator.pop(context, _selectedPaths.toList());
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: Text(titleText),
           leading: IconButton(
