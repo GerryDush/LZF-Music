@@ -3,7 +3,7 @@
 app_id: 7B973E89-76D9-43CB-81E2-9DB393C8C042
 publisher: GerryDush
 publisher_url: https://github.com/GerryDush/LZF-Music
-display_name: LZF Music
+display_name: Linx Music
 create_desktop_icon: true
 setup_icon_file: windows\runner\resources\app_icon.ico
 script_template: inno_setup.iss

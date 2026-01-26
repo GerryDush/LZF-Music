@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:lzf_music/database/database.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
@@ -9,6 +10,7 @@ import '../services/player_provider.dart';
 import './slider_custom.dart';
 import '../contants/app_contants.dart' show PlayMode;
 import '../utils/common_utils.dart' show CommonUtils;
+import 'package:cupertino_icons/cupertino_icons.dart';
 
 class MiniPlayer extends StatefulWidget {
   final double containerWidth;
@@ -82,7 +84,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                               : null,
                         ),
                         child: currentSong?.albumArtPath == null
-                            ? const Icon(Icons.music_note_rounded, size: 24)
+                            ? const Icon(CupertinoIcons.music_note, size: 24)
                             : null,
                       ),
                     ],
@@ -232,9 +234,9 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     IconButton(
                       icon: Icon(
                         playerProvider.volume <= 0
-                            ? Icons.volume_off_rounded
-                            : Icons.volume_up_rounded,
-                        size: 20,
+                            ? CupertinoIcons.volume_off
+                            : CupertinoIcons.volume_up,
+                        size: 18,
                       ),
                       onPressed: currentSong != null
                           ? () {
@@ -267,9 +269,9 @@ class _MiniPlayerState extends State<MiniPlayer> {
               // 播放模式按钮 - 只在显示进度条时显示
               if (showProgressControl) ...[
                 IconButton(
-                  iconSize: 20,
+                  iconSize: 18,
                   icon: Icon(
-                    Icons.shuffle_rounded,
+                    CupertinoIcons.shuffle,
                     color: playerProvider.playMode == PlayMode.shuffle
                         ? activeColor
                         : inactiveColor,
@@ -286,8 +288,8 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   iconSize: 20,
                   icon: Icon(
                     playerProvider.playMode == PlayMode.singleLoop
-                        ? Icons.repeat_one_rounded
-                        : Icons.repeat_rounded,
+                        ? CupertinoIcons.repeat_1
+                        : CupertinoIcons.repeat,
                     color: playerProvider.playMode == PlayMode.loop ||
                             playerProvider.playMode == PlayMode.singleLoop
                         ? activeColor
@@ -305,7 +307,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     );
                   },
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
               ],
 
               // 控制按钮
@@ -316,9 +318,9 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   IconButton(
                     color: activeColor,
                     icon: Icon(
-                      Icons.skip_previous_rounded,
+                      CupertinoIcons.backward_fill,
                       size:
-                          CommonUtils.select(showProgressControl, t: 40, f: 32),
+                          CommonUtils.select(showProgressControl, t: 28, f: 26),
                     ),
                     onPressed: (playerProvider.playMode == PlayMode.sequence &&
                             !playerProvider.hasPrevious)
@@ -335,15 +337,16 @@ class _MiniPlayerState extends State<MiniPlayer> {
                             }
                           },
                   ),
+                  SizedBox(width: 4),
                   // 播放/暂停按钮
                   IconButton(
                     color: activeColor,
                     icon: Icon(
                       playerProvider.isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
+                          ? CupertinoIcons.pause_fill
+                          : CupertinoIcons.play_fill,
                       size:
-                          CommonUtils.select(showProgressControl, t: 40, f: 32),
+                          CommonUtils.select(showProgressControl, t: 40, f: 30),
                     ),
                     onPressed: currentSong != null
                         ? () async {
@@ -359,13 +362,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           }
                         : null,
                   ),
+                  SizedBox(width: 4),
                   // 下一首按钮
                   IconButton(
                     color: activeColor,
                     icon: Icon(
-                      Icons.skip_next_rounded,
+                      CupertinoIcons.forward_fill,
                       size:
-                          CommonUtils.select(showProgressControl, t: 40, f: 32),
+                          CommonUtils.select(showProgressControl, t: 28, f: 26),
                     ),
                     onPressed: (playerProvider.playMode == PlayMode.sequence &&
                             !playerProvider.hasNext)
@@ -382,6 +386,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                             }
                           },
                   ),
+                  SizedBox(width: 16),
                 ],
               ),
             ],

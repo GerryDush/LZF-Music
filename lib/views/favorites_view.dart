@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localization/flutter_localization.dart';
+import 'package:lzf_music/i18n/i18n.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/utils/scroll_utils.dart';
@@ -53,12 +55,10 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
     try {
       List<SongListItem> loadedSongs;
       final keyword = searchKeyword;
-      loadedSongs = await MusicDatabase.database.smartSearch(
-        keyword?.trim(),
-        orderField: orderField,
-        orderDirection: orderDirection,
-        isFavorite: true
-      );
+      loadedSongs = await MusicDatabase.database.smartSearch(keyword?.trim(),
+          orderField: orderField,
+          orderDirection: orderDirection,
+          isFavorite: true);
       setState(() {
         songs = loadedSongs;
       });
@@ -89,9 +89,9 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     4,
-                    CommonUtils.select(theme.isFloat, t: 20, f: 110),
+                    CommonUtils.select(theme.isFloat, t: 20, f: 120),
                     4,
-                    CommonUtils.select(theme.isFloat, t: 0, f: 90),
+                    CommonUtils.select(theme.isFloat, t: 10, f: 90),
                   ),
                   child: MusicListView(
                     songs: songs,
@@ -99,7 +99,9 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                     playerProvider: playerProvider,
                     showCheckbox: _showCheckbox,
                     checkedIds: checkedIds,
-                    onSongUpdated: (_,__){_loadSongs();},
+                    onSongUpdated: (_, __) {
+                      _loadSongs();
+                    },
                     onSongPlay: (song, playlist, index) {
                       playerProvider.playSong(
                         song.id,
@@ -129,58 +131,60 @@ class FavoritesViewState extends State<FavoritesView> with ShowAwarePage {
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(
                           16.0,
-                          0,
+                          PlatformUtils.isDesktop ? 18 : 0,
                           16.0,
-                          0,
+                          10,
                         ),
                         child: PageHeader(
-                        showImport: false,
-                        title: '喜欢的音乐',
-                        songs: songs,
-                        onSearch: (keyword) async {
-                          searchKeyword = keyword;
-                          await _loadSongs();
-                        },
-                        children: [
-                          const SizedBox(height: 4),
-                          MusicListHeader(
-                            songs: songs,
-                            orderField: orderField,
-                            orderDirection: orderDirection,
-                            showCheckbox: _showCheckbox,
-                            checkedIds: checkedIds,
-                            allowReorder: true, // 库视图允许重排列
-                            onShowCheckboxToggle: () {
-                              setState(() {
-                                _showCheckbox = true;
-                              });
-                            },
-                            onScrollToCurrent: () {
-                              final playerProvider =
-                                  Provider.of<PlayerProvider>(
-                                    context,
-                                    listen: false,
-                                  );
-                              final currentSongId =
-                                  playerProvider.currentSong?.id;
-                              if (currentSongId != null) {
-                                print(currentSongId);
-                              } else {
-                                LZFToast.show(context, '当前没有播放歌曲');
-                              }
-                            },
-                            onOrderChanged: (field, direction) {
-                              setState(() {
-                                orderField = field;
-                                orderDirection = direction;
-                              });
-                              _loadSongs();
-                            },
-                          ),
-                        ],
+                          showImport: false,
+                          title: AppLocale.favorites.getString(context),
+                          songs: songs,
+                          onSearch: (keyword) async {
+                            searchKeyword = keyword;
+                            await _loadSongs();
+                          },
+                          children: [
+                            const SizedBox(height: 4),
+                            MusicListHeader(
+                              songs: songs,
+                              orderField: orderField,
+                              orderDirection: orderDirection,
+                              showCheckbox: _showCheckbox,
+                              checkedIds: checkedIds,
+                              allowReorder: true, // 库视图允许重排列
+                              onShowCheckboxToggle: () {
+                                setState(() {
+                                  _showCheckbox = true;
+                                });
+                              },
+                              onScrollToCurrent: () {
+                                final playerProvider =
+                                    Provider.of<PlayerProvider>(
+                                  context,
+                                  listen: false,
+                                );
+                                final currentSongId =
+                                    playerProvider.currentSong?.id;
+                                if (currentSongId != null) {
+                                  print(currentSongId);
+                                } else {
+                                  LZFToast.show(context, '当前没有播放歌曲');
+                                }
+                              },
+                              onOrderChanged: (field, direction) {
+                                setState(() {
+                                  orderField = field;
+                                  orderDirection = direction;
+                                });
+                                _loadSongs();
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),                ),                ),
+                  ),
+                ),
               ],
             );
           },

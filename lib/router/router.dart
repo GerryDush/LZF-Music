@@ -100,7 +100,7 @@ class MenuManager {
     MenuItem(
       icon: Icons.favorite_rounded,
       iconSize: 22.0,
-      languageKey: AppLocale.favorite,
+      languageKey: AppLocale.favorites,
       key: PlayerPage.favorite,
       pageKey: GlobalKey<FavoritesViewState>(),
       builder: (key) => FavoritesView(key: key),

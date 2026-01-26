@@ -10,7 +10,7 @@ HWND FindExistingWindow() {
 }
 
 BOOL isProgramAlreadyRunning() {
-    g_hMutex = CreateMutex(NULL, TRUE, TEXT("LZF Music Mutex"));
+    g_hMutex = CreateMutex(NULL, TRUE, TEXT("Linx Music Mutex"));
     if (g_hMutex == NULL) return TRUE;
 
     if (GetLastError() == ERROR_ALREADY_EXISTS) {

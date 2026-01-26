@@ -24,7 +24,7 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
 
   final Player player = Player(
     configuration: const PlayerConfiguration(
-      title: 'LZF Music',
+      title: 'Linx Music',
     ),
   );
 
@@ -188,7 +188,7 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
       builder: () => service,
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'org.tttx.lzf_music.channel.audio',
-        androidNotificationChannelName: 'LZF Music',
+        androidNotificationChannelName: 'Linx Music',
         androidNotificationOngoing: true,
         androidNotificationClickStartsActivity: true,
       ),

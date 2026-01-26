@@ -1,8 +1,8 @@
-## **LZF Music - 一款优雅的 Flutter 开源音乐播放器**
+## **Linx Music - 一款优雅的 Flutter 开源音乐播放器**
 
 国内下载：https://lzf.geddy.cn/
 
-**LZF Music** 是一款基于 Flutter 开发的开源音乐播放器，致力于为用户提供简洁、美观且功能强大的本地与私有云音乐体验。
+**Linx Music** 是一款基于 Flutter 开发的开源音乐播放器，致力于为用户提供简洁、美观且功能强大的本地与私有云音乐体验。
 
 ![1](./doc/images/1.png)
 ![2](./doc/images/2.png)
@@ -29,7 +29,7 @@
 
 ### 🤝 **如何贡献**
 
-我们欢迎任何形式的贡献！无论是提交代码、报告问题还是提出新功能的建议，都对我们至关重要。请访问我们的 [LZF Music](https://github.com/GerryDush/LZF-Music) 开始。
+我们欢迎任何形式的贡献！无论是提交代码、报告问题还是提出新功能的建议，都对我们至关重要。请访问我们的 [Linx Music](https://github.com/GerryDush/LZF-Music) 开始。
 
 ### 📜 **许可证**
 

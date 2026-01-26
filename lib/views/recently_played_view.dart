@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localization/flutter_localization.dart';
+import 'package:lzf_music/i18n/i18n.dart';
 import 'package:lzf_music/model/song_list_item.dart';
-import 'package:lzf_music/services/audio_player_service.dart';
 import 'package:lzf_music/utils/common_utils.dart';
 import 'package:lzf_music/utils/platform_utils.dart';
 import 'package:lzf_music/utils/scroll_utils.dart';
@@ -24,7 +25,8 @@ class RecentlyPlayedView extends StatefulWidget {
   State<RecentlyPlayedView> createState() => RecentlyPlayedViewState();
 }
 
-class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePage {
+class RecentlyPlayedViewState extends State<RecentlyPlayedView>
+    with ShowAwarePage {
   late MusicImportService importService;
   List<SongListItem> songs = [];
   Song? currentSong = null;
@@ -54,12 +56,10 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
     try {
       List<SongListItem> loadedSongs;
       final keyword = searchKeyword;
-      loadedSongs = await MusicDatabase.database.smartSearch(
-        keyword?.trim(),
-        orderField: orderField,
-        orderDirection: orderDirection,
-        isLastPlayed: true
-      );
+      loadedSongs = await MusicDatabase.database.smartSearch(keyword?.trim(),
+          orderField: orderField,
+          orderDirection: orderDirection,
+          isLastPlayed: true);
       setState(() {
         songs = loadedSongs;
       });
@@ -90,9 +90,9 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     4,
-                    CommonUtils.select(theme.isFloat, t: 20, f: 110),
+                    CommonUtils.select(theme.isFloat, t: 20, f: 120),
                     4,
-                    CommonUtils.select(theme.isFloat, t: 0, f: 90),
+                    CommonUtils.select(theme.isFloat, t: 10, f: 90),
                   ),
                   child: MusicListView(
                     songs: songs,
@@ -129,52 +129,54 @@ class RecentlyPlayedViewState extends State<RecentlyPlayedView> with ShowAwarePa
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(
                           16.0,
-                          0,
+                          PlatformUtils.isDesktop ? 18 : 0,
                           16.0,
-                          0,
+                          10,
                         ),
                         child: PageHeader(
-                        showImport: false,
-                        title: '最近播放',
-                        songs: songs,
-                        onSearch: (keyword) async {
-                          searchKeyword = keyword;
-                          await _loadSongs();
-                        },
-                        children: [
-                          const SizedBox(height: 4),
-                          MusicListHeader(
-                            songs: songs,
-                            orderField: orderField,
-                            orderDirection: orderDirection,
-                            showCheckbox: _showCheckbox,
-                            checkedIds: checkedIds,
-                            allowReorder: true, // 库视图允许重排列
-                            onShowCheckboxToggle: () {
-                              setState(() {
-                                _showCheckbox = true;
-                              });
-                            },
-                            onScrollToCurrent: () {
-                              if (currentSong != null) {
-                                ScrollUtils.scrollToCurrentSong(_scrollController, songs, currentSong);
-                              } else {
-                                LZFToast.show(context, '当前没有播放歌曲');
-                              }
-                            },
-                            onOrderChanged: (field, direction) {
-                              setState(() {
-                                orderField = field;
-                                orderDirection = direction;
-                              });
-                              _loadSongs();
-                            },
-                            
-                          ),
-                        ],
+                          showImport: false,
+                          title: AppLocale.recentlyPlayed.getString(context),
+                          songs: songs,
+                          onSearch: (keyword) async {
+                            searchKeyword = keyword;
+                            await _loadSongs();
+                          },
+                          children: [
+                            const SizedBox(height: 4),
+                            MusicListHeader(
+                              songs: songs,
+                              orderField: orderField,
+                              orderDirection: orderDirection,
+                              showCheckbox: _showCheckbox,
+                              checkedIds: checkedIds,
+                              allowReorder: true, // 库视图允许重排列
+                              onShowCheckboxToggle: () {
+                                setState(() {
+                                  _showCheckbox = true;
+                                });
+                              },
+                              onScrollToCurrent: () {
+                                if (currentSong != null) {
+                                  ScrollUtils.scrollToCurrentSong(
+                                      _scrollController, songs, currentSong);
+                                } else {
+                                  LZFToast.show(context, '当前没有播放歌曲');
+                                }
+                              },
+                              onOrderChanged: (field, direction) {
+                                setState(() {
+                                  orderField = field;
+                                  orderDirection = direction;
+                                });
+                                _loadSongs();
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),                ),                ),
+                  ),
+                ),
               ],
             );
           },

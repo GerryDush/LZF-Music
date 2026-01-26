@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../services/player_provider.dart';
 import '../widgets/slider_custom.dart';
 import '../contants/app_contants.dart' show PlayMode;
+import 'package:cupertino_icons/cupertino_icons.dart';
 
 class SongInfoPanel extends StatelessWidget {
   final double tempSliderValue;
@@ -166,16 +168,17 @@ class MusicControlButtons extends StatelessWidget {
         
         return Column(
           children: [
+            const SizedBox(height: 10),
             Row(
               children: [
                 if (showPlayModeButtons)
                   IconButton(
-                    iconSize: 20,
+                    iconSize: 18,
                     padding: compactLayout ? const EdgeInsets.all(4) : null,
                     constraints: compactLayout ? const BoxConstraints() : null,
                     color: Colors.white70,
                     icon: Icon(
-                      Icons.shuffle_rounded,
+                      CupertinoIcons.shuffle,
                       color: playerProvider.playMode == PlayMode.shuffle
                           ? Colors.white
                           : null,
@@ -194,39 +197,39 @@ class MusicControlButtons extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        iconSize: 48,
+                        iconSize: 36,
                         padding: compactLayout ? const EdgeInsets.all(4) : null,
                         constraints: compactLayout ? const BoxConstraints() : null,
                         color: (playerProvider.hasPrevious ||
                                 playerProvider.playMode == PlayMode.loop)
                             ? Colors.white
                             : Colors.white70,
-                        icon: const Icon(Icons.skip_previous_rounded),
+                        icon: const Icon(CupertinoIcons.backward_fill),
                         onPressed: () => playerProvider.previous(),
                       ),
                       SizedBox(width: compactLayout ? 8 : 16),
                       IconButton(
-                        iconSize: 64,
+                        iconSize: 52,
                         padding: compactLayout ? const EdgeInsets.all(4) : null,
                         constraints: compactLayout ? const BoxConstraints() : null,
                         color: Colors.white,
                         icon: Icon(
                           isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
+                              ? CupertinoIcons.pause_fill
+                              : CupertinoIcons.play_fill,
                         ),
                         onPressed: () => playerProvider.togglePlay(),
                       ),
                       SizedBox(width: compactLayout ? 8 : 16),
                       IconButton(
-                        iconSize: 48,
+                        iconSize: 36,
                         padding: compactLayout ? const EdgeInsets.all(4) : null,
                         constraints: compactLayout ? const BoxConstraints() : null,
                         color: (playerProvider.hasNext ||
                                 playerProvider.playMode == PlayMode.loop)
                             ? Colors.white
                             : Colors.white70,
-                        icon: const Icon(Icons.skip_next_rounded),
+                        icon: const Icon(CupertinoIcons.forward_fill),
                         onPressed: () => playerProvider.next(),
                       ),
                     ],
@@ -234,14 +237,14 @@ class MusicControlButtons extends StatelessWidget {
                 ),
                 if (showPlayModeButtons)
                   IconButton(
-                    iconSize: 20,
+                    iconSize: 18,
                     padding: compactLayout ? const EdgeInsets.all(4) : null,
                     constraints: compactLayout ? const BoxConstraints() : null,
                     color: Colors.white70,
                     icon: Icon(
                       playerProvider.playMode == PlayMode.singleLoop
-                          ? Icons.repeat_one_rounded
-                          : Icons.repeat_rounded,
+                          ? CupertinoIcons.repeat_1
+                          : CupertinoIcons.repeat,
                       color: playerProvider.playMode == PlayMode.loop ||
                               playerProvider.playMode == PlayMode.singleLoop
                           ? Colors.white
@@ -263,15 +266,16 @@ class MusicControlButtons extends StatelessWidget {
             ),
             if (compactLayout) ...[
             ] else ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
             ],
             Row(
           children: [
             IconButton(
+              iconSize: 20,
               padding: compactLayout ? const EdgeInsets.all(4) : null,
               constraints: compactLayout ? const BoxConstraints() : null,
               icon: const Icon(
-                Icons.volume_down_rounded,
+                CupertinoIcons.volume_down,
                 color: Colors.white70,
               ),
               onPressed: () {
@@ -292,9 +296,10 @@ class MusicControlButtons extends StatelessWidget {
               ),
             ),
             IconButton(
+              iconSize: 20,
               padding: compactLayout ? const EdgeInsets.all(4) : null,
               constraints: compactLayout ? const BoxConstraints() : null,
-              icon: const Icon(Icons.volume_up_rounded, color: Colors.white70),
+              icon: const Icon(CupertinoIcons.volume_up, color: Colors.white70),
               onPressed: () {
                 playerProvider.setVolume(playerProvider.volume + 0.1);
               },

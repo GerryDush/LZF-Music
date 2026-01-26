@@ -9,6 +9,7 @@ import '../widgets/mini_player.dart';
 import '../contants/app_contants.dart' show PlayerPage;
 import '../router/router.dart';
 import '../utils/native_tab_bar_utils.dart';
+import '../i18n/i18n.dart';
 
 class HomePageDesktop extends StatefulWidget {
   const HomePageDesktop({super.key});
@@ -65,8 +66,8 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const Text(
-                                          'LZF',
+                                        Text(
+                                          AppLocale.linx.getString(context),
                                           style: TextStyle(
                                             height: 2,
                                             fontSize: 24,
@@ -89,8 +90,8 @@ class _HomePageDesktopState extends State<HomePageDesktop> {
                                           },
                                           child: CommonUtils.select(
                                             theme.sidebarIsExtended,
-                                            t: const Text(
-                                              ' Music',
+                                            t: Text(
+                                              AppLocale.music.getString(context),
                                               style: TextStyle(
                                                 height: 2,
                                                 fontSize: 24,

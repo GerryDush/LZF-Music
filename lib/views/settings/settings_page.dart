@@ -86,18 +86,20 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(
                           16.0,
-                          0,
+                          PlatformUtils.isDesktop ? 18 : 0,
                           16.0,
-                          0,
+                          10,
                         ),
                         child: PageHeader(
-                        showImport: false,
-                        showSearch: false,
-                        title: '系统设置',
-                        children: [],
+                          showImport: false,
+                          showSearch: false,
+                          title: AppLocale.settings.getString(context),
+                          children: [],
+                        ),
                       ),
                     ),
-                  ),                ),                ),
+                  ),
+                ),
               ],
             );
           },
@@ -377,7 +379,8 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
                 ),
                 subtitle: Text(
                   languages.firstWhere(
-                      (e) => e['code'] == localization.currentLocale?.languageCode,
+                      (e) =>
+                          e['code'] == localization.currentLocale?.languageCode,
                       orElse: () => languages[0])['name'],
                 ),
                 trailing: const Icon(Icons.chevron_right),
@@ -653,7 +656,7 @@ class SettingsPageState extends State<SettingsPage> with ShowAwarePage {
     _buildCopyRow(context, 'QQ群', '709053803');
     LZFDialog.show(
       context,
-      titleText: 'LZF Music',
+      titleText: 'Linx Music',
       content: SizedBox(
         width: 400,
         child: Column(

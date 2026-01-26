@@ -137,7 +137,7 @@ class _MainAppState extends State<MainApp> with DesktopWindowMixin {
             supportedLocales: _localization.supportedLocales,
             localizationsDelegates: _localization.localizationsDelegates,
             color: Colors.transparent,
-            title: 'LZF Music',
+            title: 'Linx Music',
             theme: themeProvider.buildLightTheme(),
             darkTheme: themeProvider.buildDarkTheme(),
             themeMode: themeProvider.themeMode,
